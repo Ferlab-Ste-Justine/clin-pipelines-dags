@@ -25,8 +25,7 @@ with DAG(
     # Following steps to get and build the raw zip file
     # 1 - download dbNSFP4.3a.zip from https://sites.google.com/site/jpopgen/dbNSFP
     # 2 - extract ZIP content on local inside a folder
-    # 3 - ZIP again all the files which match pattern: dbNSFP4.3a_variant.chr*.gz into dbNSFP4.3a.zip
-    # 4 - deploy that dbNSFP4.3a.zip file on S3
+    # 4 - deploy all files dbNSFP4.3a_variant.chr*.gz on S3
 
     raw = SparkOperator(
         task_id='raw',
