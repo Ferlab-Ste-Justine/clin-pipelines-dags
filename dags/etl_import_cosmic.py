@@ -24,11 +24,12 @@ with DAG(
             'on_failure_callback': Slack.notify_task_failure,
         },
 ) as dag:
-    def get_latest_ver(url):
-        html = http_get(url).text
-        latest_ver = re.search('COSMIC (v[0-9]+),', html).group(1)
-        logging.info(f'COSMIC latest version: {latest_ver}')
-        return latest_ver
+    def download_file(url, path, ver, file_name, credentials):
+        download_url = http_get(
+            f'{url}/{path}/{ver}/{file_name}',
+            {'Authorization': f'Basic {credentials}'}
+        ).json()['url']
+        http_get_file(download_url, file_name)
 
 
     def _files():
@@ -44,7 +45,8 @@ with DAG(
         logging.info(f'COSMIC latest version: {latest_ver}')
 
         gene_census_file = 'cancer_gene_census.csv'
-        mutation_census_file = 'CMC.tar'
+        mutation_census_file = 'cmc_export.tsv.gz'
+        mutation_census_archive = 'CMC.tar'
         updated = False
 
         for file_name in [gene_census_file, mutation_census_file]:
@@ -65,20 +67,15 @@ with DAG(
             ).decode()
 
             # Get download url
-            download_url = http_get(
-                f'{url}/{path}/{latest_ver}/{file_name}',
-                {'Authorization': f'Basic {credentials}'}
-            ).json()['url']
-
-            # Download file
-            http_get_file(download_url, file_name)
+            if file_name == mutation_census_file:
+                download_file(url, path, latest_ver, mutation_census_archive, credentials)
+            else:
+                download_file(url, path, latest_ver, file_name, credentials)
 
             # Extract mutation census file
             if file_name == mutation_census_file:
-                extracted_file_name = 'cmc_export.tsv.gz'
-                with tarfile.open(file_name, 'r') as tar:
-                    tar.extract(extracted_file_name)
-                file_name = extracted_file_name
+                with tarfile.open(mutation_census_archive, 'r') as tar:
+                    tar.extract(mutation_census_file)
 
             # Upload file to S3
             load_to_s3_with_version(s3, s3_bucket, s3_key, file_name, latest_ver)
@@ -100,7 +97,7 @@ with DAG(
         task_id='table',
         name='etl-import-cosmic-table',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.datalake.spark3.public.ImportPublicTable',
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
         arguments=[
             'cosmic_gene_set',
