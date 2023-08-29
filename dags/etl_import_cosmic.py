@@ -1,6 +1,7 @@
 import base64
 import logging
 import re
+import tarfile
 from datetime import datetime
 
 from airflow import DAG
@@ -43,7 +44,7 @@ with DAG(
         logging.info(f'COSMIC latest version: {latest_ver}')
 
         gene_census_file = 'cancer_gene_census.csv'
-        mutation_census_file = f'CancerMutationCensus_AllData_Tsv_{latest_ver}_GRCh38.tar'
+        mutation_census_file = 'CMC.tar'
         updated = False
 
         for file_name in [gene_census_file, mutation_census_file]:
@@ -71,6 +72,13 @@ with DAG(
 
             # Download file
             http_get_file(download_url, file_name)
+
+            # Extract mutation census file
+            if file_name == mutation_census_file:
+                extracted_file_name = 'cmc_export.tsv.gz'
+                with tarfile.open(file_name, 'r') as tar:
+                    tar.extract(extracted_file_name)
+                file_name = extracted_file_name
 
             # Upload file to S3
             load_to_s3_with_version(s3, s3_bucket, s3_key, file_name, latest_ver)
