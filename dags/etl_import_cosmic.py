@@ -8,6 +8,7 @@ from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.trigger_rule import TriggerRule
 
 from lib import config
 from lib.config import env, K8sContext, config_file
@@ -106,6 +107,7 @@ with DAG(
             '--app-name', 'etl_import_cosmic_table',
         ],
         on_success_callback=Slack.notify_dag_completion,
+        trigger_rule=TriggerRule.NONE_FAILED
     )
 
     # TODO: Import mutation census public table
