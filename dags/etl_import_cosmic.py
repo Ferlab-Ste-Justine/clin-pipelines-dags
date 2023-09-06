@@ -6,6 +6,7 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
@@ -94,9 +95,9 @@ with DAG(
         on_execute_callback=Slack.notify_dag_start,
     )
 
-    table = SparkOperator(
-        task_id='table',
-        name='etl-import-cosmic-table',
+    gene_table = SparkOperator(
+        task_id='gene_table',
+        name='etl-import-cosmic-gene-set-table',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='enriched-etl',
@@ -104,12 +105,29 @@ with DAG(
             'cosmic_gene_set',
             '--config', config_file,
             '--steps', 'default',
-            '--app-name', 'etl_import_cosmic_table',
+            '--app-name', 'etl_import_cosmic_gene_set_table',
         ],
-        on_success_callback=Slack.notify_dag_completion,
         trigger_rule=TriggerRule.NONE_FAILED
     )
 
-    # TODO: Import mutation census public table
+    mutation_table = SparkOperator(
+        task_id='mutation_table',
+        name='etl-import-cosmic-mutation-set-table',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
+        spark_config='enriched-etl',
+        arguments=[
+            'cosmic_mutation_set',
+            '--config', config_file,
+            '--steps', 'default',
+            '--app-name', 'etl_import_cosmic_mutation_set_table',
+        ],
+        trigger_rule=TriggerRule.NONE_FAILED
+    )
 
-    files >> table
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion
+    )
+
+    files >> [gene_table, mutation_table] >> slack
