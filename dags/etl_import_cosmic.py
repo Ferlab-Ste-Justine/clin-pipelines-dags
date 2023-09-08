@@ -46,12 +46,13 @@ with DAG(
         latest_ver = re.search('COSMIC (v[0-9]+),', html).group(1)
         logging.info(f'COSMIC latest version: {latest_ver}')
 
-        gene_census_file = 'cancer_gene_census.csv'
+        # TODO: Download Cosmic_CancerGeneCensus_GRCh38.tar when scripted downloads are added to new download page
+        # gene_census_file = 'cancer_gene_census.csv'
         mutation_census_file = 'cmc_export.tsv.gz'
         mutation_census_archive = 'CMC.tar'
         updated = False
 
-        for file_name in [gene_census_file, mutation_census_file]:
+        for file_name in [mutation_census_file]:
             s3_key = f'raw/landing/cosmic/{file_name}'
 
             # Get imported version
@@ -104,7 +105,7 @@ with DAG(
         arguments=[
             'cosmic_gene_set',
             '--config', config_file,
-            '--steps', 'default',
+            '--steps', 'initial',
             '--app-name', 'etl_import_cosmic_gene_set_table',
         ],
         trigger_rule=TriggerRule.NONE_FAILED
