@@ -4,6 +4,7 @@ from enum import Enum
 import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 
 class Env:
@@ -47,16 +48,6 @@ batch_ids = []
 
 clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'
-
-class ClinVCFSuffix(Enum):
-    SNV_GERMLINE    = '.hard-filtered.formatted.norm.VEP.vcf.gz'
-    SNV_SOMATIC     = '.dragen.WES_somatic-tumor_only.hard-filtered.norm.VEP.vcf.gz'
-    CNV_GERMLINE    = '.cnv.vcf.gz'
-    CNV_SOMATIC     = '.dragen.WES_somatic-tumor_only.cnv.vcf.gz'
-
-class ClinSchema(Enum):
-    GERMLINE     = 'CQGC_Germline'
-    SOMATIC      = 'CQGC_Exome_Tumeur_Seul'
 
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
@@ -163,8 +154,3 @@ def k8s_load_config(context: str) -> None:
             config_file=k8s_config_file(context),
             context=k8s_context[context],
         )
-
-def get_metadata_content(clin_s3, batch_id):
-    metadata_path = f'{batch_id}/metadata.json'
-    file_obj = clin_s3.get_key(metadata_path, clin_import_bucket)
-    return json.loads(file_obj.get()['Body'].read().decode('utf-8'))

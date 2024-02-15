@@ -1,10 +1,9 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
-from lib.config import Env, K8sContext, env, es_url
+
+from lib.config import env, es_url, Env, K8sContext
 from lib.operators.aws import AwsOperator
 from lib.operators.curl import CurlOperator
 from lib.operators.k8s_deployment_pause import K8sDeploymentPauseOperator
@@ -13,6 +12,8 @@ from lib.operators.k8s_deployment_resume import K8sDeploymentResumeOperator
 from lib.operators.postgres import PostgresOperator
 from lib.operators.wait import WaitOperator
 from lib.slack import Slack
+from lib.tasks.params_validate import validate_color
+from lib.utils_etl import color
 
 if env in [Env.QA, Env.STAGING]:
 
@@ -28,38 +29,7 @@ if env in [Env.QA, Env.STAGING]:
         },
     ) as dag:
 
-        def color(prefix: str = '') -> str:
-            return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
-
-        def _params_validate(color):
-            if env == Env.QA:
-                if not color or color == '':
-                    raise AirflowFailException(
-                        f'DAG param "color" is required in {env} environment'
-                    )
-            elif env == Env.STAGING:
-                if color and color != '':
-                    raise AirflowFailException(
-                        f'DAG param "color" is forbidden in {env} environment'
-                    )
-            elif env == Env.PROD:
-                if color and color != '':
-                    raise AirflowFailException(
-                        f'DAG param "color" is forbidden in {env} environment'
-                    )
-            '''
-            else:
-                raise AirflowFailException(
-                    f'DAG run is forbidden in {env} environment'
-                )
-            '''
-
-        params_validate = PythonOperator(
-            task_id='params_validate',
-            op_args=[color()],
-            python_callable=_params_validate,
-            on_execute_callback=Slack.notify_dag_start,
-        )
+        params_validate = validate_color(color())
 
         fhir_pause = K8sDeploymentPauseOperator(
             task_id='fhir_pause',
