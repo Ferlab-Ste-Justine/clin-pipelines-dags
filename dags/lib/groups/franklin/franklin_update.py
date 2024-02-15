@@ -1,28 +1,18 @@
 import logging
 
-from airflow.decorators import task
-from airflow.exceptions import AirflowFailException, AirflowSkipException
-from airflow.models.baseoperator import chain
-from airflow.models.param import Param
-from airflow.operators.empty import EmptyOperator
+from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.task_group import TaskGroup
-from airflow.utils.trigger_rule import TriggerRule
+
 from lib import config
-from lib.config import (ClinVCFSuffix, K8sContext, clin_datalake_bucket,
-                        clin_import_bucket, config_file, env)
-from lib.franklin import (FranklinStatus, attach_vcf_to_analysis,
-                          build_s3_analyses_id_key, build_s3_analyses_ids_key,
-                          build_s3_analyses_json_key,
+from lib.config import (clin_datalake_bucket,
+                        env)
+from lib.franklin import (FranklinStatus, build_s3_analyses_id_key, build_s3_analyses_json_key,
                           build_s3_analyses_status_key,
-                          extract_from_name_aliquot_id,
-                          extract_param_from_s3_key, get_analysis_status,
-                          get_completed_analysis, get_franklin_token,
-                          get_metadata_content, group_families_from_metadata,
-                          post_create_analysis, transfer_vcf_to_franklin,
+                          extract_param_from_s3_key, get_completed_analysis, get_franklin_token,
                           write_s3_analysis_status)
-from lib.operators.pipeline import PipelineOperator
+from lib.utils_etl import (ClinVCFSuffix)
 from sensors.franklin import FranklinAPISensor
 
 

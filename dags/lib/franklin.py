@@ -7,13 +7,13 @@ import tempfile
 import urllib.parse
 from datetime import datetime
 from enum import Enum
-from io import BytesIO
 
 from airflow.exceptions import AirflowFailException
+
 from lib import config
-from lib.config import (ClinVCFSuffix, clin_datalake_bucket,
-                        clin_import_bucket, env, franklin_assay_id,
-                        get_metadata_content)
+from lib.config import (clin_datalake_bucket,
+                        clin_import_bucket, env, franklin_assay_id)
+from lib.utils_etl import (ClinVCFSuffix)
 
 
 # current state of an analysis is saved inside _FRANKLIN_STATUS_.txt
@@ -139,7 +139,7 @@ def find_proband_aliquot_id(analyses):
     for analysis in analyses:
         if analysis["patient"]["familyMember"] == FamilyMember.PROBAND.value:
             return analysis["labAliquotId"]
-    raise AirflowFailException(f'Cant find proband aliquot id: {obj}')
+    raise AirflowFailException(f'Cant find proband aliquot id in: {analyses}')
 
 # add a 'vcf' field to the analyses
 def attach_vcf_to_analyses(obj, vcfs):

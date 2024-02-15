@@ -1,15 +1,15 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
-from lib import config
-from lib.config import Env, K8sContext, env
+
+from lib.config import env, K8sContext
 from lib.operators.fhir import FhirOperator
 from lib.operators.fhir_csv import FhirCsvOperator
 from lib.operators.wait import WaitOperator
 from lib.slack import Slack
+from lib.tasks.params_validate import validate_color
+from lib.utils_etl import color
 
 with DAG(
     dag_id='etl_import_fhir',
@@ -23,26 +23,7 @@ with DAG(
     },
 ) as dag:
 
-    def color(prefix: str = '') -> str:
-        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
-
-    def _params_validate(color):
-        if env == Env.QA:
-            if not color or color == '':
-                raise AirflowFailException(
-                    f'DAG param "color" is required in {env} environment'
-                )
-        elif color and color != '':
-            raise AirflowFailException(
-                f'DAG param "color" is forbidden in {env} environment'
-            )
-
-    params_validate = PythonOperator(
-        task_id='params_validate',
-        op_args=[color()],
-        python_callable=_params_validate,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+    params_validate = validate_color(color())
 
     ig_publish = FhirOperator(
         task_id='ig_publish',

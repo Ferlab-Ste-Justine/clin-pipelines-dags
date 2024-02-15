@@ -1,185 +1,37 @@
-from airflow.utils.task_group import TaskGroup
-from lib.config import env_url, Env, K8sContext
-from lib.doc import qa as doc
-from lib.operators.spark import SparkOperator
+from airflow.decorators import task_group
+
+from lib.tasks import qa as qa_tasks
 
 
+@task_group(group_id='qa')
 def qa(
-    group_id: str,
-    release_id: str,
-    spark_jar: str,
-) -> TaskGroup:
+        release_id: str,
+        spark_jar: str,
+):
+    """
+    Runs all QA tasks.
+    """
+    non_empty_tables = qa_tasks.non_empty_tables(release_id, spark_jar)
+    no_dup_gnomad = qa_tasks.no_dup_gnomad(release_id, spark_jar)
+    no_dup_nor_snv = qa_tasks.no_dup_nor_snv(release_id, spark_jar)
+    no_dup_nor_snv_somatic = qa_tasks.no_dup_nor_snv_somatic(release_id, spark_jar)
+    no_dup_nor_consequences = qa_tasks.no_dup_nor_consequences(release_id, spark_jar)
+    no_dup_nor_variants = qa_tasks.no_dup_nor_variants(release_id, spark_jar)
+    no_dup_snv = qa_tasks.no_dup_snv(release_id, spark_jar)
+    no_dup_snv_somatic = qa_tasks.no_dup_snv_somatic(release_id, spark_jar)
+    no_dup_consequences = qa_tasks.no_dup_consequences(release_id, spark_jar)
+    no_dup_variants = qa_tasks.no_dup_variants(release_id, spark_jar)
+    no_dup_variant_centric = qa_tasks.no_dup_variant_centric(release_id, spark_jar)
+    no_dup_cnv_centric = qa_tasks.no_dup_cnv_centric(release_id, spark_jar)
+    # no_dup_varsome = qa_tasks.no_dup_varsome(release_id, spark_jar)
+    same_list_nor_snv_nor_variants = qa_tasks.same_list_nor_snv_nor_variants(release_id, spark_jar)
+    same_list_nor_snv_somatic_nor_variants = qa_tasks.same_list_nor_snv_somatic_nor_variants(release_id, spark_jar)
+    same_list_snv_variants = qa_tasks.same_list_snv_variants(release_id, spark_jar)
+    same_list_snv_somatic_variants = qa_tasks.same_list_snv_somatic_variants(release_id, spark_jar)
+    same_list_variants_variant_centric = qa_tasks.same_list_variants_variant_centric(release_id, spark_jar)
 
-    with TaskGroup(group_id=group_id) as group:
-
-        non_empty_tables = SparkOperator(
-            task_id='non_empty_tables',
-            doc_md=doc.non_empty_tables,
-            name='etl-qc-non-empty-tables',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.tables.NonEmptyTables',
-            spark_config='config-etl-medium',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_gnomad = SparkOperator(
-            task_id='no_dup_gnomad',
-            doc_md=doc.no_dup_gnomad,
-            name='etl-qc-no-dup-gnomad',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationGnomad',
-            spark_config='config-etl-medium',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_nor_snv = SparkOperator(
-            task_id='no_dup_nor_snv',
-            doc_md=doc.no_dup_nor_snv,
-            name='etl-qc-no-dup-nor-snv',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorSNV',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_nor_consequences = SparkOperator(
-            task_id='no_dup_nor_consequences',
-            doc_md=doc.no_dup_nor_consequences,
-            name='etl-qc-no-dup-nor-consequences',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorConsequences',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_nor_variants = SparkOperator(
-            task_id='no_dup_nor_variants',
-            doc_md=doc.no_dup_nor_variants,
-            name='etl-qc-no-dup-nor-variants',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNorVariants',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_snv = SparkOperator(
-            task_id='no_dup_snv',
-            doc_md=doc.no_dup_snv,
-            name='etl-qc-no-dup-snv',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationSNV',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_consequences = SparkOperator(
-            task_id='no_dup_consequences',
-            doc_md=doc.no_dup_consequences,
-            name='etl-qc-no-dup-consequences',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationConsequences',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_variants = SparkOperator(
-            task_id='no_dup_variants',
-            doc_md=doc.no_dup_variants,
-            name='etl-qc-no-dup-variants',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariants',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_variant_centric = SparkOperator(
-            task_id='no_dup_variant_centric',
-            doc_md=doc.no_dup_variant_centric,
-            name='etl-qc-no-dup-variant-centric',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVariantCentric',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        no_dup_cnv_centric = SparkOperator(
-            task_id='no_dup_cnv_centric',
-            doc_md=doc.no_dup_cnv_centric,
-            name='etl-qc-no-dup-cnv-centric',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationCNV',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-        '''
-        no_dup_varsome = SparkOperator(
-            task_id='no_dup_varsome',
-            doc_md=doc.no_dup_varsome,
-            name='etl-qc-no-dup-varsome',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationVarsome',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-        '''
-        same_list_nor_snv_nor_variants = SparkOperator(
-            task_id='same_list_nor_snv_nor_variants',
-            doc_md=doc.same_list_nor_snv_nor_variants,
-            name='etl-qc-same-list-nor-snv-nor-variants',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenNorSNVAndNorVariants',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        same_list_snv_variants = SparkOperator(
-            task_id='same_list_snv_variants',
-            doc_md=doc.same_list_snv_variants,
-            name='etl-qc-same-list-snv-variants',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenSNVAndVariants',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        same_list_variants_variant_centric = SparkOperator(
-            task_id='same_list_variants_variant_centric',
-            doc_md=doc.same_list_variants_variant_centric,
-            name='etl-qc-same-list-variants-variant-centric',
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.qc.variantlist.SameListBetweenVariantsAndVariantCentric',
-            spark_config='config-etl-small',
-            spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
-            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-        )
-
-        [non_empty_tables, no_dup_gnomad, no_dup_nor_snv, no_dup_nor_consequences, no_dup_nor_variants, no_dup_snv, no_dup_consequences, no_dup_variants, no_dup_variant_centric, no_dup_cnv_centric, same_list_nor_snv_nor_variants, same_list_snv_variants, same_list_variants_variant_centric]
-
-    return group
+    [non_empty_tables, no_dup_gnomad, no_dup_nor_snv, no_dup_nor_snv_somatic, no_dup_nor_consequences,
+     no_dup_nor_variants, no_dup_snv, no_dup_snv_somatic, no_dup_consequences, no_dup_variants,
+     no_dup_variant_centric, no_dup_cnv_centric, same_list_nor_snv_nor_variants,
+     same_list_nor_snv_somatic_nor_variants, same_list_snv_variants, same_list_snv_somatic_variants,
+     same_list_variants_variant_centric]

@@ -1,18 +1,18 @@
 import logging
 
 from airflow.decorators import task
-from airflow.exceptions import AirflowFailException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.task_group import TaskGroup
+
 from lib import config
-from lib.config import (ClinSchema, ClinVCFSuffix, K8sContext,
-                        clin_import_bucket, config_file, env)
+from lib.config import (clin_import_bucket)
 from lib.franklin import (FranklinStatus, attach_vcf_to_analyses,
                           can_create_analysis, extract_vcf_prefix,
                           filter_valid_families, get_franklin_token,
-                          get_metadata_content, group_families_from_metadata,
+                          group_families_from_metadata,
                           post_create_analysis, transfer_vcf_to_franklin,
                           write_s3_analyses_status)
+from lib.utils_etl import (ClinSchema, ClinVCFSuffix, get_metadata_content)
 
 
 def FranklinCreate(

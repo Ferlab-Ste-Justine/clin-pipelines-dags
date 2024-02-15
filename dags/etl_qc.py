@@ -1,14 +1,15 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
+
 from lib.doc import qc as doc
 from lib.groups.qc import qc
 from lib.slack import Slack
+from lib.tasks.params_validate import validate_release
+from lib.utils_etl import release_id, spark_jar
 
 with DAG(
     dag_id='etl_qc',
@@ -24,23 +25,7 @@ with DAG(
     },
     max_active_tasks=4
 ) as dag:
-
-    def release_id() -> str:
-        return '{{ params.release_id }}'
-
-    def spark_jar() -> str:
-        return '{{ params.spark_jar or "" }}'
-
-    def _params_validate(release_id):
-        if release_id == '':
-            raise AirflowFailException('DAG param "release_id" is required')
-
-    params_validate = PythonOperator(
-        task_id='params_validate',
-        op_args=[release_id()],
-        python_callable=_params_validate,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+    params_validate = validate_release(release_id())
 
     qc = qc(
         group_id='qc',

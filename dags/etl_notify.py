@@ -3,30 +3,25 @@ from datetime import datetime
 from airflow import DAG
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
-from lib.config import Env, K8sContext, env
+
+from lib.config import env, Env, K8sContext
 from lib.operators.pipeline import PipelineOperator
 from lib.slack import Slack
+from lib.tasks.params_validate import validate_batch_color
+from lib.utils_etl import color, batch_id
 
 with DAG(
-    dag_id='etl_notify',
-    start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
-    params={
-        'batch_id':  Param('', type='string'),
-        'color': Param('', type=['null', 'string']),
-    },
-    default_args={
-        'on_failure_callback': Slack.notify_task_failure,
-    },
+        dag_id='etl_notify',
+        start_date=datetime(2022, 1, 1),
+        schedule_interval=None,
+        params={
+            'batch_id': Param('', type='string'),
+            'color': Param('', type=['null', 'string']),
+        },
+        default_args={
+            'on_failure_callback': Slack.notify_task_failure,
+        },
 ) as dag:
-
-    def batch_id() -> str:
-        return '{{ params.batch_id or "" }}'
-
-    def color(prefix: str = '') -> str:
-        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
-
     def _params_validate(batch_id, color):
         if batch_id == '':
             raise AirflowFailException('DAG param "batch_id" is required')
@@ -40,12 +35,8 @@ with DAG(
                 f'DAG param "color" is forbidden in {env} environment'
             )
 
-    params_validate = PythonOperator(
-        task_id='params_validate',
-        op_args=[batch_id(), color()],
-        python_callable=_params_validate,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+
+    params_validate = validate_batch_color(batch_id(), color())
 
     notify = PipelineOperator(
         task_id='notify',

@@ -1,21 +1,18 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException
+from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
-from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import Env, K8sContext, env, es_url
-from lib.groups.ingest_batch import IngestBatch
-from lib.groups.ingest_fhir import IngestFhir
-from lib.groups.qa import qa
-from lib.operators.arranger import ArrangerOperator
-from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
-from lib.operators.pipeline import PipelineOperator
-from lib.operators.spark import SparkOperator
+
+from lib.groups.ingest.ingest_germline import ingest_germline
+from lib.groups.ingest.ingest_somatic_tumor_normal import ingest_somatic_tumor_normal
+from lib.groups.ingest.ingest_somatic_tumor_only import ingest_somatic_tumor_only
 from lib.slack import Slack
+from lib.tasks import batch_type
+from lib.tasks.params_validate import validate_batch_color
+from lib.utils_etl import batch_id, color, skip_import, spark_jar
 
 with DAG(
     dag_id='etl_ingest',
@@ -33,61 +30,64 @@ with DAG(
     },
     max_active_tasks=4
 ) as dag:
-
-    def batch_id() -> str:
-        return '{{ params.batch_id or "" }}'
-
-    def spark_jar() -> str:
-        return '{{ params.spark_jar or "" }}'
-
-    def color(prefix: str = '') -> str:
-        return '{% if params.color and params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
-
-    def skip_import() -> str:
-        return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
-
-    def _params_validate(batch_id, color):
-        if batch_id == '':
-            raise AirflowFailException('DAG param "batch_id" is required')
-        if env == Env.QA:
-            if not color or color == '':
-                raise AirflowFailException(
-                    f'DAG param "color" is required in {env} environment'
-                )
-        elif color and color != '':
-            raise AirflowFailException(
-                f'DAG param "color" is forbidden in {env} environment'
-            )
-
-    params_validate = PythonOperator(
-        task_id='params_validate',
-        op_args=[batch_id(), color()],
-        python_callable=_params_validate,
-        on_execute_callback=Slack.notify_dag_start,
+    params_validate = validate_batch_color.override(on_execute_callback=Slack.notify_dag_start)(
+        batch_id=batch_id(),
+        color=color()
     )
 
-    ingest_fhir = IngestFhir(
-        group_id='fhir',
+    detect_batch_type_task = batch_type.detect(batch_id())
+
+
+    @task.branch(task_id='call_group')
+    def call_ingest_group(batch_type: str):
+        batch_type_ingest_map = {
+            'germline': 'ingest_germline',
+            'somatic_tumor_only': 'ingest_somatic_tumor_only',
+            'somatic_tumor_normal': 'ingest_somatic_tumor_normal'
+        }
+        return batch_type_ingest_map[batch_type]
+
+
+    call_ingest_group_task = call_ingest_group(detect_batch_type_task)
+
+    ingest_germline_group = ingest_germline(
         batch_id=batch_id(),
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
-        skip_batch='', # always compute this batch (purpose of this dag)
-        spark_jar=spark_jar(),
-    )
-
-    ingest_batch = IngestBatch(
-        group_id='ingest',
-        batch_id=batch_id(),
+        skip_batch='',  # always compute this batch (purpose of this dag)
         skip_snv='',
-        skip_snv_somatic_tumor_only='',
         skip_cnv='',
-        skip_cnv_somatic_tumor_only='',
         skip_variants='',
         skip_consequences='',
         skip_exomiser='',
         skip_coverage_by_gene='',
         skip_franklin='',
-        spark_jar=spark_jar(),
+        spark_jar=spark_jar()
+    )
+
+    ingest_somatic_tumor_only_group = ingest_somatic_tumor_only(
+        batch_id=batch_id(),
+        color=color(),
+        skip_import=skip_import(),  # skipping already imported batch is allowed
+        skip_batch='',  # always compute this batch (purpose of this dag)
+        skip_snv_somatic='',
+        skip_cnv_somatic_tumor_only='',
+        skip_variants='',
+        skip_consequences='',
+        skip_coverage_by_gene='',
+        spark_jar=spark_jar()
+    )
+
+    ingest_somatic_tumor_normal_group = ingest_somatic_tumor_normal(
+        batch_id=batch_id(),
+        color=color(),
+        skip_import=skip_import(),  # skipping already imported batch is allowed
+        skip_batch='',  # always compute this batch (purpose of this dag)
+        skip_snv_somatic='',
+        skip_variants='',
+        skip_consequences='',
+        skip_coverage_by_gene='',
+        spark_jar=spark_jar()
     )
 
     slack = EmptyOperator(
@@ -95,4 +95,6 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    params_validate >> ingest_fhir >> ingest_batch >> slack
+    params_validate >> detect_batch_type_task >> call_ingest_group_task >> [ingest_germline_group,
+                                                                            ingest_somatic_tumor_only_group,
+                                                                            ingest_somatic_tumor_normal_group] >> slack
