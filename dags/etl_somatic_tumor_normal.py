@@ -6,13 +6,10 @@ from airflow.models import Param
 from airflow.utils.trigger_rule import TriggerRule
 
 from etl_qa import release_id, spark_jar
-from lib.groups.index.index import index
 from lib.groups.ingest.ingest_somatic_tumor_normal import ingest_somatic_tumor_normal
-from lib.groups.index.prepare_index import prepare_index
-from lib.groups.index.publish_index import publish_index
 from lib.groups.qa import qa
 from lib.slack import Slack
-from lib.tasks import (enrich)
+from lib.tasks import (arranger, enrich, index, prepare_index as prepare, publish_index as publish)
 from lib.tasks.notify import notify
 from lib.tasks.params_validate import validate_release_color
 from lib.utils_etl import color, batch_id, skip_import, skip_batch, default_or_initial, skip_notify
@@ -55,6 +52,9 @@ with DAG(
 
     @task_group(group_id='enrich')
     def enrich_somatic_tumor_normal():
+        """
+        Run all enrich tasks except cnv.
+        """
         snv_somatic = enrich.snv_somatic(spark_jar=spark_jar(), steps=default_or_initial())
         variants = enrich.variants(spark_jar=spark_jar(), steps=default_or_initial())
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=default_or_initial())
@@ -63,27 +63,57 @@ with DAG(
         snv_somatic >> variants >> consequences >> coverage_by_gene
 
 
-    prepare_group = prepare_index(
-        release_id=release_id(),
-        spark_jar=spark_jar(),
-    )
+    @task_group(group_id='prepare')
+    def prepare_index_somatic_tumor_normal():
+        """
+        Run all prepare index tasks except cnv_centric.
+        """
+        gene_centric = prepare.gene_centric(spark_jar())
+        gene_suggestions = prepare.gene_suggestions(spark_jar())
+        variant_centric = prepare.variant_centric(spark_jar())
+        variant_suggestions = prepare.variant_suggestions(spark_jar())
+        coverage_by_gene_centric = prepare.coverage_by_gene_centric(spark_jar())
+
+        gene_centric >> gene_suggestions >> variant_centric >> variant_suggestions >> coverage_by_gene_centric
+
 
     qa_group = qa(
         release_id=release_id(),
         spark_jar=spark_jar()
     )
 
-    index_group = index(
-        release_id=release_id(),
-        color=color('_'),
-        spark_jar=spark_jar()
-    )
 
-    publish_group = publish_index(
-        release_id=release_id(),
-        color=color('_'),
-        spark_jar=spark_jar()
-    )
+    @task_group(group_id='index')
+    def index_somatic_tumor_normal():
+        """
+        Run all index tasks except cnv_centric.
+        """
+        gene_centric = index.gene_centric(release_id(), color(), spark_jar())
+        gene_suggestions = index.gene_suggestions(release_id(), color(), spark_jar())
+        variant_centric = index.variant_centric(release_id(), color(), spark_jar())
+        variant_suggestions = index.variant_suggestions(release_id(), color(), spark_jar())
+        coverage_by_gene_centric = index.coverage_by_gene_centric(release_id(), color(), spark_jar())
+
+        [gene_centric, gene_suggestions] >> variant_centric >> [variant_suggestions, coverage_by_gene_centric]
+
+
+    @task_group(group_id='publish')
+    def publish_index_somatic_tumor_normal():
+        """
+        Run all publish index tasks except cnv centric.
+        """
+        gene_centric = publish.gene_centric(release_id(), color(), spark_jar())
+        gene_suggestions = publish.gene_suggestions(release_id(), color(), spark_jar())
+        variant_centric = publish.variant_centric(release_id(), color(), spark_jar())
+        variant_suggestions = publish.variant_suggestions(release_id(), color(), spark_jar())
+        coverage_by_gene_centric = publish.coverage_by_gene_centric(release_id(), color(), spark_jar())
+
+        arranger_remove_project_task = arranger.remove_project()
+        arranger_restart_task = arranger.restart(on_success_callback=Slack.notify_dag_completion)
+
+        [gene_centric, gene_suggestions, variant_centric, variant_suggestions,
+         coverage_by_gene_centric] >> arranger_remove_project_task >> arranger_restart_task
+
 
     notify_task = notify(
         batch_id=batch_id(),
@@ -91,4 +121,4 @@ with DAG(
         skip=skip_notify()
     )
 
-    params_validate_task >> ingest_somatic_tumor_normal_group >> enrich_somatic_tumor_normal() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task
+    params_validate_task >> ingest_somatic_tumor_normal_group >> enrich_somatic_tumor_normal() >> prepare_index_somatic_tumor_normal() >> qa_group >> index_somatic_tumor_normal() >> publish_index_somatic_tumor_normal() >> notify_task

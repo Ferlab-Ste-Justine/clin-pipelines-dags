@@ -9,7 +9,7 @@ def qa(
         spark_jar: str,
 ):
     """
-    Runs all QA tasks.
+    Run all QA tasks.
     """
     non_empty_tables = qa_tasks.non_empty_tables(release_id, spark_jar)
     no_dup_gnomad = qa_tasks.no_dup_gnomad(release_id, spark_jar)

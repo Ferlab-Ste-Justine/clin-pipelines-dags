@@ -65,10 +65,7 @@ with DAG(
         snv_somatic >> variants >> consequences >> cnv >> coverage_by_gene
 
 
-    prepare_group = prepare_index(
-        release_id=release_id(),
-        spark_jar=spark_jar()
-    )
+    prepare_group = prepare_index(spark_jar=spark_jar())
 
     qa_group = qa(
         release_id=release_id(),
