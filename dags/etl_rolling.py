@@ -2,6 +2,7 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.models.param import Param
+from airflow.utils.trigger_rule import TriggerRule
 
 from lib.config import env, es_url, Env, K8sContext
 from lib.operators.curl import CurlOperator
@@ -21,6 +22,7 @@ if env == Env.QA:
             },
             default_args={
                 'on_failure_callback': Slack.notify_task_failure,
+                'trigger_rule': TriggerRule.NONE_FAILED,
             },
     ) as dag:
         params_validate = validate_release_color(release_id(), color())
@@ -62,7 +64,31 @@ if env == Env.QA:
             ],
         )
 
+        es_cnv_centric_index_swap = CurlOperator(
+            task_id='es_cnv_centric_index_swap',
+            name='etl-rolling-es-cnv-centric-index-swap',
+            k8s_context=K8sContext.DEFAULT,
+            arguments=[
+                '-f', '-X', 'POST', f'{es_url}/_aliases',
+                '-H', 'Content-Type: application/json', '-d',
+                '''
+                {{
+                    "actions": [
+                        {{ "remove": {{ "index": "*", "alias": "clin_{env}_cnv_centric" }} }},
+                        {{ "add": {{ "index": "clin_{env}{under_color}_cnv_centric_{release_id}", "alias": "clin_{env}_cnv_centric" }} }},
+                    ]
+                }}
+                '''.format(
+                    env=env,
+                    release_id=release_id(),
+                    dash_color=color('-'),
+                    under_color=color('_'),
+                ),
+            ],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
         arranger_remove_project_task = arranger.remove_project()
         arranger_restart_task = arranger.restart(on_success_callback=Slack.notify_dag_completion)
 
-        params_validate >> es_indices_swap >> arranger_remove_project_task >> arranger_restart_task
+        params_validate >> es_indices_swap >> es_cnv_centric_index_swap >> arranger_remove_project_task >> arranger_restart_task
