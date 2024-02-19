@@ -10,7 +10,7 @@ from lib.groups.index.index import index
 from lib.groups.ingest.ingest_somatic_tumor_normal import ingest_somatic_tumor_normal
 from lib.groups.index.prepare_index import prepare_index
 from lib.groups.index.publish_index import publish_index
-from lib.groups.qa_somatic import qa_somatic
+from lib.groups.qa import qa
 from lib.slack import Slack
 from lib.tasks import (enrich)
 from lib.tasks.notify import notify
@@ -68,7 +68,7 @@ with DAG(
         spark_jar=spark_jar(),
     )
 
-    qa_group = qa_somatic(
+    qa_group = qa(
         release_id=release_id(),
         spark_jar=spark_jar()
     )
