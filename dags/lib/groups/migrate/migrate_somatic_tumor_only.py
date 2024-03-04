@@ -2,7 +2,7 @@ from airflow.decorators import task_group
 
 from lib.groups.normalize.normalize_somatic_tumor_only import normalize_somatic_tumor_only
 from lib.tasks import batch_type
-from lib.utils_etl import ClinAnalysis
+from lib.utils_etl import ClinAnalysis, get_group_id
 
 
 @task_group(group_id='migrate_somatic_tumor_only')
@@ -15,14 +15,22 @@ def migrate_somatic_tumor_only(
         skip_coverage_by_gene: str,
         spark_jar: str
 ):
-    validate_somatic_tumor_only_task = batch_type.validate.override(task_id='validate_somatic_tumor_only')(
-        batch_id=batch_id,
-        batch_type=ClinAnalysis.SOMATIC_TUMOR_ONLY
+    detect_batch_type_task_id = f"{get_group_id('migrate', batch_id)}.detect_batch_type"
+    skip_all = batch_type.skip(
+        batch_type=ClinAnalysis.SOMATIC_TUMOR_ONLY,
+        batch_type_detected=True,
+        detect_batch_type_task_id=detect_batch_type_task_id
     )
 
-    normalize_somatic_tumor_only_group = normalize_somatic_tumor_only.override(
-        group_id='normalize_somatic_tumor_only')(
+    validate_somatic_tumor_only_task = batch_type.validate(
         batch_id=batch_id,
+        batch_type=ClinAnalysis.SOMATIC_TUMOR_ONLY,
+        skip=skip_all
+    )
+
+    normalize_somatic_tumor_only_group = normalize_somatic_tumor_only(
+        batch_id=batch_id,
+        skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only,
         skip_variants=skip_variants,

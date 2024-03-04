@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.task_group import TaskGroup
@@ -15,30 +14,30 @@ from lib.groups.migrate.migrate_somatic_tumor_only import migrate_somatic_tumor_
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import color, spark_jar
+from lib.utils_etl import color, spark_jar, get_group_id
 
 with DAG(
-    dag_id='etl_migrate',
-    start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
-    params={
-        'color': Param('', type=['null', 'string']),
-        'snv': Param('no', enum=['yes', 'no']),
-        'snv_somatic': Param('no', enum=['yes', 'no']),
-        'cnv': Param('no', enum=['yes', 'no']),
-        'cnv_somatic_tumor_only': Param('no', enum=['yes', 'no']),
-        'variants': Param('no', enum=['yes', 'no']),
-        'consequences': Param('no', enum=['yes', 'no']),
-        'exomiser': Param('no', enum=['yes', 'no']),
-        'coverage_by_gene': Param('no', enum=['yes', 'no']),
-        'franklin': Param('no', enum=['yes', 'no']),
-        'spark_jar': Param('', type=['null', 'string']),
-    },
-    default_args={
-        'trigger_rule': TriggerRule.NONE_FAILED,
-        'on_failure_callback': Slack.notify_task_failure,
-    },
-    max_active_tasks=4
+        dag_id='etl_migrate',
+        start_date=datetime(2022, 1, 1),
+        schedule_interval=None,
+        params={
+            'color': Param('', type=['null', 'string']),
+            'snv': Param('no', enum=['yes', 'no']),
+            'snv_somatic': Param('no', enum=['yes', 'no']),
+            'cnv': Param('no', enum=['yes', 'no']),
+            'cnv_somatic_tumor_only': Param('no', enum=['yes', 'no']),
+            'variants': Param('no', enum=['yes', 'no']),
+            'consequences': Param('no', enum=['yes', 'no']),
+            'exomiser': Param('no', enum=['yes', 'no']),
+            'coverage_by_gene': Param('no', enum=['yes', 'no']),
+            'franklin': Param('no', enum=['yes', 'no']),
+            'spark_jar': Param('', type=['null', 'string']),
+        },
+        default_args={
+            'trigger_rule': TriggerRule.NONE_FAILED,
+            'on_failure_callback': Slack.notify_task_failure,
+        },
+        max_active_tasks=4
 ) as dag:
     def format_skip_condition(param: str) -> str:
         return '{% if params.' + param + ' == "yes" %}{% else %}yes{% endif %}'
@@ -80,10 +79,6 @@ with DAG(
         return format_skip_condition('franklin')
 
 
-    def _concat_batch_id(prefix: str, batch_id: str) -> str:
-        return prefix + '_' + batch_id.replace('.', '')  # '.' not allowed
-
-
     params_validate_task = validate_color.override(on_execute_callback=Slack.notify_dag_start)(
         color=color()
     )
@@ -91,6 +86,7 @@ with DAG(
     all_dags = ingest_fhir(
         batch_id='',
         color=color(),
+        skip_all='',
         skip_import='yes',  # always skip import, not the purpose of that dag
         skip_batch='',  # we want to do fhir normalized once
         spark_jar=spark_jar(),
@@ -100,17 +96,8 @@ with DAG(
 
 
     def migrate_batch_id(batch_id: str) -> TaskGroup:
-        with TaskGroup(group_id=_concat_batch_id('migrate', batch_id)) as group:
-            @task.branch(task_id='call_group')
-            def call_migrate_group(batch_type: str):
-                batch_type_migrate_map = {
-                    'germline': ['validate_germline', 'migrate_germline'],
-                    'somatic_tumor_only': ['validate_somatic_tumor_only', 'migrate_somatic_tumor_only'],
-                    'somatic_tumor_normal': ['validate_somatic_tumor_normal', 'migrate_somatic_tumor_normal']
-                }
-                return batch_type_migrate_map[batch_type]
-
-            call_migrate_group_task = call_migrate_group(batch_type.detect(batch_id))
+        with TaskGroup(group_id=get_group_id('migrate', batch_id)) as group:
+            detect_batch_type_task = batch_type.detect(batch_id)
 
             migrate_germline_group = migrate_germline(
                 batch_id=batch_id,
@@ -143,8 +130,9 @@ with DAG(
                 spark_jar=spark_jar()
             )
 
-            call_migrate_group_task >> [migrate_germline_group, migrate_somatic_tumor_only_group,
-                                        migrate_somatic_tumor_normal_group]
+            detect_batch_type_task >> [migrate_germline_group,
+                                       migrate_somatic_tumor_only_group,
+                                       migrate_somatic_tumor_normal_group]
 
         return group
 
@@ -157,7 +145,8 @@ with DAG(
 
     slack = EmptyOperator(
         task_id="slack",
-        on_success_callback=Slack.notify_dag_completion
+        on_success_callback=Slack.notify_dag_completion,
+        trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS
     )
 
     all_dags >> slack

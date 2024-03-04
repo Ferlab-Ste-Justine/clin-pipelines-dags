@@ -2,7 +2,7 @@ from lib.config import indexer_context, es_url, env
 from lib.operators.spark import SparkOperator
 
 
-def gene_centric(release_id: str, color: str, spark_jar: str) -> SparkOperator:
+def gene_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='gene_centric',
         name='etl-index-gene-centric',
@@ -10,6 +10,7 @@ def gene_centric(release_id: str, color: str, spark_jar: str) -> SparkOperator:
         spark_class='bio.ferlab.clin.etl.es.Indexer',
         spark_config='config-etl-singleton',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             es_url, '', '',
             f'clin_{env}' + color + '_gene_centric',
@@ -22,7 +23,7 @@ def gene_centric(release_id: str, color: str, spark_jar: str) -> SparkOperator:
     )
 
 
-def gene_suggestions(release_id: str, color: str, spark_jar: str) -> SparkOperator:
+def gene_suggestions(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='gene_suggestions',
         name='etl-index-gene-suggestions',
@@ -30,6 +31,7 @@ def gene_suggestions(release_id: str, color: str, spark_jar: str) -> SparkOperat
         spark_class='bio.ferlab.clin.etl.es.Indexer',
         spark_config='config-etl-singleton',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             es_url, '', '',
             f'clin_{env}' + color + '_gene_suggestions',
@@ -42,7 +44,7 @@ def gene_suggestions(release_id: str, color: str, spark_jar: str) -> SparkOperat
     )
 
 
-def variant_centric(release_id: str, color: str, spark_jar: str) -> SparkOperator:
+def variant_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='variant_centric',
         name='etl-index-variant-centric',
@@ -50,6 +52,7 @@ def variant_centric(release_id: str, color: str, spark_jar: str) -> SparkOperato
         spark_class='bio.ferlab.clin.etl.es.Indexer',
         spark_config='config-etl-singleton',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             es_url, '', '',
             f'clin_{env}' + color + '_variant_centric',
@@ -62,7 +65,7 @@ def variant_centric(release_id: str, color: str, spark_jar: str) -> SparkOperato
     )
 
 
-def variant_suggestions(release_id: str, color: str, spark_jar: str) -> SparkOperator:
+def variant_suggestions(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='variant_suggestions',
         name='etl-index-variant-suggestions',
@@ -70,6 +73,7 @@ def variant_suggestions(release_id: str, color: str, spark_jar: str) -> SparkOpe
         spark_class='bio.ferlab.clin.etl.es.Indexer',
         spark_config='config-etl-singleton',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             es_url, '', '',
             f'clin_{env}' + color + '_variant_suggestions',
@@ -82,7 +86,7 @@ def variant_suggestions(release_id: str, color: str, spark_jar: str) -> SparkOpe
     )
 
 
-def cnv_centric(release_id: str, color: str, spark_jar: str) -> SparkOperator:
+def cnv_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='cnv_centric',
         name='etl-index-cnv-centric',
@@ -90,6 +94,7 @@ def cnv_centric(release_id: str, color: str, spark_jar: str) -> SparkOperator:
         spark_class='bio.ferlab.clin.etl.es.Indexer',
         spark_config='config-etl-singleton',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             es_url, '', '',
             f'clin_{env}' + color + '_cnv_centric',
@@ -102,7 +107,7 @@ def cnv_centric(release_id: str, color: str, spark_jar: str) -> SparkOperator:
     )
 
 
-def coverage_by_gene_centric(release_id: str, color: str, spark_jar: str) -> SparkOperator:
+def coverage_by_gene_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='coverage_by_gene_centric',
         name='etl-index-coverage-by-gene',
@@ -110,6 +115,7 @@ def coverage_by_gene_centric(release_id: str, color: str, spark_jar: str) -> Spa
         spark_class='bio.ferlab.clin.etl.es.Indexer',
         spark_config='config-etl-singleton',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             es_url, '', '',
             f'clin_{env}' + color + '_coverage_by_gene_centric',

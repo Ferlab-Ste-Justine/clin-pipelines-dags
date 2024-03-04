@@ -4,12 +4,14 @@ from lib.config import (K8sContext,
                         config_file, env)
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
+from lib.utils_etl import skip
 
 
 @task_group(group_id='fhir')
 def ingest_fhir(
         batch_id: str,
         color: str,
+        skip_all: str,
         skip_import: str,
         skip_batch: str,
         spark_jar: str,
@@ -21,7 +23,7 @@ def ingest_fhir(
         k8s_context=K8sContext.DEFAULT,
         aws_bucket=f'cqgc-{env}-app-files-import',
         color=color,
-        skip=skip_import,
+        skip=skip(skip_all, skip_import),
         arguments=[
             import_main_class, batch_id, 'false', 'true',
         ],
@@ -33,7 +35,7 @@ def ingest_fhir(
         k8s_context=K8sContext.DEFAULT,
         aws_bucket=f'cqgc-{env}-app-datalake',
         color=color,
-        skip=skip_batch,
+        skip=skip(skip_all, skip_batch),
         arguments=[
             'bio.ferlab.clin.etl.FhirExport', 'all',
         ],
@@ -45,7 +47,7 @@ def ingest_fhir(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
         spark_config='config-etl-large',
-        skip=skip_batch,
+        skip=skip(skip_all, skip_batch),
         spark_jar=spark_jar,
         arguments=[
             '--config', config_file,

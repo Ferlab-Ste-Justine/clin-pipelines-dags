@@ -49,12 +49,23 @@ def skip_batch() -> str:
     return '{% if params.batch_id and params.batch_id|length %}{% else %}yes{% endif %}'
 
 
-def default_or_initial() -> str:
-    return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}default{% else %}initial{% endif %}'
+def default_or_initial(batch_param_name: str = 'batch_id') -> str:
+    return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.import == "yes" %}}default{{% else %}}initial{{% endif %}}'
 
 
-def skip_notify() -> str:
-    return '{% if params.batch_id and params.batch_id|length and params.notify == "yes" %}{% else %}yes{% endif %}'
+def skip_notify(batch_param_name: str = 'batch_id') -> str:
+    return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.notify == "yes" %}}{{% else %}}yes{{% endif %}}'
+
+
+def skip(cond1: str, cond2: str) -> str:
+    """
+    Skips the task if one of the conditions is True.
+
+    Since both conditions are Jinja-templated strings evaluated at runtime, this function concatenates the two strings.
+    An empty string means False (task not skipped) and a non-empty string means True (task skipped). Therefore,
+    concatenating both strings produces the same result as a boolean OR operator.
+    """
+    return cond1 + cond2
 
 
 def metadata_exists(clin_s3: S3Hook, batch_id: str) -> bool:
@@ -68,12 +79,5 @@ def get_metadata_content(clin_s3, batch_id) -> dict:
     return json.loads(file_obj.get()['Body'].read().decode('utf-8'))
 
 
-def get_dag_config() -> dict:
-    return {
-        'batch_id': batch_id(),
-        'release_id': release_id(),
-        'color': '{{ params.color }}',
-        'import': '{{ params.import }}',
-        'notify': '{{ params.notify }}',
-        'spark_jar': spark_jar()
-    }
+def get_group_id(prefix: str, batch_id: str) -> str:
+    return prefix + '_' + batch_id.replace('.', '')  # '.' not allowed
