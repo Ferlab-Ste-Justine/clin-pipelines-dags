@@ -1,7 +1,7 @@
 import logging
 
 from airflow.decorators import task
-from airflow.exceptions import AirflowFailException
+from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from lib.config import s3_conn_id, clin_import_bucket
@@ -64,8 +64,28 @@ def detect(batch_id: str) -> str:
         return ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
 
 
+def skip(batch_type: ClinAnalysis, batch_type_detected: bool,
+         detect_batch_type_task_id: str = 'detect_batch_type') -> str:
+    """
+    Checks the return value of the detect_batch_type task. If it corresponds to the batch type passed in argument,
+    it will return a string ('') that will be evaluated to False -- tasks won't be skipped. Otherwise, returns a string
+    ('yes') that will be evaluated to True -- tasks will be skipped. This function has to return a string and not a bool
+    since it uses Jinja Templating at runtime.
+
+    If the bach type was not detected, it means the batch should not be skipped.
+    """
+    if batch_type_detected:
+        return f"{{% if task_instance.xcom_pull(task_ids='{detect_batch_type_task_id}') == '{batch_type.value}' %}}" \
+               "{% else %}yes{% endif %}"
+    else:
+        return ''  # Tasks won't be skipped
+
+
 @task(task_id='validate_batch_type')
-def validate(batch_id: str, batch_type: ClinAnalysis):
+def validate(batch_id: str, batch_type: ClinAnalysis, skip: str = ''):
+    if skip:
+        raise AirflowSkipException()
+
     clin_s3 = S3Hook(s3_conn_id)
     metadata = get_metadata_content(clin_s3, batch_id) if metadata_exists(clin_s3, batch_id) else {}
     submission_schema = metadata.get('submissionSchema', '')

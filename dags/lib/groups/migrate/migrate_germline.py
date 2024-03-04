@@ -2,7 +2,7 @@ from airflow.decorators import task_group
 
 from lib.groups.normalize.normalize_germline import normalize_germline
 from lib.tasks import batch_type
-from lib.utils_etl import ClinAnalysis
+from lib.utils_etl import ClinAnalysis, get_group_id
 
 
 @task_group(group_id='migrate_germline')
@@ -17,13 +17,22 @@ def migrate_germline(
         skip_franklin: str,
         spark_jar: str
 ):
-    validate_germline_task = batch_type.validate.override(task_id='validate_germline')(
-        batch_id=batch_id,
-        batch_type=ClinAnalysis.GERMLINE
+    detect_batch_type_task_id = f"{get_group_id('migrate', batch_id)}.detect_batch_type"
+    skip_all = batch_type.skip(
+        batch_type=ClinAnalysis.GERMLINE,
+        batch_type_detected=True,
+        detect_batch_type_task_id=detect_batch_type_task_id
     )
 
-    normalize_germline_group = normalize_germline.override(group_id='normalize_germline')(
+    validate_germline_task = batch_type.validate(
         batch_id=batch_id,
+        batch_type=ClinAnalysis.GERMLINE,
+        skip=skip_all
+    )
+
+    normalize_germline_group = normalize_germline(
+        batch_id=batch_id,
+        skip_all=skip_all,
         skip_snv=skip_snv,
         skip_cnv=skip_cnv,
         skip_variants=skip_variants,

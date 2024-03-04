@@ -42,6 +42,7 @@ with DAG(
 
     ingest_germline_group = ingest_germline(
         batch_id=batch_id(),
+        batch_type_detected=False,
         color=color(),
         skip_import=skip_import(),
         skip_batch=skip_batch(),

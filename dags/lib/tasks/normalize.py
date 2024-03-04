@@ -2,15 +2,15 @@ from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 
 
-def snv(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def snv(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='snv',
         name='etl-normalize-snv',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'snv',
             '--config', config_file,
@@ -21,15 +21,15 @@ def snv(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
     )
 
 
-def snv_somatic(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def snv_somatic(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='snv_somatic',
         name='etl-normalize-snv-somatic',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'snv',
             '--config', config_file,
@@ -40,15 +40,15 @@ def snv_somatic(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
     )
 
 
-def cnv(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def cnv(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='cnv',
         name='etl-normalize-cnv',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'cnv',
             '--config', config_file,
@@ -59,15 +59,15 @@ def cnv(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
     )
 
 
-def cnv_somatic_tumor_only(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def cnv_somatic_tumor_only(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='cnv_somatic_tumor_only',
         name='etl-normalize-cnv_somatic-tumor-only',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'cnv',
             '--config', config_file,
@@ -78,15 +78,15 @@ def cnv_somatic_tumor_only(batch_id: str, spark_jar: str, skip: bool) -> SparkOp
     )
 
 
-def variants(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def variants(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='variants',
         name='etl-normalize-variants',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'variants',
             '--config', config_file,
@@ -97,15 +97,15 @@ def variants(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
     )
 
 
-def consequences(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def consequences(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='consequences',
         name='etl-normalize-consequences',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'consequences',
             '--config', config_file,
@@ -116,15 +116,15 @@ def consequences(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
     )
 
 
-def coverage_by_gene(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def coverage_by_gene(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='coverage_by_gene',
         name='etl-normalize-coverage-by-gene',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'coverage_by_gene',
             '--config', config_file,
@@ -135,15 +135,15 @@ def coverage_by_gene(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator
     )
 
 
-def exomiser(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def exomiser(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='exomiser',
         name='etl-normalize-exomiser',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'exomiser',
             '--config', config_file,
@@ -154,15 +154,15 @@ def exomiser(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
     )
 
 
-def franklin(batch_id: str, spark_jar: str, skip: bool) -> SparkOperator:
+def franklin(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
     return SparkOperator(
         task_id='franklin',
         name='etl-normalize-franklin',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
         spark_config='config-etl-large',
-        skip=skip,
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'franklin',
             '--config', config_file,

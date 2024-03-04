@@ -2,7 +2,7 @@ from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 
 
-def gene_centric(spark_jar: str) -> SparkOperator:
+def gene_centric(spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='gene_centric',
         name='etl-prepare-gene-centric',
@@ -10,6 +10,7 @@ def gene_centric(spark_jar: str) -> SparkOperator:
         spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
         spark_config='config-etl-large',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'gene_centric',
             '--config', config_file,
@@ -19,7 +20,7 @@ def gene_centric(spark_jar: str) -> SparkOperator:
     )
 
 
-def gene_suggestions(spark_jar: str) -> SparkOperator:
+def gene_suggestions(spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='gene_suggestions',
         name='etl-prepare-gene-suggestions',
@@ -27,6 +28,7 @@ def gene_suggestions(spark_jar: str) -> SparkOperator:
         spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
         spark_config='config-etl-large',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'gene_suggestions',
             '--config', config_file,
@@ -36,7 +38,7 @@ def gene_suggestions(spark_jar: str) -> SparkOperator:
     )
 
 
-def variant_centric(spark_jar: str) -> SparkOperator:
+def variant_centric(spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='variant_centric',
         name='etl-prepare-variant-centric',
@@ -44,6 +46,7 @@ def variant_centric(spark_jar: str) -> SparkOperator:
         spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
         spark_config='config-etl-large',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'variant_centric',
             '--config', config_file,
@@ -53,7 +56,7 @@ def variant_centric(spark_jar: str) -> SparkOperator:
     )
 
 
-def variant_suggestions(spark_jar: str) -> SparkOperator:
+def variant_suggestions(spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='variant_suggestions',
         name='etl-prepare-variant-suggestions',
@@ -61,6 +64,7 @@ def variant_suggestions(spark_jar: str) -> SparkOperator:
         spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
         spark_config='config-etl-large',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'variant_suggestions',
             '--config', config_file,
@@ -70,7 +74,7 @@ def variant_suggestions(spark_jar: str) -> SparkOperator:
     )
 
 
-def cnv_centric(spark_jar: str) -> SparkOperator:
+def cnv_centric(spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='cnv_centric',
         name='etl-prepare-cnv-centric',
@@ -78,6 +82,7 @@ def cnv_centric(spark_jar: str) -> SparkOperator:
         spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
         spark_config='config-etl-large',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'cnv_centric',
             '--config', config_file,
@@ -87,7 +92,7 @@ def cnv_centric(spark_jar: str) -> SparkOperator:
     )
 
 
-def coverage_by_gene_centric(spark_jar: str) -> SparkOperator:
+def coverage_by_gene_centric(spark_jar: str, skip: str = '') -> SparkOperator:
     return SparkOperator(
         task_id='coverage_by_gene',
         name='etl-prepare-coverage-by-gene',
@@ -95,6 +100,7 @@ def coverage_by_gene_centric(spark_jar: str) -> SparkOperator:
         spark_class='bio.ferlab.clin.etl.es.PrepareIndex',
         spark_config='config-etl-large',
         spark_jar=spark_jar,
+        skip=skip,
         arguments=[
             'coverage_by_gene_centric',
             '--config', config_file,

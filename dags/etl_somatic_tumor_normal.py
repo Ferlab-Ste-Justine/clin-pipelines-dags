@@ -39,6 +39,7 @@ with DAG(
 
     ingest_somatic_tumor_normal_group = ingest_somatic_tumor_normal(
         batch_id=batch_id(),
+        batch_type_detected=False,
         color=color(),
         skip_import=skip_import(),
         skip_batch=skip_batch(),

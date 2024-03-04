@@ -19,7 +19,7 @@ from sensors.franklin import FranklinAPISensor
 def FranklinUpdate(
     group_id: str,
     batch_id: str,
-    skip: str,
+    skip: bool,
     poke_interval = 300,
     timeout = 3600
 ) -> TaskGroup:

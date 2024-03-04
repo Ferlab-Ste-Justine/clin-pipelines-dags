@@ -9,6 +9,7 @@ from lib.utils_etl import ClinAnalysis
 @task_group(group_id='ingest_somatic_tumor_only')
 def ingest_somatic_tumor_only(
         batch_id: str,
+        batch_type_detected: bool,
         color: str,
         skip_import: str,
         skip_batch: str,
@@ -19,14 +20,18 @@ def ingest_somatic_tumor_only(
         skip_coverage_by_gene: str,
         spark_jar: str
 ):
+    skip_all = batch_type.skip(ClinAnalysis.SOMATIC_TUMOR_ONLY, batch_type_detected)
+
     validate_batch_type_task = batch_type.validate(
         batch_id=batch_id,
-        batch_type=ClinAnalysis.SOMATIC_TUMOR_ONLY
+        batch_type=ClinAnalysis.SOMATIC_TUMOR_ONLY,
+        skip=skip_all
     )
 
     ingest_fhir_group = ingest_fhir(
         batch_id=batch_id,
         color=color,
+        skip_all=skip_all,
         skip_import=skip_import,
         skip_batch=skip_batch,
         spark_jar=spark_jar
@@ -34,6 +39,7 @@ def ingest_somatic_tumor_only(
 
     normalize_somatic_tumor_only_group = normalize_somatic_tumor_only(
         batch_id=batch_id,
+        skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only,
         skip_variants=skip_variants,
