@@ -56,12 +56,12 @@ with DAG(
         """
         Run all enrich tasks except cnv.
         """
-        snv_somatic = enrich.snv_somatic(spark_jar=spark_jar(), steps=default_or_initial())
+        snv_somatic_all = enrich.snv_somatic_all(spark_jar=spark_jar(), steps=default_or_initial())
         variants = enrich.variants(spark_jar=spark_jar(), steps=default_or_initial())
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=default_or_initial())
         coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=default_or_initial())
 
-        snv_somatic >> variants >> consequences >> coverage_by_gene
+        snv_somatic_all >> variants >> consequences >> coverage_by_gene
 
 
     @task_group(group_id='prepare')

@@ -57,13 +57,13 @@ with DAG(
 
     @task_group(group_id='enrich')
     def enrich_somatic_tumor_only():
-        snv_somatic = enrich.snv_somatic(spark_jar=spark_jar(), steps=default_or_initial())
+        snv_somatic_all = enrich.snv_somatic_all(spark_jar=spark_jar(), steps=default_or_initial())
         variants = enrich.variants(spark_jar=spark_jar(), steps=default_or_initial())
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=default_or_initial())
         cnv = enrich.cnv(spark_jar=spark_jar(), steps=default_or_initial())
         coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=default_or_initial())
 
-        snv_somatic >> variants >> consequences >> cnv >> coverage_by_gene
+        snv_somatic_all >> variants >> consequences >> cnv >> coverage_by_gene
 
 
     prepare_group = prepare_index(spark_jar=spark_jar())

@@ -118,7 +118,25 @@ with DAG(
         )
 
         # Only run snv_somatic if at least one somatic tumor only or somatic tumor normal batch
+        # Run snv_somatic_all if no batch ids are provided. Otherwise, run snv_somatic for each batch_id.
+        @task.branch(task_id='run_snv_somatic')
+        def run_snv_somatic(batch_ids: List[str]):
+            if not batch_ids:
+                return 'enrich.snv_somatic_all'
+            else:
+                return 'enrich.snv_somatic'
+
+        run_snv_somatic_task = run_snv_somatic(batch_ids=get_batch_ids_task)
+
+        snv_somatic_all = enrich.snv_somatic_all(
+            spark_jar=spark_jar(),
+            steps=steps,
+            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.SOMATIC_TUMOR_ONLY,
+                                                               ClinAnalysis.SOMATIC_TUMOR_NORMAL])
+        )
+
         snv_somatic = enrich.snv_somatic(
+            batch_ids=get_batch_ids_task,
             spark_jar=spark_jar(),
             steps=steps,
             skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.SOMATIC_TUMOR_ONLY,
@@ -138,7 +156,8 @@ with DAG(
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=steps)
         coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=steps)
 
-        snv >> snv_somatic >> variants >> consequences >> cnv >> coverage_by_gene
+        snv >> run_snv_somatic_task >> [snv_somatic_all,
+                                        snv_somatic] >> variants >> consequences >> cnv >> coverage_by_gene
 
 
     prepare_group = prepare_index(
