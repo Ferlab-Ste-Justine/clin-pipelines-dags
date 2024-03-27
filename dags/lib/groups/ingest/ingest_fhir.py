@@ -57,4 +57,19 @@ def ingest_fhir(
         ],
     )
 
-    fhir_import >> fhir_export >> fhir_normalize
+    fhir_enrich_clinical = SparkOperator(
+        task_id='fhir_enrich_clinical',
+        name='etl-ingest-fhir-enrich-clinical',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.clin.etl.fhir.EnrichedClinical',
+        spark_config='config-etl-large',
+        skip=skip(skip_all, skip_batch),
+        spark_jar=spark_jar,
+        arguments=[
+            '--config', config_file,
+            '--steps', 'initial',
+            '--app-name', 'etl_ingest_fhir_enrich_clinical',
+        ],
+    )
+
+    fhir_import >> fhir_export >> fhir_normalize >> fhir_enrich_clinical
