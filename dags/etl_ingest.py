@@ -84,7 +84,6 @@ with DAG(
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
-        trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS  # Run after one ingest group succeeds
     )
 
     params_validate >> detect_batch_type_task >> [ingest_germline_group,

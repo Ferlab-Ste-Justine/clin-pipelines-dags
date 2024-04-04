@@ -207,7 +207,6 @@ with DAG(
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
-        trigger_rule=TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS  # Run after one ingest group succeeds
     )
 
     params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_dag
