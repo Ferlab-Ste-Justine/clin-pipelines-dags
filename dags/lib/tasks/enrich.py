@@ -97,6 +97,7 @@ def snv_somatic(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: 
         spark_jar=spark_jar,
         skip=skip,
         target_batch_types=target_batch_types,
+        max_active_tis_per_dag=1,  # Prevent multiple executions at the same time
         **kwargs
     ).expand(batch_id=batch_ids)
 
