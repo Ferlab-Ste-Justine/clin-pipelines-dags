@@ -48,7 +48,7 @@ class SparkOperator(KubernetesPodOperator):
         self.skip_fail_env = skip_fail_env
         self.skip = skip
 
-    def execute(self, **kwargs):
+    def execute(self, context):
 
         if env in self.skip_env:
             raise AirflowSkipException()
@@ -146,7 +146,7 @@ class SparkOperator(KubernetesPodOperator):
                 ),
             )
 
-        super().execute(**kwargs)
+        super().execute(context)
 
         config.k8s_load_config(self.k8s_context)
         k8s_client = kubernetes.client.CoreV1Api()

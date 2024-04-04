@@ -1,4 +1,5 @@
 import logging
+from typing import Dict, List
 
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException, AirflowSkipException
@@ -46,7 +47,10 @@ def _validate_cnv_vcf_files(metadata: dict, cnv_suffix: str):
 
 
 @task(task_id='detect_batch_type')
-def detect(batch_id: str) -> str:
+def detect(batch_id: str) -> Dict[str, str]:
+    """
+    Returns a dict where the key is the batch id and the value is the batch type.
+    """
     clin_s3 = S3Hook(s3_conn_id)
 
     if metadata_exists(clin_s3, batch_id):
@@ -54,14 +58,16 @@ def detect(batch_id: str) -> str:
         metadata = get_metadata_content(clin_s3, batch_id)
         submission_schema = metadata.get('submissionSchema', '')
         if submission_schema == ClinSchema.GERMLINE.value:
-            return ClinAnalysis.GERMLINE.value
+            batch_type = ClinAnalysis.GERMLINE.value
         elif submission_schema == ClinSchema.SOMATIC_TUMOR_ONLY.value:
-            return ClinAnalysis.SOMATIC_TUMOR_ONLY.value
+            batch_type = ClinAnalysis.SOMATIC_TUMOR_ONLY.value
         else:
             raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
     else:
         # If the metadata file doesn't exist, it's a SOMATIC_TUMOR_NORMAL analysis
-        return ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
+        batch_type = ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
+
+    return {batch_id: batch_type}
 
 
 def skip(batch_type: ClinAnalysis, batch_type_detected: bool,
@@ -79,6 +85,27 @@ def skip(batch_type: ClinAnalysis, batch_type_detected: bool,
                "{% else %}yes{% endif %}"
     else:
         return ''  # Tasks won't be skipped
+
+
+def any_in(targets: List[str], batch_types: List[Dict[str, str]]):
+    """
+    Macro for Jinja templating. Checks if there is at least one target type in a list of batch types.
+    """
+    batch_types_list = [batch_type for bt in batch_types for batch_id, batch_type in bt.items()]
+    return any(target in batch_types_list for target in targets)
+
+
+def skip_if_no_batch_in(target_batch_types: List[ClinAnalysis]) -> str:
+    """
+    Checks if at least one current batch type matches at least one of the target batch types. If there is a single
+    match or if no batch_ids were passed, returns False so task won't be skipped. Otherwise, if there are no matches,
+    returns True so task will be skipped.
+
+    To use, pass macro any_in as user_defined_macros in DAG definition.
+    """
+    return f"{{% set targets = {[target.value for target in target_batch_types]} %}}" \
+           "{% set batch_types = task_instance.xcom_pull(task_ids='detect_batch_type') %}" \
+           "{% if not batch_types or any_in(targets, batch_types) %}{% else %}'yes'{% endif %}"
 
 
 @task(task_id='validate_batch_type')

@@ -7,6 +7,7 @@ from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
+
 from lib.config import Env, K8sContext, env
 from lib.groups.index.index import index
 from lib.groups.index.prepare_index import prepare_index
@@ -16,17 +17,10 @@ from lib.operators.notify import NotifyOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, enrich
+from lib.tasks.batch_type import skip_if_no_batch_in
 from lib.tasks.params_validate import validate_release_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
                            skip_notify, spark_jar)
-
-
-def any_in(values, iterable):
-    """
-    Macro for Jinja templating.
-    """
-    return any(value in iterable for value in values)
-
 
 with DAG(
         dag_id='etl',
@@ -49,21 +43,8 @@ with DAG(
         },
         max_active_tasks=4,
         render_template_as_native_obj=True,
-        user_defined_macros={'any_in': any_in}
+        user_defined_macros={'any_in': batch_type.any_in}
 ) as dag:
-    def skip_if_no_target_batches(target_batch_types: List[ClinAnalysis]) -> str:
-        """
-        Checks if at least one current batch type matches at least one of the target batch types. If there is a single
-        match or if no batch_ids were passed, returns False so task won't be skipped. Otherwise, if there are no matches,
-        returns True so task will be skipped.
-
-        To use, pass macro any_in as user_defined_macros in DAG definition.
-        """
-        return f"{{% set targets = {[target.value for target in target_batch_types]} %}}" \
-               "{% set batch_types = task_instance.xcom_pull(task_ids='detect_batch_type') %}" \
-               "{% if not batch_types or any_in(targets, batch_types) %}{% else %}'yes'{% endif %}"
-
-
     def skip_qc() -> str:
         return '{% if params.qc == "yes" %}{% else %}yes{% endif %}'
 
@@ -117,7 +98,7 @@ with DAG(
         snv = enrich.snv(
             steps=steps,
             spark_jar=spark_jar(),
-            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE])
+            skip=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE])
         )
 
         # Only run snv_somatic if at least one somatic tumor only or somatic tumor normal batch
@@ -130,28 +111,28 @@ with DAG(
                 return 'enrich.snv_somatic'
 
         run_snv_somatic_task = run_snv_somatic(batch_ids=get_batch_ids_task)
+        snv_somatic_target_types = [ClinAnalysis.SOMATIC_TUMOR_ONLY, ClinAnalysis.SOMATIC_TUMOR_NORMAL]
 
         snv_somatic_all = enrich.snv_somatic_all(
             spark_jar=spark_jar(),
             steps=steps,
-            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.SOMATIC_TUMOR_ONLY,
-                                                               ClinAnalysis.SOMATIC_TUMOR_NORMAL])
+            skip=skip_if_no_batch_in(target_batch_types=snv_somatic_target_types)
         )
 
         snv_somatic = enrich.snv_somatic(
             batch_ids=get_batch_ids_task,
             spark_jar=spark_jar(),
             steps=steps,
-            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.SOMATIC_TUMOR_ONLY,
-                                                               ClinAnalysis.SOMATIC_TUMOR_NORMAL])
+            skip=skip_if_no_batch_in(snv_somatic_target_types),
+            target_batch_types=snv_somatic_target_types
         )
 
         # Only run if at least one germline or somatic tumor only batch
         cnv = enrich.cnv(
             spark_jar=spark_jar(),
             steps=steps,
-            skip=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                               ClinAnalysis.SOMATIC_TUMOR_ONLY])
+            skip=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                         ClinAnalysis.SOMATIC_TUMOR_ONLY])
         )
 
         # Always run variants, consequences and coverage by gene
@@ -165,8 +146,8 @@ with DAG(
 
     prepare_group = prepare_index(
         spark_jar=spark_jar(),
-        skip_cnv_centric=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                                       ClinAnalysis.SOMATIC_TUMOR_ONLY])
+        skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY])
     )
 
     qa_group = qa(
@@ -178,16 +159,16 @@ with DAG(
         release_id=release_id(),
         color=color('_'),
         spark_jar=spark_jar(),
-        skip_cnv_centric=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                                       ClinAnalysis.SOMATIC_TUMOR_ONLY])
+        skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY])
     )
 
     publish_group = publish_index(
         release_id=release_id(),
         color=color('_'),
         spark_jar=spark_jar(),
-        skip_cnv_centric=skip_if_no_target_batches(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                                       ClinAnalysis.SOMATIC_TUMOR_ONLY])
+        skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY])
     )
 
     # Use operator directly for dynamic task mapping
