@@ -4,15 +4,18 @@ from airflow import DAG
 from airflow.decorators import task_group
 from airflow.models import Param
 from airflow.utils.trigger_rule import TriggerRule
-
-from etl_qa import release_id, spark_jar
-from lib.groups.ingest.ingest_somatic_tumor_normal import ingest_somatic_tumor_normal
+from etl_qa import spark_jar
+from lib.groups.ingest.ingest_somatic_tumor_normal import \
+    ingest_somatic_tumor_normal
 from lib.groups.qa import qa
 from lib.slack import Slack
-from lib.tasks import (arranger, enrich, index, prepare_index as prepare, publish_index as publish)
+from lib.tasks import arranger, enrich, index
+from lib.tasks import prepare_index as prepare
+from lib.tasks import publish_index as publish
 from lib.tasks.notify import notify
 from lib.tasks.params_validate import validate_release_color
-from lib.utils_etl import color, batch_id, skip_import, skip_batch, default_or_initial, skip_notify
+from lib.utils_etl import (batch_id, color, default_or_initial, release_id,
+                           skip_batch, skip_import, skip_notify)
 
 with DAG(
         dag_id='etl_somatic_tumor_normal',
@@ -79,7 +82,6 @@ with DAG(
 
 
     qa_group = qa(
-        release_id=release_id(),
         spark_jar=spark_jar()
     )
 

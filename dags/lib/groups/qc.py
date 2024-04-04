@@ -6,7 +6,6 @@ from lib.operators.spark import SparkOperator
 
 def qc(
     group_id: str,
-    release_id: str,
     spark_jar: str,
 ) -> TaskGroup:
 
@@ -20,7 +19,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.fromVCF.ContainedInSNV',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -32,7 +31,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.fromVCF.ContainedInNorVariants',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -44,7 +43,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.variantfilter.FiltersSNV',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -56,7 +55,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.variantfilter.FiltersFrequencyExtra',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -68,7 +67,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.variantfilter.FiltersFrequencyMissed',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -80,7 +79,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainNoNullVariantCentric',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -92,7 +91,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainNoNullGene',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -104,7 +103,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainNoNullCNV',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -116,7 +115,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullVariantCentric',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -128,7 +127,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullGene',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -140,7 +139,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainOnlyNullCNV',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -152,7 +151,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueVariantCentric',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -164,7 +163,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueGene',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -176,7 +175,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.columncontain.ColumnsContainSameValueCNV',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -188,7 +187,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.dictionary.DictionariesCNV',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -200,7 +199,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.dictionary.DictionariesConsequences',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -212,7 +211,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.dictionary.DictionariesDonors',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -224,7 +223,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.dictionary.DictionariesSNV',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
         '''
@@ -236,7 +235,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldBeAnnotated',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -248,7 +247,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldNotBeAnnotated',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -260,7 +259,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldBeReannotated',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -272,7 +271,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.varsome.VariantsShouldNotBeReannotated',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
         '''
@@ -285,7 +284,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.frequency.RQDMTotal',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -297,7 +296,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.frequency.RQDMAffected',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -309,7 +308,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.frequency.RQDMNonAffected',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -321,7 +320,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.frequency.ByAnalysisTotal',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -333,7 +332,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.frequency.ByAnalysisAffected',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
@@ -345,7 +344,7 @@ def qc(
             spark_class='bio.ferlab.clin.etl.qc.frequency.ByAnalysisNonAffected',
             spark_config='config-etl-small',
             spark_jar=spark_jar,
-            arguments=['clin' + env_url('_'), release_id],
+            arguments=['clin' + env_url('_')],
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 

@@ -2,7 +2,6 @@ import json
 from enum import Enum
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 from lib.config import clin_import_bucket
 
 
