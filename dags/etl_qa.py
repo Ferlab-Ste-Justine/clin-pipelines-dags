@@ -23,8 +23,8 @@ with DAG(
     max_active_tasks=4
 ) as dag:
 
-    params_validate = EmptyOperator(
-        task_id="params_validate",
+    start = EmptyOperator(
+        task_id="start",
         on_success_callback=Slack.notify_dag_start
     )
 
@@ -37,4 +37,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    params_validate >> qa >> slack
+    start >> qa >> slack
