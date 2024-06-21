@@ -32,7 +32,6 @@ with DAG(
                           name="passing-test",
                           task_id="passing-task",
                           get_logs=True,
-                          in_cluster=False,
                           cluster_context="minikube")
 
     #Step2: trying with my nextflow operator
