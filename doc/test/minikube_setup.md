@@ -19,7 +19,7 @@ it works with other linux distributions and more complex tasks.
 First create the minikube cluster:
 
 ```
-minikube start  --embed-certs
+minikube start  --embed-certs --apiserver-names=host.minikube.internal
 ```
 
 Create the cqgc-qa namespace:
@@ -40,7 +40,7 @@ instead 127.0.0.1, as recommended in minikube documentation:
 https://minikube.sigs.k8s.io/docs/handbook/host-access/
 
 ```
-kubectl config view --minify --flatten --context=minikube | sed "s/127.0.0.1/host.minikube.internal/g"  > /tmp/kube_config
+kubectl config view --minify --flatten --context=minikube | sed "s/127.0.0.1/host.minikube.internal/g"  >/tmp/kube_config
 kubectl create secret generic cqgc-qa-airflow-k8-client-config --from-file=config=/tmp/kube_config -n cqgc-qa
 ```
 

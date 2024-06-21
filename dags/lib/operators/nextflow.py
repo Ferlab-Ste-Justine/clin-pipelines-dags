@@ -22,6 +22,7 @@ class NextflowOperator(KubernetesPodOperator):
     def execute(self, **kwargs):
         self.env_vars = [
             #This one will be necessary for sure, but there might be others
+            #Should be configurable
             k8s.V1EnvVar(
                 name = 'NXF_WORK',
                 value ='s3://cqgc-qa-app-datalake/nextflow/scratch' # OK?
@@ -48,5 +49,21 @@ class NextflowOperator(KubernetesPodOperator):
             #TODO: add nextflow config file (config map?)
         ]
         
+        self.volumes = [
+            k8s.V1Volume(
+                name='nextflow',
+                config_map=k8s.V1ConfigMapVolumeSource(
+                    name="nextflow", #TODO: Should be configurable
+                    default_mode=0o555, #TODO: Copy-pasted this, but is it necessary?
+                ),
+            ),
+        ]
+        self.volume_mounts = [
+            k8s.V1VolumeMount(
+                name='nextflow',
+                mount_path='/opt/nextflow/config',
+                read_only=True,
+            ),
+        ]
 
         super().execute(**kwargs)

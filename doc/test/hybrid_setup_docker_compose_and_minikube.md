@@ -18,11 +18,16 @@ minikube start  --embed-certs
 Since we pass the option --embed-certs, the certificates will be included directly in the kubectl configuration file. It makes the 
 configuration file more portable.
 
+Create the cqgc-qa namespace on the minikube cluster:
+
+```
+kubectl create namespace cqgc-qa
+```
 
 Extract the minikube config and modify it slightly to change the hostname `127.0.0.1` to `minikubeCA`:
 
 ```
-kubectl config view --minify --flatten --context=minikube | sed "s/127.0.0.1/minikubeCA/g"  > /tmp/kube_config
+kubectl config view --minify --flatten --context=minikube | sed "s/127.0.0.1/minikubeCA/g"  >/tmp/kube_config
 ```
 
 Create your .env file as instructed in the readme. Set the variable `KUBE_CONFIG` to match the config file that you created. Ex:
@@ -45,8 +50,6 @@ but they seemed to be ignored.
 Run docker-compose up and create the variables in the UI, as describe in the README. Use the value `minikube` for variables
 `kubernetes_context_default` and `kubernetes_context_etl`
 
-Create the cqgc-qa namespace on the minikube cluster:
-kubectl create namespace cqgc-qa
 
 
 You are ready to test your tasks.

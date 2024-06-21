@@ -1,0 +1,76 @@
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cqgc-qa-minio-pv
+  labels:
+    environment: minio-qa
+  
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 1Gi
+  storageClassName: standard
+  hostPath:
+    path: /mnt/cqgc-qa/minio/data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cqgc-qa-minio-pvc
+spec:
+  volumeName: cqgc-qa-minio-pv
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      environment: minio-qa
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: minio
+  name: minio
+  namespace: cqgc-qa # Change this value to match the namespace metadata.name
+spec:
+  containers:
+  - name: minio
+    image: quay.io/minio/minio:latest
+    command:
+    - /bin/bash
+    - -c
+    args: 
+    - minio server /data --address :9090 --console-address :9091
+    volumeMounts:
+    - mountPath: /data
+      name: localvolume
+  volumes:
+  - name: localvolume
+    persistentVolumeClaim:
+        claimName: cqgc-qa-minio-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: minio
+  name: minio
+spec:
+  ports:
+    - name: api
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+    - name: console
+      port: 9091
+      protocol: TCP
+      targetPort: 9091
+  selector:
+    app: minio

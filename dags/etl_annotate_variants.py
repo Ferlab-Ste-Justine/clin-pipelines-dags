@@ -14,8 +14,6 @@ from airflow.operators.empty import EmptyOperator
 from lib.config import K8sContext
 from lib.operators.nextflow import NextflowOperator
 
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
-
 with DAG(
     dag_id="etl_annotate_variants",
     start_date=datetime(2022, 1, 1),  #TODO: idem as other tasks, is it ok?
@@ -23,36 +21,24 @@ with DAG(
     #TODO: add parameters (ex: input file, output dir, etc.)
 ):
 
-    #Step 1: trying with directly instantiated KuberneteesPodOperator
-     KubernetesPodOperator(namespace='cqgc-qa',
-                          image="python:3.6",
-                          cmds=["python","-c"],
-                          arguments=["print('hello world')"],
-                          labels={"foo": "bar"},
-                          name="passing-test",
-                          task_id="passing-task",
-                          get_logs=True,
-                          cluster_context="minikube")
+    NextflowOperator(
+        task_id='nextflow-hello',
+        name='etl-nextflow-hello',
+        k8s_context = K8sContext.ETL,
+        service_account_name = "nextflow", 
+        arguments = [
+            "nextflow",
+            "run",
+            "nextflow-io/hello",
+            "-c",
+            "/opt/nextflow/config/nextflow.config"
+        ]
+    )
 
-    #Step2: trying with my nextflow operator
-    #NextflowOperator(
-    #    task_id='nextflow-version',
-    #    name='etl-nextflow-version',
-    #    k8s_context = K8sContext.ETL,  #DOUBLE CHECK THIS
-    #    arguments = [
-    #        "nextflow",
-    #        "-version"
-    #    ],
-    #    get_logs=True  #Not sure this is necessary
-         # We might need to set in_cluster?
-    #)
-
-    #Step3: run real pipeline and not just nextflow -version command
-    #Step4: calling via tasks.annotate_variants
-  
-    #Step5: recuperate and archive logs / state files
-    #Step6: Try to figure out if we could pass an extra -resume arguments when re-running the job with airflow ...
-    #(assuming we have a persistent volume that we can attach)
-
-    #Step7: Unit tests + documentation if needed
+    #NEXT POC steps:
+    # - run our variant post processing pipeline instead nextflow hello
+    # - calling via tasks.annotate_variants
+    # - recuperate and archive logs / state files
+    # - Try to figure out if we could pass an extra -resume arguments when re-running the job with airflow
+    # - Unit tests + documentation if needed
     

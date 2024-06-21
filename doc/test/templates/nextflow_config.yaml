@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextflow
+  labels:
+    name: nextflow
+data:
+  nextflow.config: |
+
+    wave {
+        enabled = true
+    }
+
+    fusion {
+        enabled = true
+        exportStorageCredentials = true
+    }
+
+    process {
+        executor = 'k8s'
+    }
+
+    k8s {
+        context = 'minikube'
+        namespace = 'cqgc-qa'
+        serivceAccount  = 'nextflow'
+    }
+
+    aws {
+      client {
+        endpoint = 'http://minio:9090'
+        s3PathStyleAccess = true
+      }
+    }
