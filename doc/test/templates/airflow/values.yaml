@@ -1,0 +1,28 @@
+env:
+  - name: "AIRFLOW_VAR_ENVIRONMENT"
+    value: "qa"
+  - name:  "AIRFLOW_VAR_KUBERNETES_NAMESPACE"
+    value: "cqgc-qa"
+  - name: "AIRFLOW_VAR_BASE_URL"
+    value: "http://localhost:50080"
+  - name: "AIRFLOW_VAR_SHOW_TEST_DAGS"
+    value:  "yes"
+
+
+executor:  "KubernetesExecutor"
+
+dags:
+  persistence:
+    enabled: true
+    existingClaim: "cqgc-qa-airflow-dags-pvc" 
+
+  gitSync:
+    enabled: false
+
+logs:
+  persistence:
+    enabled: true
+
+config:
+  scheduler:
+    dag_dir_list_interval: 30

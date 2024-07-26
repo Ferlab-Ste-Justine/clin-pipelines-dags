@@ -26,7 +26,6 @@ dags:
 logs:
   persistence:
     enabled: true
-#    existingClaim: "cqgc-qa-airflow-logs-pvc" 
 
 
 scheduler:

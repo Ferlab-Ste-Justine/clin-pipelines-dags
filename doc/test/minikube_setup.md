@@ -2,24 +2,29 @@
 
 Here we describe a procedure to test the airflow etl locally with minikube. 
 
-All components, including airflow, will run as pods in a minikube cluster.
+All components, including airflow, will run as pods in a minikube cluster. 
 
-So far, this procedure has been tried with minikube v1.32.0 on mac os with a naïve task. More work might be necessary to ensure that 
-it works with other linux distributions and more complex tasks.
+To simplify the installation procedure, we use the in-cluster mode to connect to the Kubernetes cluster for operators based on the KubernetesPodOperator class. This means that cluster connection settings will be retrieved from the cluster in which airflow is deployed (i.e. minikube here).
+
+Unlike the docker-compose setup, we are not using minio to store airflow logs. We simply use a persistent volume created automatically on the minikube container.
+
+So far, this procedure has been tried with minikube v1.32.0 on mac os with a naïve task. More work might be necessary to ensure that it works with other linux distributions and more complex tasks.
 
 
 ## Prerequisites
 
+- docker
 - kubectl
 - minikube
 - helm
 
+
 ## Procedure
 
-First create the minikube cluster:
+First create the minikube cluster.
 
 ```
-minikube start  --embed-certs --apiserver-names=host.minikube.internal
+minikube start  --memory=max --cpus=max
 ```
 
 Create the cqgc-qa namespace:
@@ -28,40 +33,33 @@ Create the cqgc-qa namespace:
 kubectl create namespace cqgc-qa
 ```
 
-Create persistent volume and associated claim for dags:
+Install persistent volume and associated claim for dags:
 
 ```
-kubectl create -f doc/test/templates/pv_dags.yaml -f doc/test/templates/pvc_dags.yaml -n cqgc-qa
+kubectl apply -f doc/test/templates/airflow/airflow.yaml -n cqgc-qa
 ```
 
-The tasks based on the KubernetesPodOperator requires a kubeconfig file. We extract minikube
-configuration and store it in a secret. We use host `host.minikube.internal`
-instead 127.0.0.1, as recommended in minikube documentation:
-https://minikube.sigs.k8s.io/docs/handbook/host-access/
-
+Mount the `dags`folder in the persistent volume.  The following command will start the minikube mount process in the background and store the PID in the file `dags_mount_pid`. To kill the process, use `kill <pid>` with the stored PID.
 ```
-kubectl config view --minify --flatten --context=minikube | sed "s/127.0.0.1/host.minikube.internal/g"  >/tmp/kube_config
-kubectl create secret generic cqgc-qa-airflow-k8-client-config --from-file=config=/tmp/kube_config -n cqgc-qa
+minikube mount ./dags:/mnt/cqgc-qa/airflow/dags & echo $! >minikube-tmp/etl_annotate_variant/pids/dags_mount_pid
 ```
 
-Mount the dags folder in the dags persistent volume. Run this in another shell. Make sure that you are at
-the clin-pipeline-dags project root:
+Install airflow with helm:
 
 ```
-minikube mount ./dags:/mnt/cqgc-qa/airflow/dags
-```
+# Add the airflow helm repository. This only need to be done once.
+helm repo add apache-airflow https://airflow.apache.org
 
-
-Install airflow components via helm. You will need to install the helm client first.
-
-```
-helm upgrade --install airflow apache-airflow/airflow --version 1.11.0 --namespace cqgc-qa --values doc/test/templates/airflow_values.yaml
+# Then install airflow in the minikube cluster:
+helm upgrade --install airflow apache-airflow/airflow --version 1.11.0 --namespace cqgc-qa --values doc/test/templates/airflow/values.yaml
 ```
 
 Wait that all pods are ready and use the following command to access the airflow UI:
 
 ```
-kubectl port-forward svc/airflow-webserver 50080:8080 --namespace cqgc-qa
+kubectl port-forward svc/airflow-webserver 50080:8080 --namespace cqgc-qa & echo $! >minikube-tmp/etl_annotate_variant/pids/airflow_server_pid
 ```
 
-You can enter `admin` as username and password.
+Open your browser and go to the airflow login page at localhost:50080. You can enter `admin` as username and password.
+
+You can run dags `test_pod_operator_default` and `test_pod_operator_etl` to check that all is ok.

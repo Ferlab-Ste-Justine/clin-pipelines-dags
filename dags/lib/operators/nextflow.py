@@ -2,7 +2,7 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from kubernetes.client import models as k8s
 from lib import config
 
-#TODO
+#TODO: remove any hard coded information, polish the code
 class NextflowOperator(KubernetesPodOperator):
     def __init__(
         self,
@@ -21,12 +21,6 @@ class NextflowOperator(KubernetesPodOperator):
 
     def execute(self, **kwargs):
         self.env_vars = [
-            #This one will be necessary for sure, but there might be others
-            #Should be configurable
-            k8s.V1EnvVar(
-                name = 'NXF_WORK',
-                value ='s3://cqgc-qa-app-datalake/nextflow/scratch' # OK?
-            ),
             k8s.V1EnvVar(
                 name='AWS_ACCESS_KEY_ID',
                 value_from=k8s.V1EnvVarSource(
@@ -45,25 +39,38 @@ class NextflowOperator(KubernetesPodOperator):
                     ),
                 ),
             )
-
-            #TODO: add nextflow config file (config map?)
         ]
         
+        #TODO: assume that all config files are packaged within the same config map?
+
         self.volumes = [
             k8s.V1Volume(
-                name='nextflow',
+                name='nextflow-config',
                 config_map=k8s.V1ConfigMapVolumeSource(
                     name="nextflow", #TODO: Should be configurable
-                    default_mode=0o555, #TODO: Copy-pasted this, but is it necessary?
                 ),
             ),
+            k8s.V1Volume(
+                name='nextflow-workspace',
+                persistent_volume_claim=k8s.V1PersistentVolumeClaimVolumeSource(claim_name="cqgc-qa-nextflow-pvc") #TODO: Should be configurable
+                #TODO: other settings for subpath?
+            )
         ]
+
+        #TODO: should not be hard coded
         self.volume_mounts = [
             k8s.V1VolumeMount(
-                name='nextflow',
+                name='nextflow-config',
                 mount_path='/opt/nextflow/config',
                 read_only=True,
             ),
+            k8s.V1VolumeMount(
+                name='nextflow-workspace',
+                mount_path="/mnt/workspace",
+                read_only=True
+            )
         ]
+
+        self.working_dir = "/mnt/workspace" ##TODO: it does not work for now ... might not be supported through this api?
 
         super().execute(**kwargs)

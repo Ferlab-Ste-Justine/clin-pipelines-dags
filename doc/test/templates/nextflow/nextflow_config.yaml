@@ -1,0 +1,45 @@
+# Will be used to create a nextflow configuration file containing environment-specific details
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextflow
+  labels:
+    name: nextflow
+data:
+ # Note: the k8s settings here will need to be adjusted to match the environment.
+  nextflow.config: |
+
+    // Where to store intermediate results
+    workDir = 's3://cqgc-qa-app-datalake/nextflow/scratch'
+
+    // Allow to cleanup the work directory if the pipeline is successful
+    cleanup = true
+
+    wave {
+        enabled = true
+    }
+
+    fusion {
+        enabled = true
+        exportStorageCredentials = true
+    }
+
+    process {
+        executor = 'k8s'
+
+        // Recommended when using fusion
+        scratch = false
+    }
+
+    k8s {
+        context = 'minikube'
+        namespace = 'cqgc-qa'
+        serviceAccount  = 'nextflow'
+    }
+
+    aws {
+      client {
+        endpoint = 'http://minio:9090'
+        s3PathStyleAccess = true
+      }
+    }

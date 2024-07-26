@@ -1,0 +1,27 @@
+{
+    "sampleFile": "s3://cqgc-qa-app-datalake/data/testSample.tsv",
+    "sampleFileFormat": "V2",
+    "outputDir": "s3://cqgc-qa-app-datalake/results",
+    "referenceGenome": "s3://cqgc-qa-app-datalake/reference/Homo_sapiens_assembly38/chr22",
+    "referenceGenomeFasta": "chr22.fa",
+    "vepCache": "s3://cqgc-qa-app-datalake/reference/annotation/.vep",
+    "vepCpu": 2,
+    "broad": "s3://cqgc-qa-app-datalake/reference/broad",
+    "intervalsFile": "interval_long_local.list",
+    "TSfilterSNP": "99.0",
+    "TSfilterINDEL": "99.0",
+    "hardFilters": [
+      {"name": "QD2", "expression": "QD < 2.0"},
+      {"name": "QD1", "expression": "QD < 1.0"},
+      {"name": "QUAL30", "expression": "QUAL < 30.0"},
+      {"name": "SOR3", "expression": "SOR > 3.0"},
+      {"name": "FS60", "expression": "FS > 60.0"},
+      {"name": "MQ40", "expression": "MQ < 40.0"},
+      {"name": "MQRankSum-12.5", "expression": "MQRankSum < -12.5"},
+      {"name": "ReadPosRankSum-8", "expression": "ReadPosRankSum < -8.0"}
+    ],
+    "max_memory": "8.GB",
+    "max_time": "1.h",
+    "max_cpus": 2,
+    "max_disk": "10.GB"
+  }

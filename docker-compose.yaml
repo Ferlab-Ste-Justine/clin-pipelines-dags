@@ -16,6 +16,8 @@ x-airflow-common:
     AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
     K8S_LOCAL_CONFIG: "true"
     _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+  extra_hosts:
+      - "minikubeCA:host-gateway"
   volumes:
     - ${DAGS_DIR}:/opt/airflow/dags
     - ${KUBE_CONFIG}:/home/airflow/.kube/config
