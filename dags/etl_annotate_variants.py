@@ -10,7 +10,7 @@ from datetime import datetime
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
 
-from lib.config import K8sContext, nextflow_service_account
+from lib.config import k8s_namespace, K8sContext, nextflow_service_account
 from lib.operators.nextflow import NextflowOperator
 
 with DAG(
@@ -24,20 +24,19 @@ with DAG(
     NextflowOperator(
         task_id='nextflow-annotate-variant',
         name='nextflow-annotate-variant',
+        nextflow_pvc_name= f"{k8s_namespace}-nextflow-pvc",
         k8s_context = K8sContext.ETL,
-        service_account_name = nextflow_service_account
+        service_account_name = nextflow_service_account,
         arguments = [  #Here we should not keep the test config and params.json file in the final version
             "nextflow",
-            "-C",
-            "/opt/nextflow/config/nextflow.config",
-            "-C",
-            "/mnt/workspace/test.config",
+            "-c",
+            "/opt/nextflow/config/nextflow.config", #We should move this file in the launch directory, this way we don't need to pass it
             "run",
             "-r",
             "feat/add-test-dataset",
             "-params-file",
             "/mnt/workspace/params.json",
-            "Ferlab-Ste-Justine/cqdg-denovo-pipeline",
+            "Ferlab-Ste-Justine/cqdg-denovo-nextflow",
         ],
         on_finish_action="delete_succeeded_pod" #Strangely, this does not work for now. Perhaps the parent airflow task is ignoring?
     )

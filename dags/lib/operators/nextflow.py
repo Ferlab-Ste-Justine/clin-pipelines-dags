@@ -2,13 +2,15 @@ from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import Kubernete
 from kubernetes.client import models as k8s
 from lib import config
 
-#TODO: remove any hard coded information, polish the code
 class NextflowOperator(KubernetesPodOperator):
     def __init__(
         self,
+        nextflow_pvc_name: str,
         k8s_context: str,
         **kwargs,
     ) -> None:
+        self.nextflow_pvc_name = nextflow_pvc_name
+
         super().__init__(
             is_delete_operator_pod=True,
             in_cluster=config.k8s_in_cluster(k8s_context),
@@ -41,23 +43,20 @@ class NextflowOperator(KubernetesPodOperator):
             )
         ]
         
-        #TODO: assume that all config files are packaged within the same config map?
-
         self.volumes = [
             k8s.V1Volume(
                 name='nextflow-config',
                 config_map=k8s.V1ConfigMapVolumeSource(
-                    name="nextflow", #TODO: Should be configurable
+                    name="nextflow"
                 ),
             ),
             k8s.V1Volume(
                 name='nextflow-workspace',
-                persistent_volume_claim=k8s.V1PersistentVolumeClaimVolumeSource(claim_name="cqgc-qa-nextflow-pvc") #TODO: Should be configurable
+                persistent_volume_claim=k8s.V1PersistentVolumeClaimVolumeSource(claim_name=self.nextflow_pvc_name) 
                 #TODO: other settings for subpath?
             )
         ]
 
-        #TODO: should not be hard coded
         self.volume_mounts = [
             k8s.V1VolumeMount(
                 name='nextflow-config',

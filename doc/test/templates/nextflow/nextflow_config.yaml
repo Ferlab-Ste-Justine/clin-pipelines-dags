@@ -43,3 +43,40 @@ data:
         s3PathStyleAccess = true
       }
     }
+
+    // Configuring resources limits for each process
+    process {
+        disk = 2.GB
+        memory = 1.GB
+        cpus = 2
+    
+        withName: 'excludeMNPs|splitMultiAllelics' {
+            disk = 2.GB
+            memory = 1.GB
+            cpus = 2
+        }
+    
+        withName: 'importGVCF|genotypeGVCF_multi|genotypeGVCF_solo|genotypeGVCF|variantRecalibratorSNP|variantRecalibratorIndel|applyVQSRIndel|applyVQSRSNP|hardFiltering|gatherVCF' {
+            disk = 2.GB
+            memory = 1.GB
+            cpus = 2
+        }
+    
+        withName: vep {
+            disk = 2.GB
+            memory = 1.GB
+            cpus = 2
+        }
+    
+        withName: tabix {
+            disk = 2.GB
+            memory = 1.GB
+            cpus = 2
+        }
+    }
+    params {
+        max_memory = 2.GB
+        max_time = 1.h
+        max_cpus = 2
+        max_disk =  1.GB
+    }

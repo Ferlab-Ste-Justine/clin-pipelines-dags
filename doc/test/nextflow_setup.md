@@ -25,6 +25,7 @@ This guide describes the Minikube setup procedure common to most DAGs based on t
    ```bash
 
    # Copy the internal Minio data files to the persistent volume:
+   docker exec minikube mkdir -p /mnt/cqgc-qa/minio
    docker cp minikube-tmp/etl_annotate_variant/minio-data minikube:/mnt/cqgc-qa/minio/data
 
    # Install minio

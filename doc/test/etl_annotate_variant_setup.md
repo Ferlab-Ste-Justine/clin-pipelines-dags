@@ -9,26 +9,19 @@ Follow the procedure in [nextflow_setup.md](nextflow_setup.md)
 
 ## Step 1: Download and prepare a test dataset
 
-This only needs to be done once.
+A public dataset have been created to test the nextflow pipeline involved in the etl_annotate_variant dag.
+We shall download it and tweak it slightly. This only needs to be done once. 
 
-Run the following to download a public test dataset on your machine:
+First follow the documentation here to download a copy:
+https://github.com/Ferlab-Ste-Justine/cqdg-denovo-nextflow/tree/feat/add-test-dataset?tab=readme-ov-file#testing-locally
 
+
+Then do the following to modify the data slightly
 ```bash
-# Download test data
-mkdir -p minikube-tmp/etl_annotate_variant
-cd minikube-tmp/etl_annotate_variant
-git clone  --branch feat/add-test-dataset --depth 1 --no-checkout git@github.com:Ferlab-Ste-Justine/cqdg-denovo-pipeline.git
-cd cqdg-denovo-pipeline
-git sparse-checkout set --no-cone data-test
-git checkout 
-
 # Replace local file urls by s3 urls in the pipeline input file
 cat  data-test/data/testSample.tsv |  sed 's/data-test/s3:\/\/cqgc-qa-app-datalake/g' >testSample2.tsv
 mv testSample2.tsv data-test/data/testSample.tsv 
- cd ../../..
 ```
-
-The test dataset will be downloaded to the folder `minikube-tmp/etl_annotate_variant/minikube-tmp/cqdg-denovo-pipeline/data-test`
 
 ## Step 2: Copy the test dataset on the minio bucket
 
@@ -60,9 +53,8 @@ rm -rf minikube-tmp/etl_annotate_variant/nextflow-workspace
 mkdir -p minikube-tmp/etl_annotate_variant/nextflow-workspace
 minikube mount minikube-tmp/etl_annotate_variant/nextflow-workspace:/mnt/cqgc-qa/nextflow & echo $! >minikube-tmp/etl_annotate_variant/pids/nextflow_workspace_mount_pid
 
-# Copy configuration files
+# Copy the param file (this won't be needed in non-poc mode as we shall use configuration profiles to set most parameters)
 cp doc/test/resources/etl_annotate_variant/params.json  minikube-tmp/etl_annotate_variant/nextflow-workspace
-cp doc/test/resources/etl_annotate_variant/test.config  minikube-tmp/etl_annotate_variant/nextflow-workspace
 ```
 
 ## Step 4: Run the dag
