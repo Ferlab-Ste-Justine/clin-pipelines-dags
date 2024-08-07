@@ -86,4 +86,5 @@ Simply run the following command:
 docker cp minikube:/mnt/cqgc-qa/minio/data minikube-tmp/etl_annotate_variant/minio-data
 ```
 
-Please note that we avoid using the `minikube mount`command to sync with the persistent volume as it causes the minio pod to crash.
+Note:
+We chose to not use the `minikube mount` command to copy Minio state files because it causes the Minio pod to crash due to a permission issue. It might be worth trying again with the additional options `--uid 0 --gid 0` when running the minikube mount command. This should set the owner and group to root for the mounted folder in the minikube container.

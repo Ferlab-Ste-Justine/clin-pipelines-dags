@@ -9,6 +9,12 @@ env:
     value:  "yes"
 
 
+images:
+  gitSync:
+    repository: ferlabcrsj/airflow_git-sync.git-sync
+    tag: v3.6.3
+    pullPolicy: IfNotPresent
+
 executor:  "KubernetesExecutor"
 
 dags:

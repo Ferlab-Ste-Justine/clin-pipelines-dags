@@ -41,21 +41,16 @@ The directory structure in Minio should look like this:
  - s3://cqgc-qa-app-datalake/reference
 
 
-## Step 3: Mount the persistent volume and copy extra configuration files
+## Step 3: Copy extra configuration files on the persistent volume
 
-Run the following commands:
+Run the following command:
 
-```bash
-# Optional: to erase previous nextflow files:
-rm -rf minikube-tmp/etl_annotate_variant/nextflow-workspace
-
-# setup the minikube mount
-mkdir -p minikube-tmp/etl_annotate_variant/nextflow-workspace
-minikube mount minikube-tmp/etl_annotate_variant/nextflow-workspace:/mnt/cqgc-qa/nextflow & echo $! >minikube-tmp/etl_annotate_variant/pids/nextflow_workspace_mount_pid
-
-# Copy the param file (this won't be needed in non-poc mode as we shall use configuration profiles to set most parameters)
-cp doc/test/resources/etl_annotate_variant/params.json  minikube-tmp/etl_annotate_variant/nextflow-workspace
 ```
+docker cp doc/test/resources/etl_annotate_variant/params.json minikube:/mnt/cqgc-qa/nextflow/params.json
+```
+
+We previously attempted to use the minikube mount command to mount the Nextflow persistent volume. This caused permission issues when running the Nextflow job. We tried using the options --uid 0 --gid 0 (root user and group) with the minikube mount command, but the error persisted. Interestingly, Nextflow manages to create some files and folders, but fails for a specific file.
+
 
 ## Step 4: Run the dag
 

@@ -32,7 +32,8 @@ This guide describes the Minikube setup procedure common to most DAGs based on t
     kubectl apply -f doc/test/templates/nextflow/mock_minio.yaml -n cqgc-qa
    ```
 
-   Note that we did not use the Minikube mount command to copy Minio state files. This is because it causes the minio pod to crash.
+    Note:
+    We chose to not use the `minikube mount` command to copy Minio state files because it causes the Minio pod to crash due to a permission issue. It might be worth trying again with the additional options `--uid 0 --gid 0` when running the minikube mount command. This should set the owner and group to root for the mounted folder in the minikube container.
 
 4. **(Optional) Verify minio setup**
 
