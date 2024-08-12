@@ -12,6 +12,11 @@ Follow the procedure in [nextflow_setup.md](nextflow_setup.md)
 A public dataset have been created to test the nextflow pipeline involved in the etl_annotate_variant dag.
 We shall download it and tweak it slightly. This only needs to be done once. 
 
+Ask help from the bioinformatics team to obtain a copy of the dataset. You should ask for the "Post-Processing-Pipeline"
+test dataset. 
+
+
+
 First follow the documentation here to download a copy:
 https://github.com/Ferlab-Ste-Justine/cqdg-denovo-nextflow/tree/feat/add-test-dataset?tab=readme-ov-file#testing-locally
 
@@ -19,8 +24,7 @@ https://github.com/Ferlab-Ste-Justine/cqdg-denovo-nextflow/tree/feat/add-test-da
 Then do the following to modify the data slightly
 ```bash
 # Replace local file urls by s3 urls in the pipeline input file
-cat  data-test/data/testSample.tsv |  sed 's/data-test/s3:\/\/cqgc-qa-app-datalake/g' >testSample2.tsv
-mv testSample2.tsv data-test/data/testSample.tsv 
+cat  data-test/testSampleSheet.csv |  sed 's/data-test/s3:\/\/cqgc-qa-app-files-import/g' >data-test/data/testSampleSheet.csv
 ```
 
 ## Step 2: Copy the test dataset on the minio bucket
@@ -33,13 +37,14 @@ kubectl port-forward svc/minio 9091:9091 -n cqgc-qa & echo $! >minikube-tmp/etl_
 ```
 
 Open your browser and go to the minio login page at `localhost:9091`. Use username `minio` and password `minio123` to login.
-Using the object browser, upload the folder `minikube-tmp/etl_annotate_variant/minikube-tmp/cqdg-denovo-pipeline/data-test/data` to the bucket cqgc-qa-app-datalake. When pressing the Upload button, select the Upload Folder option.
+Using the object browser, upload the folder `minikube-tmp/etl_annotate_variant/minikube-tmp/cqdg-denovo-pipeline/data-test/data` to the bucket cqgc-qa-app-files-import. When pressing the Upload button, select the Upload Folder option.
 Repeat the procedure for folder  `minikube-tmp/etl_annotate_variant/minikube-tmp/cqdg-denovo-pipeline/data-test/reference`.
 
 The directory structure in Minio should look like this:
- - s3://cqgc-qa-app-datalake/data
- - s3://cqgc-qa-app-datalake/reference
+ - s3://cqgc-qa-app-files-import/data
+ - s3://cqgc-qa-app-files-import/reference
 
+ Also Upload the test sample sheet at the r
 
 ## Step 3: Copy extra configuration files on the persistent volume
 
@@ -48,6 +53,9 @@ Run the following command:
 ```
 docker cp doc/test/resources/etl_annotate_variant/params.json minikube:/mnt/cqgc-qa/nextflow/params.json
 ```
+
+Note: this won't be necessary in the future as most parameters here will be defined in a profile.
+Otherwise, we should use a more standard way to inject the parameters on the pod when executing the dag, such as a config map volume.
 
 We previously attempted to use the minikube mount command to mount the Nextflow persistent volume. This caused permission issues when running the Nextflow job. We tried using the options --uid 0 --gid 0 (root user and group) with the minikube mount command, but the error persisted. Interestingly, Nextflow manages to create some files and folders, but fails for a specific file.
 

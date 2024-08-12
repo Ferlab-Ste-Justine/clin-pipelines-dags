@@ -10,7 +10,7 @@ data:
   nextflow.config: |
 
     // Where to store intermediate results
-    workDir = 's3://cqgc-qa-app-datalake/nextflow/scratch'
+    workDir = 's3://cqgc-qa-app-files-scratch/nextflow/scratch'
 
     // Allow to cleanup the work directory if the pipeline is successful
     cleanup = true
@@ -44,7 +44,8 @@ data:
       }
     }
 
-    // Configuring resources limits for each process
+    // ------- Configuration tweaks added temporarily. They should be somehow activated in the pipeline itself when running with test profile -----
+    
     process {
         disk = 2.GB
         memory = 1.GB
@@ -72,6 +73,10 @@ data:
             disk = 2.GB
             memory = 1.GB
             cpus = 2
+        }
+
+        withName: genotypeGVCF {
+            ext.args = '--allow-old-rms-mapping-quality-annotation-data'
         }
     }
     params {

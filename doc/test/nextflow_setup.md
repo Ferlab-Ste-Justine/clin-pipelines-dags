@@ -52,7 +52,7 @@ This guide describes the Minikube setup procedure common to most DAGs based on t
 
     Sometimes, the login may not work on the first attempt. If this happens, terminate the port forwarding process and repeat the steps above.
 
-    In the UI, you should see a bucket named `cqgc-qa-app-datalake` and credentials named `nextflow-test` with the appropriate policy configured.
+    In the UI, you should see buckets `cqgc-qa-app-files-import` and `cqgc-qa-app-files-scratch`. You should also credentials named `nextflow-test` with the appropriate policy configured.
 
 5. **Create required nextflow resources**
 

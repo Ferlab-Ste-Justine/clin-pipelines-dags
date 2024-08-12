@@ -32,14 +32,15 @@ with DAG(
             "-c",
             "/opt/nextflow/config/nextflow.config", #We should move this file in the launch directory, this way we don't need to pass it
             "run",
+            "Ferlab-Ste-Justine/Post-processing-Pipeline",
             "-r",
-            "feat/add-test-dataset",
+            "main",
             "-params-file",
-            "/mnt/workspace/params.json",
-            "Ferlab-Ste-Justine/cqdg-denovo-nextflow",
+            "/mnt/workspace/params.json"
         ],
         on_finish_action="delete_succeeded_pod" #Strangely, this does not work for now. Perhaps the parent airflow task is ignoring?
     )
+
     
     #NEXT POC steps
     # - add the dag parameters and testwith the right interface (will need to modify the nextflow code to do so , ok to use a branch)

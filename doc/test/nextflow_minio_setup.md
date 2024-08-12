@@ -45,7 +45,7 @@ http://localhost:9091/
 
 ## Step 4: Create bucket, credentials and permissions
 
-From the minio UI, create a bucket with name `cqgc-qa-app-datalake`
+From the minio UI, create buckets with name `cqgc-qa-app-files-import` and `cqgc-qa-app-files-scratch`
 
 Then create an access key with the following details:
  - Access Key: `nextflow-test`
@@ -57,24 +57,34 @@ Configure the following policy on the access key:
 
 ```
 {
- "Version": "2012-10-17",
- "Statement": [
-  {
-   "Sid": "BucketAccessForUser",
-   "Effect": "Allow",
-   "Action": [
-    "s3:GetObject",
-    "s3:ListBucket",
-    "s3:PutObject",
-    "s3:DeleteObject"
-   ],
-   "Resource": [
-    "arn:aws:s3:::*"
-   ]
-  }
- ]
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:Get*",
+                "s3:List*",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::cqgc-qa-app-files-scratch*",
+                "arn:aws:s3:::cqgc-qa-app-files-import*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:DeleteObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::cqgc-qa-app-files-scratch*"
+            ]
+        }
+    ]
 }
 ```
+Note: You can use any policy you'd like to test locally. However, we recommend using a policy as close as possible to the production environment to avoid unanticipated permission issues when deploying.
+
 
 ## Optional: save minio state
 
