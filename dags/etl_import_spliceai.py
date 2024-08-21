@@ -4,6 +4,7 @@ from itertools import chain
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
@@ -111,20 +112,42 @@ with DAG(
         trigger_rule=TriggerRule.NONE_FAILED
     )
 
-    enrich = SparkOperator(
-        task_id='enrich',
-        name='etl-enrich-spliceai',
+    enrich_indel = SparkOperator(
+        task_id='enrich_indel',
+        name='etl-enrich-spliceai-indel',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='config-etl-large',
         arguments=[
-            'spliceai_enriched',
+            'spliceai_enriched_indel',
             '--config', config_file,
             '--steps', 'default',
-            '--app-name', 'etl_enrich_spliceai',
+            '--app-name', 'etl_enrich_spliceai_indel',
         ],
-        trigger_rule=TriggerRule.NONE_FAILED,
-        on_success_callback=Slack.notify_dag_completion
+        trigger_rule=TriggerRule.NONE_FAILED
     )
 
-    [indel_table, snv_table] >> enrich
+    enrich_snv = SparkOperator(
+        task_id='enrich_snv',
+        name='etl-enrich-spliceai-snv',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
+        spark_config='config-etl-large',
+        arguments=[
+            'spliceai_enriched_snv',
+            '--config', config_file,
+            '--steps', 'default',
+            '--app-name', 'etl_enrich_spliceai_snv',
+        ],
+        trigger_rule=TriggerRule.NONE_FAILED
+    )
+
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion,
+    )
+
+    file >> [indel_table, snv_table]
+    indel_table >> enrich_indel
+    snv_table >> enrich_snv
+    [enrich_snv, enrich_indel] >> slack
