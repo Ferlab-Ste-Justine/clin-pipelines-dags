@@ -28,7 +28,7 @@ with DAG(
         arguments=[
             'genes',
             '--config', config_file,
-            '--steps', 'default',
+            '--steps', 'initial',
             '--app-name', 'etl_import_genes_table',
         ],
         on_execute_callback=Slack.notify_dag_start
