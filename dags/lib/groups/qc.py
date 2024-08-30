@@ -35,6 +35,18 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
+        vcf_snv_somatic = SparkOperator(
+            task_id='vcf_snv_somatic',
+            doc_md=doc.vcf_snv_somatic,
+            name='etl-qc-vcf-snv-somatic',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.qc.fromVCF.ContainedInSNVSomatic',
+            spark_config='config-etl-large',
+            spark_jar=spark_jar,
+            arguments=['clin' + env_url('_')],
+            skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        )
+
         filters_snv = SparkOperator(
             task_id='filters_snv',
             doc_md=doc.filters_snv,
@@ -635,5 +647,5 @@ def qc(
             skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
         )
 
-        vcf_snv >> vcf_nor_variants >> filters_snv >> filters_frequency_extra >> filters_frequency_missed >> no_null_variant_centric >> no_null_variant_centric_donors >> no_null_variant_centric_freqbyanal >> no_null_variant_centric_freqrqdm >> no_null_gene_centric >> no_null_cnv_centric >> no_null_coverage_by_gene >> only_null_variant_centric >> only_null_variant_centric_cmc >> only_null_variant_centric_clinvar >> only_null_variant_centric_consequences >> only_null_variant_centric_donors >> only_null_variant_centric_exomax >> only_null_variant_centric_extfreq >> only_null_variant_centric_framax >> only_null_variant_centric_freqbyanal >> only_null_variant_centric_freqrqdm >> only_null_variant_centric_freqrqdmtumor >> only_null_gene_centric >> only_null_cnv_centric >> only_null_coverage_by_gene >> same_value_variant_centric >> same_value_variant_centric_cmc >> same_value_variant_centric_clinvar >> same_value_variant_centric_consequences >> same_value_variant_centric_donors >> same_value_variant_centric_exomax >> same_value_variant_centric_extfreq >> same_value_variant_centric_framax >> same_value_variant_centric_freqbyanal >> same_value_variant_centric_freqrqdm >> same_value_variant_centric_freqrqdmtumor >> same_value_gene_centric >> same_value_cnv_centric >> same_value_coverage_by_gene >> dictionary_cnv >> dictionary_consequences >> dictionary_donors >> dictionary_snv >> freq_rqdm_total >> freq_rqdm_affected >> freq_rqdm_non_affected >> freq_by_analysis_total >> freq_by_analysis_affected >> freq_by_analysis_non_affected >> freq_rqdm_tumor_only >> freq_rqdm_tumor_normal
+        vcf_snv >> vcf_nor_variants >> vcf_snv_somatic >> filters_snv >> filters_frequency_extra >> filters_frequency_missed >> no_null_variant_centric >> no_null_variant_centric_donors >> no_null_variant_centric_freqbyanal >> no_null_variant_centric_freqrqdm >> no_null_gene_centric >> no_null_cnv_centric >> no_null_coverage_by_gene >> only_null_variant_centric >> only_null_variant_centric_cmc >> only_null_variant_centric_clinvar >> only_null_variant_centric_consequences >> only_null_variant_centric_donors >> only_null_variant_centric_exomax >> only_null_variant_centric_extfreq >> only_null_variant_centric_framax >> only_null_variant_centric_freqbyanal >> only_null_variant_centric_freqrqdm >> only_null_variant_centric_freqrqdmtumor >> only_null_gene_centric >> only_null_cnv_centric >> only_null_coverage_by_gene >> same_value_variant_centric >> same_value_variant_centric_cmc >> same_value_variant_centric_clinvar >> same_value_variant_centric_consequences >> same_value_variant_centric_donors >> same_value_variant_centric_exomax >> same_value_variant_centric_extfreq >> same_value_variant_centric_framax >> same_value_variant_centric_freqbyanal >> same_value_variant_centric_freqrqdm >> same_value_variant_centric_freqrqdmtumor >> same_value_gene_centric >> same_value_cnv_centric >> same_value_coverage_by_gene >> dictionary_cnv >> dictionary_consequences >> dictionary_donors >> dictionary_snv >> freq_rqdm_total >> freq_rqdm_affected >> freq_rqdm_non_affected >> freq_by_analysis_total >> freq_by_analysis_affected >> freq_by_analysis_non_affected >> freq_rqdm_tumor_only >> freq_rqdm_tumor_normal
     return group
