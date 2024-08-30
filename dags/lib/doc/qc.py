@@ -14,6 +14,7 @@ L'échec d'un de ces tests ne bloque pas l'exécution du DAG.
 ### Différents tests
 - Table normalized_snv
 - Table normalized_variants
+- Table normalized_snv_somatic
 
 ## Série de tests validant les filtres sur les variants
 
@@ -101,6 +102,12 @@ vcf_nor_variants = '''
 ### Documentation
 - Test : Table normalized_variants
 - Objectif : La liste filtrée des variants du fichier VCF est la même que dans la table normalized_variants
+'''
+
+vcf_snv_somatic = '''
+### Documentation
+- Test : Table normalized_snv_somatic
+- Objectif : La liste filtrée des variants du fichier VCF est la même que dans la table normalized_snv_somatic
 '''
 
 filters_snv = '''
