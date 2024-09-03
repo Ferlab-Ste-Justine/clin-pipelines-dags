@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: minio
+  name: minio
+  namespace: cqgc-qa # Change this value to match the namespace metadata.name
+spec:
+  containers:
+  - name: minio
+    image: minio/minio:RELEASE.2024-07-16T23-46-41Z.fips
+    #image: quay.io/minio/minio:latest
+    command:
+    - /bin/bash
+    - -c
+    args: 
+    - minio server /mnt/data --address :9090 --console-address :9091
+    volumeMounts:
+    - mountPath: /mnt/data
+      name: data-volume
+    env:
+        - name: MINIO_ROOT_USER
+          value: "minio"
+        - name: MINIO_ROOT_PASSWORD
+          value: "minio123"
+    
+  volumes:
+  - name: data-volume
+    persistentVolumeClaim:
+        claimName: cqgc-qa-minio-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: minio
+  name: minio
+spec:
+  ports:
+    - name: api
+      port: 9090
+      protocol: TCP
+      targetPort: 9090
+    - name: console
+      port: 9091
+      protocol: TCP
+      targetPort: 9091
+  selector:
+    app: minio

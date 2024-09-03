@@ -9,6 +9,7 @@ from kubernetes.client import models as k8s
 from lib import config
 from lib.config import env
 
+logger = logging.getLogger(__name__)
 
 class SparkOperator(KubernetesPodOperator):
 
