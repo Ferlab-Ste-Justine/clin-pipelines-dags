@@ -54,7 +54,7 @@ if env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.3.4.jar'
+    spark_jar = 'clin-variant-etl-v3.4.2.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -62,13 +62,17 @@ if env == Env.QA:
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
     config_file = f'config/qa.conf'
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
-    batch_ids = ['201106_A00516_0169_AHFM3HDSXY', 'test_extum', 'Batch_ParCas', 'test_franklin']
+    batch_ids = [
+        '201106_A00516_0169_AHFM3HDSXY', 
+        'test_extum', 'Batch_ParCas', 'test_franklin', 
+        'test_somatic_normal_part1', 'test_somatic_normal_part2',
+        '2_data_to_import_germinal', 'test_dragen_4_2_4_germline', 'test_franklin']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:a77e25a'
     pipeline_image = 'ferlabcrsj/clin-pipelines:c446a3a'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.3.4.jar'
+    spark_jar = 'clin-variant-etl-v3.4.2.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -93,7 +97,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:c446a3a'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.3.4.jar'
+    spark_jar = 'clin-variant-etl-v3.4.2.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
@@ -167,10 +171,6 @@ elif env == Env.PROD:
         '240620_A00516_0567_AHJ75TDSXC_germinal',
         '240710_A00516_0571_AHF7CYDRX5_somatic',
         '240112_A00516_0503_AHN2YTDRX3_somatic_normal',
-        '240112_A00516_0503_AHN2YTDRX3_somatic_normal',
-        '240522_A00977_0744_BH5TY7DRX5_somatic_normal',
-        '240308_A00516_0531_BHWVJJDRX3_somatic_normal',
-        '240613_A00516_0566_AH5WJVDRX5_somatic_normal',
         '240710_A00516_0571_AHF7CYDRX5_somatic_normal',
         '240712_A00516_0573_BH3WCYDRX5_somatic',
         '240724_A00516_0576_BHF7KFDRX5_somatic',
@@ -180,6 +180,10 @@ elif env == Env.PROD:
         '240809_A00516_0586_BHVGJMDMXY_germinal',
         '240815_A00516_0588_BHG7LVDRX5_somatic',
         '240821_A00516_0591_BHG7MVDRX5_somatic',
+        '240816_A00516_0590_AHG7MWDRX5_germinal',
+        '240815_A00516_0588_BHG7LVDRX5_somatic_normal',
+        '240712_A00516_0573_BH3WCYDRX5_somatic_normal',
+        '240724_A00516_0576_BHF7KFDRX5_somatic_normal'
         
     ]
 else:
