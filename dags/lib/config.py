@@ -91,6 +91,7 @@ elif env == Env.STAGING:
         '230609_A00516_0425_AHKNCFDMXY',
         '240201_A00516_0001_SYNTH',
         'test_dragen_4_2_4_germline',
+        '240613_A00516_0566_AH5WJVDRX5_CAP',
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:a77e25a'
