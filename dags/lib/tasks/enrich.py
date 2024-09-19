@@ -1,65 +1,20 @@
 from typing import List
 
-from airflow.exceptions import AirflowSkipException
-from airflow.utils.context import Context
-from lib.config import K8sContext, config_file
-from lib.operators.spark import SparkOperator
+from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
-
-class EnrichedSparkOperator(SparkOperator):
-    def __init__(self,
-                 first_arg: str,
-                 steps: str,
-                 app_name: str,
-                 spark_config: str,
-                 batch_id: str = '',
-                 target_batch_types: List[ClinAnalysis] = None,
-                 spark_jar: str = '',
-                 skip: str = '',
-                 **kwargs
-                 ) -> None:
-        super().__init__(
-            k8s_context=K8sContext.ETL,
-            spark_class='bio.ferlab.clin.etl.enriched.RunEnriched',
-            spark_config=spark_config,
-            spark_jar=spark_jar,
-            skip=skip,
-            **kwargs)
-
-        arguments = [
-            first_arg,
-            '--config', config_file,
-            '--steps', steps,
-            '--app-name', app_name,
-        ]
-        if batch_id:
-            arguments.append('--batchId')
-            arguments.append(batch_id)
-
-        self.arguments = arguments
-        self.batch_id = batch_id
-        self.target_batch_types = [target.value for target in (target_batch_types or [])]
-
-    def execute(self, context: Context):
-        # Check if batch type is in target batch types if batch_id is defined
-        if self.batch_id:
-            batch_type = context['ti'].xcom_pull(task_ids='detect_batch_type', key=self.batch_id)[0]
-            if batch_type not in self.target_batch_types:
-                raise AirflowSkipException(f'Batch id \'{self.batch_id}\' of batch type \'{batch_type}\' is not in '
-                                           f'target batch types: {self.target_batch_types}')
-
-        super().execute(context)
+ENRICHED_MAIN_CLASS = 'bio.ferlab.clin.etl.enriched.RunEnriched'
 
 
 def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-enrich-snv',
-        app_name: str = 'etl_enrich_snv', skip: str = '', **kwargs) -> SparkOperator:
-    return EnrichedSparkOperator(
-        first_arg='snv',
+        app_name: str = 'etl_enrich_snv', skip: str = '', **kwargs) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='snv',
         task_id=task_id,
         name=name,
         steps=steps,
         app_name=app_name,
+        spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
@@ -70,12 +25,13 @@ def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-
 def snv_somatic_all(steps: str, spark_jar: str = '', task_id: str = 'snv_somatic_all',
                     name: str = 'etl-enrich-snv-somatic-all', app_name: str = 'etl_enrich_snv_somatic_all',
                     skip: str = '', **kwargs):
-    return EnrichedSparkOperator(
-        first_arg='snv_somatic',
+    return SparkETLOperator(
+        entrypoint='snv_somatic',
         task_id=task_id,
         name=name,
         steps=steps,
         app_name=app_name,
+        spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
@@ -86,12 +42,13 @@ def snv_somatic_all(steps: str, spark_jar: str = '', task_id: str = 'snv_somatic
 def snv_somatic(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: str = 'snv_somatic',
                 name: str = 'etl-enrich-snv-somatic', app_name: str = 'etl_enrich_snv_somatic', skip: str = '',
                 target_batch_types: List[ClinAnalysis] = None, **kwargs):
-    return EnrichedSparkOperator.partial(
-        first_arg='snv_somatic',
+    return SparkETLOperator.partial(
+        entrypoint='snv_somatic',
         task_id=task_id,
         name=name,
         steps=steps,
         app_name=app_name,
+        spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-medium',
         spark_jar=spark_jar,
         skip=skip,
@@ -102,13 +59,14 @@ def snv_somatic(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: 
 
 
 def variants(steps: str, spark_jar: str = '', task_id: str = 'variants', name: str = 'etl-enrich-variants',
-             app_name: str = 'etl_enrich_variants', skip: str = '', **kwargs) -> SparkOperator:
-    return EnrichedSparkOperator(
-        first_arg='variants',
+             app_name: str = 'etl_enrich_variants', skip: str = '', **kwargs) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='variants',
         task_id=task_id,
         name=name,
         steps=steps,
         app_name=app_name,
+        spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
@@ -116,14 +74,16 @@ def variants(steps: str, spark_jar: str = '', task_id: str = 'variants', name: s
     )
 
 
-def consequences(steps: str, spark_jar: str = '', task_id: str = 'consequences', name: str = 'etl-enrich-consequences',
-                 app_name: str = 'etl_enrich_consequences', skip: str = '', **kwargs) -> SparkOperator:
-    return EnrichedSparkOperator(
-        first_arg='consequences',
+def consequences(steps: str, spark_jar: str = '', task_id: str = 'consequences',
+                 name: str = 'etl-enrich-consequences',
+                 app_name: str = 'etl_enrich_consequences', skip: str = '', **kwargs) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='consequences',
         task_id=task_id,
         name=name,
         steps=steps,
         app_name=app_name,
+        spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
@@ -132,13 +92,14 @@ def consequences(steps: str, spark_jar: str = '', task_id: str = 'consequences',
 
 
 def cnv(steps: str, spark_jar: str = '', task_id: str = 'cnv', name: str = 'etl-enrich-cnv',
-        app_name: str = 'etl_enrich_cnv', skip: str = '', **kwargs) -> SparkOperator:
-    return EnrichedSparkOperator(
-        first_arg='cnv',
+        app_name: str = 'etl_enrich_cnv', skip: str = '', **kwargs) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='cnv',
         task_id=task_id,
         name=name,
         steps=steps,
         app_name=app_name,
+        spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
@@ -148,13 +109,14 @@ def cnv(steps: str, spark_jar: str = '', task_id: str = 'cnv', name: str = 'etl-
 
 def coverage_by_gene(steps: str, spark_jar: str = '', task_id: str = 'coverage_by_gene',
                      name: str = 'etl-enrich-coverage-by-gene',
-                     app_name: str = 'etl_enrich_coverage_by_gene', skip: str = '', **kwargs) -> SparkOperator:
-    return EnrichedSparkOperator(
-        first_arg='coverage_by_gene',
+                     app_name: str = 'etl_enrich_coverage_by_gene', skip: str = '', **kwargs) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='coverage_by_gene',
         task_id=task_id,
         name=name,
         steps=steps,
         app_name=app_name,
+        spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,

@@ -15,7 +15,7 @@ from lib.groups.qa import qa
 from lib.operators.notify import NotifyOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import batch_type, enrich
+from lib.tasks import batch_type, enrich, nextflow
 from lib.tasks.batch_type import skip_if_no_batch_in
 from lib.tasks.params_validate import validate_release_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
@@ -89,6 +89,19 @@ with DAG(
         trigger_dag_id='etl_ingest',
         wait_for_completion=True
     ).expand(conf=get_ingest_dag_configs_task)
+
+
+    @task_group(group_id="nextflow")
+    def nextflow_group():
+        prepare_svclustering_parental_origin_task = nextflow.prepare_svclustering_parental_origin(
+            batch_ids=get_batch_ids_task,
+            spark_jar=spark_jar()
+        )
+
+        svclustering_parental_origin_task = nextflow.svclustering_parental_origin(batch_ids=get_batch_ids_task)
+
+        prepare_svclustering_parental_origin_task >> svclustering_parental_origin_task
+
 
     steps = default_or_initial(batch_param_name='batch_ids')
 
@@ -215,4 +228,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_es_dag >> trigger_qc_dag
+    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> nextflow_group() >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_es_dag >> trigger_qc_dag

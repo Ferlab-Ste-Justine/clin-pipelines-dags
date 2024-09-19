@@ -1,7 +1,7 @@
 import logging
-from pathlib import Path
 import re
 
+from airflow.exceptions import AirflowSkipException
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client import models as k8s
 
@@ -23,9 +23,13 @@ class NextflowOperator(KubernetesPodOperator):
     Minio credentials are provided via a Kubernetes secret, and nextflow configuration file(s) are injected 
     through a Kubernetes configmap, mounted at `/root/nextflow/config/`.
     """
+
+    template_fields = KubernetesPodOperator.template_fields + ('skip',)
+
     def __init__(
         self,
         k8s_context: str,
+        skip: bool = False,
         **kwargs
     ) -> None:
         super().__init__(
@@ -45,6 +49,7 @@ class NextflowOperator(KubernetesPodOperator):
         self.minio_secret_key_property = config.nextflow_minio_secret_key_property
         self.persistent_volume_claim_name = config.nextflow_pvc
         self.persistent_volume_sub_path = config.nextflow_pv_sub_path
+        self.skip = skip
 
         # Where nextflow will write intermediate outputs. This is different from the launch directory,
         # i.e. where the nextflow command is executed.
@@ -52,6 +57,9 @@ class NextflowOperator(KubernetesPodOperator):
      
 
     def execute(self, context, **kwargs):
+        if self.skip:
+            raise AirflowSkipException()
+
         persistent_volume_mount_path = "/mnt/workspace"
     
         self.env_vars = [
