@@ -65,7 +65,8 @@ with DAG(
     @task(task_id='get_batch_ids')
     def get_batch_ids(ti=None) -> List[str]:
         dag_run: DagRun = ti.dag_run
-        return dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
+        ids = dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
+        return list(set(ids))
 
 
     @task(task_id='get_ingest_dag_configs')
