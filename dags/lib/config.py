@@ -63,13 +63,13 @@ if env == Env.QA:
     config_file = f'config/qa.conf'
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
-        '201106_A00516_0169_AHFM3HDSXY', 
-        'test_extum', 'Batch_ParCas', 'test_franklin', 
+        '201106_A00516_0169_AHFM3HDSXY',
+        'test_extum', 'Batch_ParCas', 'test_franklin',
         'test_somatic_normal_part1', 'test_somatic_normal_part2',
         '2_data_to_import_germinal', 'test_dragen_4_2_4_germline', 'test_franklin']
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:a77e25a'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:a54919f'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:ab62ffb'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'clin-variant-etl-v3.4.2.jar'
@@ -184,7 +184,7 @@ elif env == Env.PROD:
         '240816_A00516_0590_AHG7MWDRX5_germinal',
         '240815_A00516_0588_BHG7LVDRX5_somatic_normal',
         '240712_A00516_0573_BH3WCYDRX5_somatic_normal',
-        '240724_A00516_0576_BHF7KFDRX5_somatic_normal',       
+        '240724_A00516_0576_BHF7KFDRX5_somatic_normal',
         '240903_A00516_0593_AHVVG7DMXY_germinal',
         '240906_A00516_0595_AHGC5VDRX5_somatic',
         '240913_A00977_0747_AH3VTCDRX5_somatic',
