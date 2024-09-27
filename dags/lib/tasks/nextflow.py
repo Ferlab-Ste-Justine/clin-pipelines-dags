@@ -43,7 +43,6 @@ def svclustering_parental_origin(batch_ids: List[str], skip: str = ''):
             self.output_key = f's3a://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}'
             self.arguments = [
                 'nextflow', 'run', 'Ferlab-Ste-Justine/ferlab-svclustering-parental-origin',
-                '-profile', '<docker/singularity/.../institute>',
                 '-c', '/root/nextflow/config/nextflow.config',
                 '-r', 'v1.1',
                 '--input', self.input_key,
