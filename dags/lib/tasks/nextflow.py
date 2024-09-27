@@ -12,12 +12,11 @@ from lib.utils_etl import ClinAnalysis
 
 def prepare_svclustering_parental_origin(batch_ids: List[str], spark_jar: str, skip: str = ''):
     return SparkETLOperator.partial(
-        entrypoint='prepare_svclustering_parental_origin',
         task_id='prepare_svclustering_parental_origin',
         name='prepare-svclustering-parental-origin',
         steps='default',
         app_name=f'prepare_svclustering_parental_origin',
-        spark_class='bio.ferlab.clin.etl.nextflow.RunNextflow',
+        spark_class='bio.ferlab.clin.etl.nextflow.PrepareSVClusteringParentalOrigin',
         spark_config='config-etl-small',
         spark_jar=spark_jar,
         skip=skip,

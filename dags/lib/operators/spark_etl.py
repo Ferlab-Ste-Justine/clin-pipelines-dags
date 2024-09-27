@@ -17,11 +17,11 @@ class SparkETLOperator(SparkOperator):
      is checked against `target_batch_types` before job execution.
 
      Parameters:
-         entrypoint (str): Entrypoint of the main Spark class.
          steps (str): Run type of the ETL. Usually `default` or `initial`.
          app_name (str): Name of the Spark application.
          spark_class (str): Main Spark class.
          spark_config (str): Spark configuration.
+         entrypoint (str, optional): Optional entrypoint of the main Spark class. Defaults to ''.
          batch_id (str, optional): Optional batch ID to process. Defaults to ''.
          target_batch_types (List[ClinAnalysis], optional): Allowed batch types for validation.
          detect_batch_type_task_id (str, optional): Task ID of the detect batch type task. Defaults to 'detect_batch_type'.
@@ -33,11 +33,11 @@ class SparkETLOperator(SparkOperator):
     template_fields = SparkOperator.template_fields + ('batch_id',)
 
     def __init__(self,
-                 entrypoint: str,
                  steps: str,
                  app_name: str,
                  spark_class: str,
                  spark_config: str,
+                 entrypoint: str = '',
                  batch_id: str = '',
                  target_batch_types: List[ClinAnalysis] = None,
                  detect_batch_type_task_id: str = 'detect_batch_type',
@@ -54,14 +54,14 @@ class SparkETLOperator(SparkOperator):
             **kwargs)
 
         arguments = [
-            entrypoint,
             '--config', config_file,
             '--steps', steps,
             '--app-name', app_name,
         ]
+        if entrypoint:
+            arguments = [entrypoint] + arguments
         if batch_id:
-            arguments.append('--batchId')
-            arguments.append(batch_id)
+            arguments = arguments + ['--batchId', batch_id]
 
         self.arguments = arguments
         self.batch_id = batch_id
