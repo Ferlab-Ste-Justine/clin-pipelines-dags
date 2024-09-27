@@ -39,17 +39,17 @@ def svclustering_parental_origin(batch_ids: List[str], skip: str = ''):
             )
 
             self.batch_id = batch_id
-            self.input_key = f's3a://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv'
-            self.output_key = f's3a://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}'
+            self.input_key = f's3://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv'
+            self.output_key = f's3://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}'
             self.arguments = [
                 'nextflow', 'run', 'Ferlab-Ste-Justine/ferlab-svclustering-parental-origin',
                 '-c', '/root/nextflow/config/nextflow.config',
                 '-r', 'v1.1',
                 '--input', self.input_key,
                 '--outdir', self.output_key,
-                '--fasta', 's3a://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta',
-                '--fasta-fai', 's3a://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta.fai',
-                '--fasta-dict', 's3a://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.dict'
+                '--fasta', 's3://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta',
+                '--fasta-fai', 's3://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta.fai',
+                '--fasta-dict', 's3://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.dict'
             ]
 
         def execute(self, context: Context, **kwargs):
