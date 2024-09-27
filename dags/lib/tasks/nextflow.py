@@ -48,8 +48,8 @@ def svclustering_parental_origin(batch_ids: List[str], skip: str = ''):
                 '--input', self.input_key,
                 '--outdir', self.output_key,
                 '--fasta', 's3://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta',
-                '--fasta-fai', 's3://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta.fai',
-                '--fasta-dict', 's3://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.dict'
+                '--fasta_fai', 's3://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta.fai',
+                '--fasta_dict', 's3://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.dict'
             ]
 
         def execute(self, context: Context, **kwargs):
