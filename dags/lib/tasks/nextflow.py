@@ -45,6 +45,7 @@ def svclustering_parental_origin(batch_ids: List[str], skip: str = ''):
                 'nextflow', 'run', 'Ferlab-Ste-Justine/ferlab-svclustering-parental-origin',
                 '-profile', '<docker/singularity/.../institute>',
                 '-c', '/root/nextflow/config/nextflow.config',
+                '-r', 'v1.1',
                 '--input', self.input_key,
                 '--outdir', self.output_key,
                 '--fasta', 's3a://cqgc-qa-app-datalake/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta',
