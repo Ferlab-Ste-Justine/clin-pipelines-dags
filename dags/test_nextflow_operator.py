@@ -37,14 +37,15 @@ if (config.show_test_dags or env in [Env.QA, Env.STAGING]):
               but please use a location under this directory.
            """
            )
-       }
+       },
+       render_template_as_native_obj=True
     ) as dag:
         
         NextflowOperator(
             task_id='test_nextflow_operator',
             name="test_nextflow_operator", # prefix for the pod name
             k8s_context = K8sContext.ETL,
-            arguments =  dag.params["nextflow_command"],
+            arguments = "{{ params.nextflow_command }}",
             on_execute_callback=Slack.notify_dag_start,
             on_success_callback=Slack.notify_dag_completion,
         )
