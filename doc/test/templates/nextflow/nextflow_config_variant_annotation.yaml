@@ -1,0 +1,142 @@
+# Will be used to create a nextflow configuration file containing environment-specific details
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nextflow-variant-annotation
+  labels:
+    name: nextflow-variant-annotation
+data:
+  params_v2.x.json: |
+
+    {
+      "input": "s3://cqgc-qa-app-files-import/nextflow/tests/datasets/Post-processing-Pipeline/V3/data-test/testSampleSheetJuno.csv",
+      "outdir": "s3://cqgc-qa-app-files-import/nextflow/tests/datasets/Post-processing-Pipeline/V3",
+      "referenceGenome": "s3://cqgc-qa-app-files-import/nextflow/tests/datasets/Post-processing-Pipeline/V3/data-test/reference/Homo_sapiens_assembly38/chr22",
+      "referenceGenomeFasta": "chr22.fa",
+      "vepCache": "s3://cqgc-qa-app-files-import/nextflow/tests/datasets/Post-processing-Pipeline/V3/data-test/reference/annotation/.vep",
+      "broad": "s3://cqgc-qa-app-files-import/nextflow/tests/datasets/Post-processing-Pipeline/V3/data-test/reference/broad",
+      "intervalsFile": "testInterval22.list",
+      "TSfilterSNP": "99.0",
+      "TSfilterINDEL": "99.0",
+      "hardFilters": [
+        {"name": "QD2", "expression": "QD < 2.0"},
+        {"name": "QD1", "expression": "QD < 1.0"},
+        {"name": "QUAL30", "expression": "QUAL < 30.0"},
+        {"name": "SOR3", "expression": "SOR > 3.0"},
+        {"name": "FS60", "expression": "FS > 60.0"},
+        {"name": "MQ40", "expression": "MQ < 40.0"},
+        {"name": "MQRankSum-12.5", "expression": "MQRankSum < -12.5"},
+        {"name": "ReadPosRankSum-8", "expression": "ReadPosRankSum < -8.0"}
+      ],
+      "max_memory": "8.GB",
+      "max_time": "1.h",
+      "max_cpus": 2,
+      "max_disk": "10.GB",
+    
+      "tools": "vep,exomiser",
+
+      "exomiser_data_dir": "s3://cqgc-qa-app-files-import/nextflow/tests/datasets/Post-processing-Pipeline/V3/data-test/reference/exomiser",
+      "exomiser_data_version": "2402",
+      "exomiser_genome": "hg38",
+      "exomiser_cadd_version": "1.7",
+      "exomiser_cadd_indel_filename": "gnomad.genomes.r4.0.indel.tsv.gz",
+      "exomiser_cadd_snv_filename": "whole_genome_SNVs.tsv.gz",
+      "exomiser_remm_version": "0.3.1.post1",
+      "exomiser_remm_filename": "ReMM.v0.3.1.post1.hg38.tsv.gz",
+      "exomiser_analysis_wes": "/root/nextflow/variant_annotation/analysis_wes_v2.x.yml",
+      "exomiser_analysis_wgs": "/root/nextflow/variant_annotation/analysis_wgs_v2.x.yml"
+    }
+
+  analysis_wes_v2.x.yml: |
+    ---
+    analysisMode: PASS_ONLY
+    inheritanceModes: {
+      AUTOSOMAL_DOMINANT: 0.1,
+      AUTOSOMAL_RECESSIVE_HOM_ALT: 0.1,
+      AUTOSOMAL_RECESSIVE_COMP_HET: 2.0,
+      X_DOMINANT: 0.1,
+      X_RECESSIVE_HOM_ALT: 0.1,
+      X_RECESSIVE_COMP_HET: 2.0,
+      MITOCHONDRIAL: 0.2
+    }
+    frequencySources: [
+      UK10K
+    ]
+    pathogenicitySources: [ REVEL, REMM, CADD]
+    # this is the recommended order for a genome-sized analysis.
+    steps: [
+      hiPhivePrioritiser: { },
+      # running the prioritiser followed by a priorityScoreFilter will remove genes
+      # which are least likely to contribute to the phenotype defined in hpoIds, this will
+      # dramatically reduce the time and memory required to analyse a genome.
+      # 0.501 is a good compromise to select good phenotype matches and the best protein-protein interactions hits from hiPhive
+      priorityScoreFilter: { priorityType: HIPHIVE_PRIORITY, minPriorityScore: 0.501 },
+      failedVariantFilter: { },
+      regulatoryFeatureFilter: { },
+      frequencyFilter: { maxFrequency: 2.0 },
+      pathogenicityFilter: { keepNonPathogenic: true },
+      inheritanceFilter: { },
+      omimPrioritiser: { }
+    ]
+
+  analysis_wgs_v2.x.yml: |
+    ---
+    analysisMode: PASS_ONLY
+    inheritanceModes: {
+      AUTOSOMAL_DOMINANT: 0.1,
+      AUTOSOMAL_RECESSIVE_HOM_ALT: 0.1,
+      AUTOSOMAL_RECESSIVE_COMP_HET: 2.0,
+      X_DOMINANT: 0.1,
+      X_RECESSIVE_HOM_ALT: 0.1,
+      X_RECESSIVE_COMP_HET: 2.0,
+      MITOCHONDRIAL: 0.2
+    }
+    frequencySources: [
+      UK10K
+    ]
+    pathogenicitySources: [ REVEL, REMM, CADD]
+    # this is the recommended order for a genome-sized analysis.
+    steps: [
+      hiPhivePrioritiser: { },
+      # running the prioritiser followed by a priorityScoreFilter will remove genes
+      # which are least likely to contribute to the phenotype defined in hpoIds, this will
+      # dramatically reduce the time and memory required to analyse a genome.
+      # 0.501 is a good compromise to select good phenotype matches and the best protein-protein interactions hits from hiPhive
+      priorityScoreFilter: { priorityType: HIPHIVE_PRIORITY, minPriorityScore: 0.501 },
+      failedVariantFilter: { },
+      regulatoryFeatureFilter: { },
+      frequencyFilter: { maxFrequency: 2.0 },
+      pathogenicityFilter: { keepNonPathogenic: true },
+      inheritanceFilter: { },
+      omimPrioritiser: { }
+    ]
+  
+  variant_annotation_v2.x.config: |
+    process {
+      pod = [
+        [config: "nextflow-variant-annotation", mountPath: "/root/nextflow/variant_annotation"]
+      ]
+    }
+
+    // Tweaks to test locally in minikube
+    process {
+        disk = 2.GB
+        memory = 1.GB
+        cpus = 2
+    
+        withName: 'BCFTOOLS_FILTER|BCFTOOLS_NORM|COMBINEGVCFS|GATK4_GENOTYPEGVCFS|splitMultiAllelics|GATK4_VARIANTFILTRATION|variantRecalibrator.*|apply.*|tabix|vep|EXOMISER' {
+            disk = 2.GB
+            memory = 1.GB
+            cpus = 2
+        }
+
+        withName: GATK4_GENOTYPEGVCFS {
+            ext.args = '--allow-old-rms-mapping-quality-annotation-data'
+        }
+    }
+    params {
+        max_memory = 2.GB
+        max_time = 1.h
+        max_cpus = 2
+        max_disk =  1.GB
+    }

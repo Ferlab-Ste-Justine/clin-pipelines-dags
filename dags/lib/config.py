@@ -6,6 +6,8 @@ from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
+from lib import config_nextflow_pipelines
+
 
 class Env:
     QA = 'qa'
@@ -16,7 +18,6 @@ class Env:
 class K8sContext:
     DEFAULT = 'default'
     ETL = 'etl'
-
 
 env = Variable.get('environment')
 k8s_namespace = Variable.get('kubernetes_namespace')
@@ -48,16 +49,17 @@ fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
 nextflow_image = 'nextflow/nextflow:23.10.1'
 nextflow_service_account = 'nextflow'
-nextflow_config_map = 'nextflow'
 nextflow_minio_secret = f'cqgc-{env}-minio-app-nextflow'
 nextflow_minio_access_key_property = 'access_key'
 nextflow_minio_secret_key_property = 'secret_key'
 nextflow_pvc = f'cqgc-{env}-nextflow-pvc'
 nextflow_pv_sub_path = 'workspace'
 nextflow_working_dir = f's3://{clin_scratch_bucket}/nextflow/scratch'
+nextflow_pipelines = config_nextflow_pipelines
 spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
 batch_ids = []
+
 
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'

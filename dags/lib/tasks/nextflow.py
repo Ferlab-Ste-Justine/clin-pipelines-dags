@@ -1,13 +1,22 @@
+import logging
 from typing import List
 
 from airflow.exceptions import AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.context import Context
 
-from lib.config import K8sContext, clin_datalake_bucket, s3_conn_id
+from lib.config import (
+    K8sContext,
+    clin_datalake_bucket,
+    s3_conn_id,
+    nextflow_pipelines
+)
+from lib.config_nextflow_pipelines import NextflowPipeline
 from lib.operators.nextflow import NextflowOperator
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
+
+logger = logging.getLogger(__name__)
 
 
 def prepare_svclustering_parental_origin(batch_ids: List[str], spark_jar: str, skip: str = ''):
@@ -69,3 +78,36 @@ def svclustering_parental_origin(batch_ids: List[str], skip: str = ''):
         name='svclustering-parental-origin',
         skip=skip
     ).expand(batch_id=batch_ids)
+
+
+# TODO: pass reporting options?
+# TODO: generic mechanism to copy files?
+def annotate_variants(task_id: str,
+                      input: str,
+                      outdir: str,
+                      skip: bool = False,
+                      **kwargs) -> NextflowOperator:
+
+    pipeline = nextflow_pipelines.variant_annotation_pipeline
+    return NextflowOperator(
+        task_id=task_id,
+        k8s_context=K8sContext.ETL,
+        skip=skip,
+        config_maps=pipeline.config_maps,
+        arguments=[
+           "nextflow",
+           *_get_config_file_arguments(pipeline),
+           "run", pipeline.url, "-r", pipeline.revision,
+           "-params-file", pipeline.params_file,
+           "--input", input,
+           "--outdir", outdir
+        ],
+        **kwargs
+    )
+
+
+def _get_config_file_arguments(pipeline: NextflowPipeline) -> List[str]:
+    arguments = []
+    for config_file in pipeline.config_files:
+        arguments.extend(["-c", config_file])
+    return arguments

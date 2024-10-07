@@ -12,6 +12,9 @@ from lib.operators.utils import utils_pod
 logger = logging.getLogger(__name__)
 
 
+PERSISTENT_VOLUME_MOUNT_PATH = "/mnt/workspace"
+
+
 class NextflowOperator(KubernetesPodOperator):
     """
     Custom operator to run nextflow within a kubernetes pod.
@@ -35,8 +38,10 @@ class NextflowOperator(KubernetesPodOperator):
         self,
         k8s_context: str,
         skip: bool = False,
+        config_maps=[config.nextflow_pipelines.default_config_map],
         **kwargs
     ) -> None:
+        self.config_maps = config_maps
         super().__init__(
             is_delete_operator_pod=False,
             in_cluster=config.k8s_in_cluster(k8s_context),
@@ -48,7 +53,6 @@ class NextflowOperator(KubernetesPodOperator):
             **kwargs
         )
 
-        self.config_map_name = config.nextflow_config_map
         self.minio_secret_name = config.nextflow_minio_secret
         self.minio_access_key_property = config.nextflow_minio_access_key_property
         self.minio_secret_key_property = config.nextflow_minio_secret_key_property
@@ -64,8 +68,6 @@ class NextflowOperator(KubernetesPodOperator):
     def execute(self, context, **kwargs):
         if self.skip:
             raise AirflowSkipException()
-
-        persistent_volume_mount_path = "/mnt/workspace"
 
         self.env_vars = [
             k8s.V1EnvVar(
@@ -99,40 +101,46 @@ class NextflowOperator(KubernetesPodOperator):
 
         self.volumes = [
             k8s.V1Volume(
-                name='nextflow-config',
+                name=cm.name,
                 config_map=k8s.V1ConfigMapVolumeSource(
-                    name=self.config_map_name
-                ),
-            ),
+                    name=cm.name
+                )
+            )
+            for cm in self.config_maps
+        ]
+        self.volumes.append(
             k8s.V1Volume(
-                name='nextflow-workspace',
+                name='persistent-volume',
                 persistent_volume_claim=k8s.V1PersistentVolumeClaimVolumeSource(
                     claim_name=self.persistent_volume_claim_name
                 )
             )
-        ]
+        )
 
         self.volume_mounts = [
             k8s.V1VolumeMount(
-                name='nextflow-config',
-                mount_path='/root/nextflow/config',
-                read_only=True,
-            ),
+                name=cm.name,
+                mount_path=cm.mount_path
+            )
+            for cm in self.config_maps
+        ]
+        self.volume_mounts.append(
             k8s.V1VolumeMount(
-                name='nextflow-workspace',
-                mount_path=persistent_volume_mount_path,
+                name='persistent-volume',
+                mount_path=PERSISTENT_VOLUME_MOUNT_PATH,
                 sub_path=self.persistent_volume_sub_path
             )
-        ]
+        )
 
-        # As far as we know, the KubernetesPodOperator does not provide
-        # a direct attribute to set the working directory. Therefore, we
-        # configure it within the container specification in attribute
+        # As far as we know, the KubernetesPodOperator does not provide a
+        # direct attribute to set the working directory. Therefore, we
+        # configureit within the container specification in attribute
         # full_pod_spec.
         pod_working_dir = _get_pod_working_dir(
-            persistent_volume_mount_path,
-            context
+              PERSISTENT_VOLUME_MOUNT_PATH,
+              context
         )
+
         logger.info("Setting pod working directory to %s", pod_working_dir)
         self.full_pod_spec = utils_pod.add_working_dir_to_pod_spec(
             pod_working_dir,

@@ -4,7 +4,7 @@ from airflow import DAG
 from airflow.models.param import Param
 
 from lib import config
-from lib.config import env, Env, K8sContext
+from lib.config import env, Env, K8sContext, nextflow_pipelines
 from lib.operators.nextflow import NextflowOperator
 from lib.slack import Slack
 
@@ -13,7 +13,7 @@ DEFAULT_NEXTFLOW_COMMAND = [
     "run",
     "nextflow-io/hello",
     "-c",
-    "/root/nextflow/config/nextflow.config"
+    nextflow_pipelines.default_config_file
 ]
 if (config.show_test_dags or env in [Env.QA, Env.STAGING]):
     with DAG(
@@ -30,7 +30,7 @@ if (config.show_test_dags or env in [Env.QA, Env.STAGING]):
                 be passed to the bash shell in the nextflow pod. Here each
                 line represent a separate argument.
 
-                Here the `/root/nextflow/config/nextflow.config` file is a
+                Here the `{nextflow_pipelines.default_config_file}` file is a
                 valid nextflow configuration file that will be available in
                 the pod. It contains configuration settings specific to the
                 Qlin execution environment. You should always include it in
