@@ -1,10 +1,10 @@
-import json
-from enum import Enum
-
 import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
+from lib import config_nextflow_pipelines
+from lib.operators.base_kubernetes import KubeConfig
+from lib.operators.nextflow import NextflowOperatorConfig
 
 
 class Env:
@@ -46,18 +46,10 @@ aws_image = 'amazon/aws-cli'
 curl_image = 'curlimages/curl'
 fhir_csv_image = 'ferlabcrsj/csv-to-fhir'
 postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d84112a3cd'
-nextflow_image = 'nextflow/nextflow:23.10.1'
-nextflow_service_account = 'nextflow'
-nextflow_config_map = 'nextflow'
-nextflow_minio_secret = f'cqgc-{env}-minio-app-nextflow'
-nextflow_minio_access_key_property = 'access_key'
-nextflow_minio_secret_key_property = 'secret_key'
-nextflow_pvc = f'cqgc-{env}-nextflow-pvc'
-nextflow_pv_sub_path = 'workspace'
-nextflow_working_dir = f's3://{clin_scratch_bucket}/nextflow/scratch'
 spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
 batch_ids = []
+
 
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
@@ -70,7 +62,7 @@ if env == Env.QA:
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
-    config_file = f'config/qa.conf'
+    config_file = 'config/qa.conf'
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
         '201106_A00516_0169_AHFM3HDSXY',
@@ -88,7 +80,7 @@ elif env == Env.STAGING:
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca'
-    config_file = f'config/staging.conf'
+    config_file = 'config/staging.conf'
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
         '201106_A00516_0169_AHFM3HDSXY',
@@ -114,7 +106,7 @@ elif env == Env.PROD:
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
     auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca'
-    config_file = f'config/prod.conf'
+    config_file = 'config/prod.conf'
     franklin_assay_id = 'b8a30771-5689-4189-8157-c6063ad738d1'
     batch_ids = [
         '221017_A00516_0366_BHH2T3DMXY',
@@ -235,3 +227,29 @@ def k8s_load_config(context: str) -> None:
             config_file=k8s_config_file(context),
             context=k8s_context[context],
         )
+
+
+# This is meant to be used in DAGS depending on the KubernetesPodOperator.
+# It may not be used in older dags, but please use it in new ones.
+kube_config_etl = KubeConfig(
+    in_cluster=k8s_in_cluster(K8sContext.ETL),
+    cluster_context=k8s_cluster_context(K8sContext.ETL),
+    namespace=Variable.get('kubernetes_namespace'),
+    image_pull_secrets_name='images-registry-credentials'
+)
+
+# This is meant to be used in DAGS depending on the NextflowOperator.
+nextflow_base_config = NextflowOperatorConfig(
+    kube_config=kube_config_etl,
+    is_delete_operator_pod=True,
+    image='nextflow/nextflow:23.10.1',
+    service_account_name='nextflow',
+    minio_credentials_secret_name=f'cqgc-{env}-minio-app-nextflow',
+    minio_credentials_secret_access_key='access_key',
+    minio_credentials_secret_secret_key='secret_key',
+    persistent_volume_claim_name=f'cqgc-{env}-nextflow-pvc',
+    persistent_volume_sub_path='workspace',
+    persistent_volume_mount_path="/mnt/workspace",
+    nextflow_working_dir=f's3://{clin_scratch_bucket}/nextflow/scratch',
+    config_maps=[config_nextflow_pipelines.default_config_map]
+)
