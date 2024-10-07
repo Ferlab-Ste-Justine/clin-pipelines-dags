@@ -40,7 +40,7 @@ This guide describes the local minikube setup procedure common to most DAGs base
 This will inject minio admin credentials in a kubernetes secret that will be used to inject the credentials on the nextflow pod:
 ```
  kubectl create secret generic cqgc-qa-minio-app-nextflow --from-literal=access_key=minio --from-literal=secret_key=minio123 -n cqgc-qa
- ```
+```
 
 If you created credentials at step 2, replace `minio` and `minio123` values above by the access and secret keys that you created.
 
