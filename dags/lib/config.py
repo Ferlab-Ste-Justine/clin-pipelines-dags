@@ -2,7 +2,7 @@ import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
 
-from lib.operators.base_kubernetes import KubeConfig, ConfigMap
+from lib.operators.base_kubernetes import KubeConfig
 from lib.operators.nextflow import NextflowOperatorConfig
 
 
@@ -249,5 +249,5 @@ nextflow_base_config = NextflowOperatorConfig(
     persistent_volume_claim_name=f'cqgc-{env}-nextflow-pvc',
     persistent_volume_sub_path='workspace',
     persistent_volume_mount_path="/mnt/workspace",
-    nextflow_working_dir=f's3://{clin_scratch_bucket}/nextflow/scratch',
+    nextflow_working_dir=f's3://{clin_scratch_bucket}/nextflow/scratch'
 )

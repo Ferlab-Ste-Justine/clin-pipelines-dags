@@ -54,6 +54,7 @@ class NextflowOperator(BaseKubernetesOperator):
             skip: bool = False,
             **kwargs
     ) -> None:
+
         super().__init__(
             **kwargs
         )

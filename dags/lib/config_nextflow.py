@@ -21,3 +21,10 @@ default_nextflow_config_map = ConfigMap(
     mount_path='/root/nextflow/config'
 )
 default_nextflow_config_file = f"{default_nextflow_config_map.mount_path}/nextflow.config"
+
+variant_annotation_config_map = ConfigMap(
+    name='nextflow-variant-annotation',
+    mount_path='/root/nextflow/variant_annotation'
+)
+variant_annotation_config_file = f"{variant_annotation_config_map.mount_path}/variant_annotation_v2.x.config"
+variant_annotation_params_file = f"{variant_annotation_config_map.mount_path}/params_v2.x.json"

@@ -6,6 +6,11 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.context import Context
 
 from lib.config import (clin_datalake_bucket, s3_conn_id, nextflow_base_config)
+from lib.config_nextflow import (
+    variant_annotation_config_file,
+    variant_annotation_params_file,
+    variant_annotation_config_map
+)
 from lib.operators.nextflow import NextflowOperator
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
@@ -81,3 +86,22 @@ def svclustering_parental_origin(batch_ids: List[str], skip: str = ''):
             name='svclustering_parental_origin',
             skip=skip
         ).expand(batch_id=batch_ids)
+
+
+def annotate_variants(task_id: str,
+                      input: str,
+                      outdir: str,
+                      skip: bool = False,
+                      **kwargs) -> NextflowOperator:
+    return nextflow_base_config \
+        .with_pipeline('Ferlab-Ste-Justine/Post-processing-Pipeline') \
+        .with_revision('v2.1.0') \
+        .append_config_maps(variant_annotation_config_map) \
+        .append_config_files(variant_annotation_config_file) \
+        .with_params_file(variant_annotation_params_file) \
+        .append_args(
+            '--input', input,
+            '--outdir', outdir
+        ) \
+        .operator(task_id=task_id, name=task_id, skip=skip, **kwargs)
+
