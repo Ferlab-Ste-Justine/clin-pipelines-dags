@@ -53,7 +53,7 @@ Install airflow with helm:
 helm repo add apache-airflow https://airflow.apache.org
 
 # Then install airflow in the minikube cluster:
-helm upgrade --install airflow apache-airflow/airflow --version 1.11.0 --namespace cqgc-qa --values doc/test/templates/airflow/values.yaml
+helm upgrade --install airflow apache-airflow/airflow --version 1.15.0 --namespace cqgc-qa --values doc/test/templates/airflow/values.yaml
 ```
 
 Wait that all pods are ready and use the following command to access the airflow UI:
