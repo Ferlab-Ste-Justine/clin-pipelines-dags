@@ -1,5 +1,5 @@
 import copy
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field, fields, asdict
 from typing import Optional, List, Type, TypeVar
 from typing_extensions import Self
 
@@ -82,14 +82,14 @@ class BaseKubernetesOperator(KubernetesPodOperator):
         )
         self.image_pull_secrets_name = image_pull_secrets_name
 
-    def execute(self, context: Context, **kwargs):
+    def execute(self, context: Context):
         if self.image_pull_secrets_name:
             self.image_pull_secrets = [
                 k8s.V1LocalObjectReference(
                     name=self.image_pull_secrets_name,
                 ),
             ]
-        super().execute(context, **kwargs)
+        super().execute(context)
 
 
 @dataclass

@@ -2,8 +2,7 @@ import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
 
-from lib import config_nextflow_pipelines
-from lib.operators.base_kubernetes import KubeConfig
+from lib.operators.base_kubernetes import KubeConfig, ConfigMap
 from lib.operators.nextflow import NextflowOperatorConfig
 
 
@@ -251,5 +250,4 @@ nextflow_base_config = NextflowOperatorConfig(
     persistent_volume_sub_path='workspace',
     persistent_volume_mount_path="/mnt/workspace",
     nextflow_working_dir=f's3://{clin_scratch_bucket}/nextflow/scratch',
-    config_maps=[config_nextflow_pipelines.default_config_map]
 )
