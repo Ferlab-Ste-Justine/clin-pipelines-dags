@@ -1,19 +1,16 @@
 import copy
-from dataclasses import dataclass, field
 import logging
 import re
+from dataclasses import dataclass, field
 from typing import Optional, List, Type
-from typing_extensions import Self
 
 from airflow.exceptions import AirflowSkipException
 from airflow.utils.context import Context
 from kubernetes.client import models as k8s
+from typing_extensions import Self
 
-from lib.operators.base_kubernetes import (
-    BaseConfig,
-    BaseKubernetesOperator,
-    ConfigMap,
-    required)
+from lib.config_nextflow import default_nextflow_config_file, default_nextflow_config_map
+from lib.operators.base_kubernetes import (BaseConfig, BaseKubernetesOperator, ConfigMap, required)
 from lib.operators.utils import utils_pod
 
 logger = logging.getLogger(__name__)
@@ -36,23 +33,27 @@ class NextflowOperator(BaseKubernetesOperator):
     and nextflow configuration file(s) are injected through
     Kubernetes configmaps.
     """
-
-    template_fields = [*BaseKubernetesOperator.template_fields,  'skip']
+    template_fields = [*BaseKubernetesOperator.template_fields, 'config_maps', 'nextflow_pipeline',
+                       'nextflow_working_dir', 'nextflow_config_files', 'nextflow_params_file',
+                       'nextflow_pipeline_revision', 'skip']
 
     def __init__(
-        self,
-        minio_credentials_secret_name: str,
-        minio_credentials_secret_access_key: str,
-        minio_credentials_secret_secret_key: str,
-        persistent_volume_claim_name: str,
-        persistent_volume_sub_path: str,
-        persistent_volume_mount_path: str,
-        nextflow_working_dir: str,
-        skip: bool = False,
-        config_maps: Optional[List[ConfigMap]] = None,
-        **kwargs
+            self,
+            config_maps: List[ConfigMap],
+            minio_credentials_secret_name: str,
+            minio_credentials_secret_access_key: str,
+            minio_credentials_secret_secret_key: str,
+            persistent_volume_claim_name: str,
+            persistent_volume_sub_path: str,
+            persistent_volume_mount_path: str,
+            nextflow_pipeline: str,
+            nextflow_working_dir: str,
+            nextflow_config_files: List[str],
+            nextflow_params_file: Optional[str] = None,
+            nextflow_pipeline_revision: Optional[str] = None,
+            skip: bool = False,
+            **kwargs
     ) -> None:
-
         super().__init__(
             **kwargs
         )
@@ -66,14 +67,28 @@ class NextflowOperator(BaseKubernetesOperator):
 
         # Where nextflow will write intermediate outputs. This is different
         # from the pod working directory.
+        self.nextflow_pipeline = nextflow_pipeline
+        self.nextflow_pipeline_revision = nextflow_pipeline_revision
         self.nextflow_working_dir = nextflow_working_dir
+        self.nextflow_config_files = nextflow_config_files
+        self.nextflow_params_file = nextflow_params_file
         self.skip = skip
-        self.config_maps = config_maps if config_maps else []
+        self.config_maps = config_maps
 
-    def execute(self, context: Context, **kwargs):
-
+    def execute(self, context: Context):
         if self.skip:
             raise AirflowSkipException()
+
+        # Prepare nextflow arguments
+        nextflow_revision_option = ['-r', self.nextflow_pipeline_revision] if self.nextflow_pipeline_revision else []
+        nextflow_config_file_options = [arg for file in self.nextflow_config_files for arg in ['-c', file] if file]
+        nextflow_params_file_option = ['-params-file', self.nextflow_params_file] if self.nextflow_params_file else []
+        arguments = [arg for arg in self.arguments if arg] if self.arguments else []  # Remove empty strings
+
+        self.arguments = ['nextflow', *nextflow_config_file_options, 'run', self.nextflow_pipeline,
+                          *nextflow_revision_option, *nextflow_params_file_option, *arguments]
+
+        logger.info(f"Running arguments : {self.arguments}")
 
         self.env_vars = [
             k8s.V1EnvVar(
@@ -149,8 +164,8 @@ class NextflowOperator(BaseKubernetesOperator):
         # configureit within the container specification in attribute
         # full_pod_spec.
         pod_working_dir = _get_pod_working_dir(
-              self.persistent_volume_mount_path,
-              context
+            self.persistent_volume_mount_path,
+            context
         )
 
         logger.info("Setting pod working directory to %s", pod_working_dir)
@@ -160,49 +175,16 @@ class NextflowOperator(BaseKubernetesOperator):
             container_name=self.base_container_name
         )
 
-        super().execute(context, **kwargs)
-
-
-@dataclass
-class NextflowPipeline:
-    """
-    Represents a nextflow pipeline to be executed in a nextflow pod.
-    """
-    url: Optional[str] = None
-    revision: Optional[str] = None
-    config_maps: List[ConfigMap] = field(default_factory=list)
-    config_files: List[str] = field(default_factory=list)
-    params_file: Optional[str] = None
-
-    def with_url(self, new_url: str) -> Self:
-        c = copy.copy(self)
-        c.url = new_url
-        return c
-
-    def with_revision(self, new_revision: str) -> Self:
-        c = copy.copy(self)
-        c.revision = new_revision
-        return c
-
-    def with_params_file(self, new_params_file: str) -> Self:
-        c = copy.copy(self)
-        c.params_file = new_params_file
-        return c
-
-    def append_config_maps(self, *new_config_maps) -> Self:
-        c = copy.copy(self)
-        c.config_maps = [*self.config_maps, *new_config_maps]
-        return c
-
-    def append_config_files(self, *new_config_files) -> Self:
-        c = copy.copy(self)
-        c.config_files = [*self.config_files, *new_config_files]
-        return c
+        super().execute(context)
 
 
 @dataclass
 class NextflowOperatorConfig(BaseConfig):
-
+    nextflow_pipeline: Optional[str] = None,
+    nextflow_pipeline_revision: Optional[str] = None
+    nextflow_config_files: List[str] = field(default_factory=lambda: [default_nextflow_config_file])
+    nextflow_params_file: Optional[str] = None
+    config_maps: List[ConfigMap] = field(default_factory=lambda: [default_nextflow_config_map])
     minio_credentials_secret_name: str = required()
     minio_credentials_secret_access_key: str = required()
     minio_credentials_secret_secret_key: str = required()
@@ -212,11 +194,29 @@ class NextflowOperatorConfig(BaseConfig):
     nextflow_working_dir: str = required()
     skip: bool = False
 
-    config_maps: List[str] = field(default_factory=list)
-
-    def with_config_maps(self, new_config_maps: List[ConfigMap]) -> Self:
+    def with_pipeline(self, pipeline: str) -> Self:
         c = copy.copy(self)
-        c.config_maps = new_config_maps
+        c.nextflow_pipeline = pipeline
+        return c
+
+    def with_revision(self, revision: str) -> Self:
+        c = copy.copy(self)
+        c.pipeline_revision = revision
+        return c
+
+    def with_params_file(self, params_file: str) -> Self:
+        c = copy.copy(self)
+        c.nextflow_params_file = params_file
+        return c
+
+    def append_config_maps(self, *new_config_maps) -> Self:
+        c = copy.copy(self)
+        c.config_maps = [*self.config_maps, *new_config_maps]
+        return c
+
+    def append_config_files(self, *new_config_files) -> Self:
+        c = copy.copy(self)
+        c.nextflow_config_files = [*self.nextflow_config_files, *new_config_files]
         return c
 
     def extend_config_maps(self, *new_config_maps) -> Self:
@@ -226,7 +226,7 @@ class NextflowOperatorConfig(BaseConfig):
 
     def operator(self,
                  class_to_instantiate: Type[NextflowOperator] = NextflowOperator,
-                 **kwargs) -> NextflowOperator:
+                 **kwargs) -> BaseKubernetesOperator:
         return super().build_operator(
             class_to_instantiate=class_to_instantiate,
             **kwargs
