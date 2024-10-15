@@ -20,7 +20,7 @@ class NextflowOperator(BaseKubernetesOperator):
     """
     Custom operator to run nextflow within a kubernetes pod.
 
-    See `test_nextflow_operator.py` and `lib/tasks/nextflow.py`
+    See `lib/tasks/nextflow.py` and `test_nextflow_operator.py`
     for example usage.
 
     Nextflow is launched within a persistent volume to ensure
