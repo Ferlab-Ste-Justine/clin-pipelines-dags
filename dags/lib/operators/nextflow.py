@@ -201,7 +201,7 @@ class NextflowOperatorConfig(BaseConfig):
 
     def with_revision(self, revision: str) -> Self:
         c = copy.copy(self)
-        c.pipeline_revision = revision
+        c.nextflow_pipeline_revision = revision
         return c
 
     def with_params_file(self, params_file: str) -> Self:
