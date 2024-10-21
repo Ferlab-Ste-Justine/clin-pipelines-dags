@@ -53,6 +53,7 @@ with DAG(
         skip_exomiser=skip_batch(),
         skip_coverage_by_gene=skip_batch(),
         skip_franklin=skip_batch(),
+        skip_nextflow=skip_batch(),
         spark_jar=spark_jar(),
     )
 
@@ -62,7 +63,7 @@ with DAG(
         snv = enrich.snv(steps=default_or_initial(), spark_jar=spark_jar())
         variants = enrich.variants(spark_jar=spark_jar(), steps=default_or_initial())
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=default_or_initial())
-        cnv = enrich.cnv(spark_jar=spark_jar(), steps=default_or_initial())
+        cnv = enrich.cnv_all(spark_jar=spark_jar(), steps=default_or_initial())
         coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=default_or_initial())
 
         snv >> variants >> consequences >> cnv >> coverage_by_gene

@@ -20,6 +20,7 @@ def ingest_germline(
         skip_exomiser: str,
         skip_coverage_by_gene: str,
         skip_franklin: str,
+        skip_nextflow: str,
         spark_jar: str
 ):
     skip_all = batch_type.skip(ClinAnalysis.GERMLINE, batch_type_detected)
@@ -49,6 +50,7 @@ def ingest_germline(
         skip_exomiser=skip_exomiser,
         skip_coverage_by_gene=skip_coverage_by_gene,
         skip_franklin=skip_franklin,
+        skip_nextflow=skip_nextflow,
         spark_jar=spark_jar
     )
 

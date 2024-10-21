@@ -7,6 +7,7 @@ from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
+
 from lib.config import Env, K8sContext, env
 from lib.groups.index.index import index
 from lib.groups.index.prepare_index import prepare_index
@@ -15,7 +16,7 @@ from lib.groups.qa import qa
 from lib.operators.notify import NotifyOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import batch_type, enrich, nextflow
+from lib.tasks import batch_type, enrich
 from lib.tasks.batch_type import skip_if_no_batch_in
 from lib.tasks.params_validate import validate_release_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
@@ -90,19 +91,6 @@ with DAG(
         wait_for_completion=True
     ).expand(conf=get_ingest_dag_configs_task)
 
-
-    @task_group(group_id="nextflow")
-    def nextflow_group():
-        prepare_svclustering_parental_origin_task = nextflow.prepare_svclustering_parental_origin(
-            batch_ids=get_batch_ids_task,
-            spark_jar=spark_jar()
-        )
-
-        svclustering_parental_origin_task = nextflow.svclustering_parental_origin(batch_ids=get_batch_ids_task)
-
-        prepare_svclustering_parental_origin_task >> svclustering_parental_origin_task
-
-
     steps = default_or_initial(batch_param_name='batch_ids')
 
 
@@ -115,47 +103,66 @@ with DAG(
             skip=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE])
         )
 
-        # Only run snv_somatic if at least one somatic tumor only or somatic tumor normal batch
-        # Run snv_somatic_all if no batch ids are provided. Otherwise, run snv_somatic for each batch_id.
-        @task.branch(task_id='run_snv_somatic')
-        def run_snv_somatic(batch_ids: List[str]):
-            if not batch_ids:
-                return 'enrich.snv_somatic_all'
-            else:
-                return 'enrich.snv_somatic'
+        @task_group(group_id='snv_somatic')
+        def snv_somatic_group():
+            # Only run snv_somatic if at least one somatic tumor only or somatic tumor normal batch
+            # Run snv_somatic_all if no batch ids are provided. Otherwise, run snv_somatic for each batch_id.
+            @task.branch(task_id='run_snv_somatic')
+            def run_snv_somatic(batch_ids: List[str]):
+                if not batch_ids:
+                    return 'enrich.snv_somatic.snv_somatic_all'
+                else:
+                    return 'enrich.snv_somatic.snv_somatic'
 
-        run_snv_somatic_task = run_snv_somatic(batch_ids=get_batch_ids_task)
-        snv_somatic_target_types = [ClinAnalysis.SOMATIC_TUMOR_ONLY, ClinAnalysis.SOMATIC_TUMOR_NORMAL]
+            run_snv_somatic_task = run_snv_somatic(batch_ids=get_batch_ids_task)
+            snv_somatic_target_types = [ClinAnalysis.SOMATIC_TUMOR_ONLY, ClinAnalysis.SOMATIC_TUMOR_NORMAL]
 
-        snv_somatic_all = enrich.snv_somatic_all(
-            spark_jar=spark_jar(),
-            steps=steps,
-            skip=skip_if_no_batch_in(target_batch_types=snv_somatic_target_types)
-        )
+            snv_somatic_all = enrich.snv_somatic_all(
+                spark_jar=spark_jar(),
+                steps=steps,
+                skip=skip_if_no_batch_in(target_batch_types=snv_somatic_target_types)
+            )
 
-        snv_somatic = enrich.snv_somatic(
-            batch_ids=get_batch_ids_task,
-            spark_jar=spark_jar(),
-            steps=steps,
-            skip=skip_if_no_batch_in(snv_somatic_target_types),
-            target_batch_types=snv_somatic_target_types
-        )
+            snv_somatic = enrich.snv_somatic(
+                batch_ids=get_batch_ids_task,
+                spark_jar=spark_jar(),
+                steps=steps,
+                target_batch_types=snv_somatic_target_types
+            )
 
-        # Only run if at least one germline or somatic tumor only batch
-        cnv = enrich.cnv(
-            spark_jar=spark_jar(),
-            steps=steps,
-            skip=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                         ClinAnalysis.SOMATIC_TUMOR_ONLY])
-        )
+            return run_snv_somatic_task >> [snv_somatic_all, snv_somatic]
+
+        @task_group(group_id='cnv')
+        def cnv_group():
+            # Only run cnv if at least one germline or somatic tumor only batch
+            # Run cnv_all if no batch ids are provided. Otherwise, run cnv for each batch_id.
+            @task.branch(task_id='run_cnv')
+            def run_cnv(batch_ids: List[str]):
+                if not batch_ids:
+                    return 'enrich.cnv.cnv_all'
+                else:
+                    return 'enrich.cnv.cnv'
+
+            run_cnv_task = run_cnv(batch_ids=get_batch_ids_task)
+            cnv_target_types = [ClinAnalysis.GERMLINE, ClinAnalysis.SOMATIC_TUMOR_ONLY]
+
+            cnv_all = enrich.cnv_all(spark_jar=spark_jar(), steps=steps, skip=skip_if_no_batch_in(cnv_target_types))
+            cnv = enrich.cnv(
+                batch_ids=get_batch_ids_task,
+                spark_jar=spark_jar(),
+                steps=steps,
+                skip=skip_if_no_batch_in(cnv_target_types),
+                target_batch_types=cnv_target_types
+            )
+
+            return run_cnv_task >> [cnv_all, cnv]
 
         # Always run variants, consequences and coverage by gene
         variants = enrich.variants(spark_jar=spark_jar(), steps=steps)
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=steps)
         coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=steps)
 
-        snv >> run_snv_somatic_task >> [snv_somatic_all,
-                                        snv_somatic] >> variants >> consequences >> cnv >> coverage_by_gene
+        snv >> snv_somatic_group() >> variants >> consequences >> cnv_group() >> coverage_by_gene
 
 
     prepare_group = prepare_index(
@@ -228,4 +235,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> nextflow_group() >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_es_dag >> trigger_qc_dag
+    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_es_dag >> trigger_qc_dag

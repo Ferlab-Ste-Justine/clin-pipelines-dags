@@ -15,6 +15,7 @@ def migrate_germline(
         skip_exomiser: str,
         skip_coverage_by_gene: str,
         skip_franklin: str,
+        skip_nextflow: str,
         spark_jar: str
 ):
     detect_batch_type_task_id = f"{get_group_id('migrate', batch_id)}.detect_batch_type"
@@ -40,6 +41,7 @@ def migrate_germline(
         skip_exomiser=skip_exomiser,
         skip_coverage_by_gene=skip_coverage_by_gene,
         skip_franklin=skip_franklin,
+        skip_nextflow=skip_nextflow,
         spark_jar=spark_jar,
     )
 

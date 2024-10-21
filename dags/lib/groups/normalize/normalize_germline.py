@@ -1,7 +1,7 @@
 from airflow.decorators import task_group
 
 from lib.groups.franklin.franklin_update import FranklinUpdate
-from lib.tasks import normalize
+from lib.tasks import normalize, nextflow
 from lib.utils_etl import skip
 
 
@@ -16,6 +16,7 @@ def normalize_germline(
         skip_exomiser: str,
         skip_coverage_by_gene: str,
         skip_franklin: str,
+        skip_nextflow: str,
         spark_jar: str,
 ):
     snv = normalize.snv(batch_id, spark_jar, skip(skip_all, skip_snv))
@@ -35,4 +36,12 @@ def normalize_germline(
 
     franklin = normalize.franklin(batch_id, spark_jar, skip(skip_all, skip_franklin))
 
-    snv >> cnv >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update >> franklin
+    @task_group(group_id="nextflow")
+    def nextflow_group():
+        prepare_svclustering_parental_origin_task = nextflow.prepare_svclustering_parental_origin(batch_id, spark_jar, skip(skip_all, skip_nextflow))
+        run_svclustering_parental_origin = nextflow.svclustering_parental_origin(batch_id, skip(skip_all, skip_nextflow))
+        normalize_svclustering_parental_origin_task = nextflow.normalize_svclustering_parental_origin(batch_id, spark_jar, skip(skip_all, skip_nextflow))
+
+        prepare_svclustering_parental_origin_task >> run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task
+
+    snv >> cnv >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update >> franklin >> nextflow_group()
