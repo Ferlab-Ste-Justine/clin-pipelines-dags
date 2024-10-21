@@ -91,8 +91,8 @@ def consequences(steps: str, spark_jar: str = '', task_id: str = 'consequences',
     )
 
 
-def cnv(steps: str, spark_jar: str = '', task_id: str = 'cnv', name: str = 'etl-enrich-cnv',
-        app_name: str = 'etl_enrich_cnv', skip: str = '', **kwargs) -> SparkETLOperator:
+def cnv_all(steps: str, spark_jar: str = '', task_id: str = 'cnv_all', name: str = 'etl-enrich-cnv-all',
+            app_name: str = 'etl_enrich_cnv_all', skip: str = '', **kwargs) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='cnv',
         task_id=task_id,
@@ -105,6 +105,24 @@ def cnv(steps: str, spark_jar: str = '', task_id: str = 'cnv', name: str = 'etl-
         skip=skip,
         **kwargs
     )
+
+
+def cnv(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: str = 'cnv', name: str = 'etl-enrich-cnv',
+        app_name: str = 'etl_enrich_cnv', skip: str = '', target_batch_types: List[ClinAnalysis] = None, **kwargs):
+    return SparkETLOperator.partial(
+        entrypoint='cnv',
+        task_id=task_id,
+        name=name,
+        steps=steps,
+        app_name=app_name,
+        spark_class=ENRICHED_MAIN_CLASS,
+        spark_config='config-etl-medium',
+        spark_jar=spark_jar,
+        skip=skip,
+        target_batch_types=target_batch_types,
+        max_active_tis_per_dag=1,  # Prevent multiple executions at the same time
+        **kwargs
+    ).expand(batch_id=batch_ids)
 
 
 def coverage_by_gene(steps: str, spark_jar: str = '', task_id: str = 'coverage_by_gene',
