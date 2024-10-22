@@ -61,7 +61,7 @@ with DAG(
 
             # Skip task if up to date
             if imported_ver == latest_ver:
-                f'Skipping import of file {file_name}. Imported version is up to date.'
+                logging.warning(f'Skipping import of file {file_name}. Imported version is up to date.')
                 continue
 
             # Encode credentials
