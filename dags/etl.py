@@ -130,7 +130,7 @@ with DAG(
                 target_batch_types=snv_somatic_target_types
             )
 
-            return run_snv_somatic_task >> [snv_somatic_all, snv_somatic]
+            run_snv_somatic_task >> [snv_somatic_all, snv_somatic]
 
         @task_group(group_id='cnv')
         def cnv_group():
@@ -155,7 +155,7 @@ with DAG(
                 target_batch_types=cnv_target_types
             )
 
-            return run_cnv_task >> [cnv_all, cnv]
+            run_cnv_task >> [cnv_all, cnv]
 
         # Always run variants, consequences and coverage by gene
         variants = enrich.variants(spark_jar=spark_jar(), steps=steps)
