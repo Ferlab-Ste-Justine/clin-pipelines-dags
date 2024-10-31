@@ -16,7 +16,7 @@ with DAG(
         'script': Param('', type='string'),
         'args': Param('', type=['null', 'string']),
         'color': Param('', type=['null', 'string']),
-        'bucket': Param('', enum=['', f'cqgc-{env}-app-files-import', f'cqgc-{env}-app-datalake',]),
+        'bucket': Param('', enum=['', f'cqgc-{env}-app-files-import', f'cqgc-{env}-app-datalake', f'cqgc-{env}-app-download',]),
     },
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
