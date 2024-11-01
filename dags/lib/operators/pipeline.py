@@ -58,7 +58,7 @@ class PipelineOperator(KubernetesPodOperator):
                 ),
             ),
             k8s.V1EnvFromSource(
-                config_map_ref=k8s.V1SecretEnvSource(
+                secret_ref=k8s.V1SecretEnvSource(
                     name='cqgc-'+env+'-users-api-db-credentials',
                 ),
             ),
