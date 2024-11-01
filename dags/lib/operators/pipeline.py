@@ -51,6 +51,18 @@ class PipelineOperator(KubernetesPodOperator):
                 name='images-registry-credentials',
             ),
         ]
+        self.env_from = [
+            k8s.V1EnvFromSource(
+                config_map_ref=k8s.V1ConfigMapEnvSource(
+                    name='users-postgres-config',
+                ),
+            ),
+            k8s.V1EnvFromSource(
+                config_map_ref=k8s.V1SecretEnvSource(
+                    name='cqgc-'+env+'-users-api-db-credentials',
+                ),
+            ),
+        ]
         self.env_vars = [
             k8s.V1EnvVar(
                 name='CLIN_URL',
@@ -167,12 +179,23 @@ class PipelineOperator(KubernetesPodOperator):
                     default_mode=0o555,
                 ),
             ),
+            k8s.V1Volume(
+                name='postgres-ca-certificate',
+                config_map=k8s.V1ConfigMapVolumeSource(
+                    name='cqgc-'+env+'-postgres-ca-cert',
+                    default_mode=0o555,
+                ),
+            ),
         ]
         
         self.volume_mounts = [
             k8s.V1VolumeMount(
                 name='entrypoint',
                 mount_path='/opt/entrypoint',
+            ),
+            k8s.V1VolumeMount(
+                name='postgres-ca-certificate',
+                mount_path='/opt/ca',
             ),
         ]
 
