@@ -18,7 +18,7 @@ from lib.utils_import import get_s3_file_version, load_to_s3_with_version
 with DAG(
     dag_id='etl_import_clinvar',
     start_date=datetime(2022, 1, 1),
-    schedule_interval='0 0 21 ? * FRI *',
+    schedule_interval='0 21 * * 5',
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },
