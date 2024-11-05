@@ -28,6 +28,8 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 - Table variant_centric
 - Table cnv_centric
 - Table coverage_by_gene
+- Table nextflow_svclustering
+- Table nextflow_svclustering_parental_origin
 
 ## Série de tests comparant la liste des variants entre les tables
 
@@ -120,6 +122,18 @@ no_dup_coverage_by_gene = '''
 ### Documentation
 - Test : Non duplication - Table coverage_by_gene
 - Objectif : Les coverages doivent être unique dans la table coverage_by_gene
+'''
+
+no_dup_nextflow_svclustering = '''
+### Documentation
+- Test : Non duplication - Table nextflow_svclustering
+- Objectif : Les clusters doivent être uniques dans la table nextflow_svclustering
+'''
+
+no_dup_nextflow_svclustering_parental_origin = '''
+### Documentation
+- Test : Non duplication - Table nextflow_svclustering_parental_origin
+- Objectif : Les clusters doivent être uniques par service_request_id dans la table nextflow_svclustering_parental_origin
 '''
 
 same_list_nor_snv_nor_variants = '''

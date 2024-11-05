@@ -9,6 +9,7 @@ from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
 
 from lib.config import Env, K8sContext, env
+from lib.groups.index.get_release_ids import get_release_ids
 from lib.groups.index.index import index
 from lib.groups.index.prepare_index import prepare_index
 from lib.groups.index.publish_index import publish_index
@@ -18,7 +19,7 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, enrich
 from lib.tasks.batch_type import skip_if_no_batch_in
-from lib.tasks.params_validate import validate_release_color
+from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
                            skip_notify, spark_jar)
 
@@ -29,7 +30,7 @@ with DAG(
         params={
             'batch_ids': Param([], type=['null', 'array'],
                                description='Put a single batch id per line. Leave empty to skip ingest.'),
-            'release_id': Param('', type='string'),
+            'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
             'notify': Param('no', enum=['yes', 'no']),
@@ -57,10 +58,7 @@ with DAG(
             return '{% if params.rolling == "yes" %}{% else %}yes{% endif %}'
 
 
-    params_validate_task = validate_release_color(
-        release_id=release_id(),
-        color=color()
-    )
+    params_validate_task = validate_color(color=color())
 
 
     @task(task_id='get_batch_ids')
@@ -175,8 +173,15 @@ with DAG(
         spark_jar=spark_jar()
     )
 
-    index_group = index(
+    get_release_ids_group = get_release_ids(
         release_id=release_id(),
+        color=color('_'),
+        increment_release_id=True,  # Get new release ID
+        skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
+                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY])
+    )
+
+    index_group = index(
         color=color('_'),
         spark_jar=spark_jar(),
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
@@ -184,7 +189,6 @@ with DAG(
     )
 
     publish_group = publish_index(
-        release_id=release_id(),
         color=color('_'),
         spark_jar=spark_jar(),
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
@@ -225,7 +229,12 @@ with DAG(
         wait_for_completion=True,
         skip=skip_rolling(),
         conf={
-            'release_id': release_id(),
+            'gene_centric_release_id': release_id('gene_centric'),
+            'gene_suggestions_release_id': release_id('gene_suggestions'),
+            'variant_centric_release_id': release_id('variant_centric'),
+            'variant_suggestions_release_id': release_id('variant_suggestions'),
+            'coverage_by_gene_centric_release_id': release_id('coverage_by_gene_centric'),
+            'cnv_centric_release_id': release_id('cnv_centric'),
             'color': color()
         }
     )
@@ -235,4 +244,6 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >> trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> index_group >> publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_es_dag >> trigger_qc_dag
+    (params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >>
+     trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
+     publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
