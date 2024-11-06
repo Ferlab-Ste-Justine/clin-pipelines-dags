@@ -1,0 +1,1 @@
+This folder contains kubernetes template files used to test the ETL locally with minikube.

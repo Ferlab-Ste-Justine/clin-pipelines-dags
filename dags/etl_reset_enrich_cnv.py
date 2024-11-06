@@ -13,7 +13,7 @@ with DAG(
             'on_failure_callback': Slack.notify_task_failure,
         },
 ) as dag:
-    enrich.cnv(
+    enrich.cnv_all(
         steps='initial',
         task_id='reset_enrich_cnv',
         name='etl-reset-enrich-cnv',

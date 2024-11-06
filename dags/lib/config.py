@@ -1,10 +1,8 @@
-import json
-from enum import Enum
-
 import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from lib.operators.base_kubernetes import ConfigMap, KubeConfig
+from lib.operators.nextflow import NextflowOperatorConfig
 
 
 class Env:
@@ -37,6 +35,10 @@ cosmic_credentials = Variable.get('cosmic_credentials', None)
 topmed_bravo_credentials = Variable.get('topmed_bravo_credentials', None)
 basespace_illumina_credentials = Variable.get('basespace_illumina_credentials', None)
 
+clin_import_bucket = f'cqgc-{env}-app-files-import'
+clin_datalake_bucket = f'cqgc-{env}-app-datalake'
+clin_scratch_bucket = f'cqgc-{env}-app-files-scratch'
+
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
 aws_image = 'amazon/aws-cli'
 curl_image = 'curlimages/curl'
@@ -46,21 +48,19 @@ spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
 batch_ids = []
 
-clin_import_bucket = f'cqgc-{env}-app-files-import'
-clin_datalake_bucket = f'cqgc-{env}-app-datalake'
 
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.4.2.jar'
+    spark_jar = 'clin-variant-etl-v3.5.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.qa.cqgc.hsj.rtss.qc.ca'
-    config_file = f'config/qa.conf'
+    config_file = 'config/qa.conf'
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
         '201106_A00516_0169_AHFM3HDSXY',
@@ -72,13 +72,13 @@ elif env == Env.STAGING:
     pipeline_image = 'ferlabcrsj/clin-pipelines:b4b2ba4'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.4.2_fix_nested_and_clinvar.jar'
+    spark_jar = 'clin-variant-etl-v3.5.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
     indexer_context = K8sContext.DEFAULT
     auth_url = 'https://auth.staging.cqgc.hsj.rtss.qc.ca'
-    config_file = f'config/staging.conf'
+    config_file = 'config/staging.conf'
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
         '201106_A00516_0169_AHFM3HDSXY',
@@ -98,13 +98,13 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:b4b2ba4'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.4.2_fix_nested_and_clinvar.jar'
+    spark_jar = 'clin-variant-etl-v3.5.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
     indexer_context = K8sContext.ETL
     auth_url = 'https://auth.cqgc.hsj.rtss.qc.ca'
-    config_file = f'config/prod.conf'
+    config_file = 'config/prod.conf'
     franklin_assay_id = 'b8a30771-5689-4189-8157-c6063ad738d1'
     batch_ids = [
         '221017_A00516_0366_BHH2T3DMXY',
@@ -232,3 +232,28 @@ def k8s_load_config(context: str) -> None:
             config_file=k8s_config_file(context),
             context=k8s_context[context],
         )
+
+
+# This is meant to be used in DAGS depending on the KubernetesPodOperator.
+# It may not be used in older dags, but please use it in new ones.
+kube_config_etl = KubeConfig(
+    in_cluster=k8s_in_cluster(K8sContext.ETL),
+    cluster_context=k8s_cluster_context(K8sContext.ETL),
+    namespace=Variable.get('kubernetes_namespace'),
+    image_pull_secrets_name='images-registry-credentials'
+)
+
+# This is meant to be used in DAGS depending on the NextflowOperator.
+nextflow_base_config = NextflowOperatorConfig(
+    kube_config=kube_config_etl,
+    is_delete_operator_pod=True,
+    image='nextflow/nextflow:23.10.1',
+    service_account_name='nextflow',
+    minio_credentials_secret_name=f'cqgc-{env}-minio-app-nextflow',
+    minio_credentials_secret_access_key='access_key',
+    minio_credentials_secret_secret_key='secret_key',
+    persistent_volume_claim_name=f'cqgc-{env}-nextflow-pvc',
+    persistent_volume_sub_path='workspace',
+    persistent_volume_mount_path="/mnt/workspace",
+    nextflow_working_dir=f's3://{clin_scratch_bucket}/nextflow/scratch',
+)

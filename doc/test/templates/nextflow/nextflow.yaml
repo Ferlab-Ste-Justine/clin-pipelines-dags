@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: cqgc-qa-nextflow-pv
+  labels:
+    environment: nextflow-qa
+  
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 1Gi
+  storageClassName: standard
+  hostPath:
+    path: /mnt/cqgc-qa/nextflow
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cqgc-qa-nextflow-pvc
+spec:
+  volumeName: cqgc-qa-nextflow-pv
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      environment: nextflow-qa
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    name: nextflow
+  name: nextflow
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    name: nextflow
+  name: nextflow
+rules:
+  - apiGroups: ['']
+    resources: ['pods', 'configmaps', 'pods/status', 'pods/logs']
+    verbs: ['get', 'list', 'watch', 'create', 'edit', 'delete']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    name: nextflow
+  name: nextflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nextflow
+subjects:
+  - kind: ServiceAccount
+    name: nextflow

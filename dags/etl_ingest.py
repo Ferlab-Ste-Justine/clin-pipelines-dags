@@ -51,6 +51,7 @@ with DAG(
         skip_exomiser='',
         skip_coverage_by_gene='',
         skip_franklin='',
+        skip_nextflow='',
         spark_jar=spark_jar()
     )
 

@@ -32,6 +32,7 @@ with DAG(
             'exomiser': Param('no', enum=['yes', 'no']),
             'coverage_by_gene': Param('no', enum=['yes', 'no']),
             'franklin': Param('no', enum=['yes', 'no']),
+            'nextflow': Param('no', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         default_args={
@@ -80,6 +81,10 @@ with DAG(
         return format_skip_condition('franklin')
 
 
+    def skip_nextflow() -> str:
+        return format_skip_condition('nextflow')
+
+
     params_validate_task = validate_color(
         color=color()
     )
@@ -109,6 +114,7 @@ with DAG(
                 skip_exomiser=skip_exomiser(),
                 skip_coverage_by_gene=skip_coverage_by_gene(),
                 skip_franklin=skip_franklin(),
+                skip_nextflow=skip_nextflow(),
                 spark_jar=spark_jar()
             )
 

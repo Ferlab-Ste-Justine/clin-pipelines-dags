@@ -1,174 +1,141 @@
-from lib.config import K8sContext, config_file
-from lib.operators.spark import SparkOperator
+from typing import List
+
+from lib.operators.spark_etl import SparkETLOperator
+from lib.utils_etl import ClinAnalysis
+
+NORMALIZED_MAIN_CLASS = 'bio.ferlab.clin.etl.normalized.RunNormalized'
 
 
-def snv(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def snv(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='snv',
         task_id='snv',
         name='etl-normalize-snv',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_normalize_snv',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'snv',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_normalize_snv',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id,
     )
 
 
-def snv_somatic(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def snv_somatic(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='snv_somatic',
         task_id='snv_somatic',
         name='etl-normalize-snv-somatic',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_normalize_snv_somatic',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'snv_somatic',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_normalize_snv_somatic',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id
     )
 
 
-def cnv(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def cnv(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='cnv',
         task_id='cnv',
         name='etl-normalize-cnv',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_normalize_cnv',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'cnv',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_normalize_cnv',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id
     )
 
 
-def cnv_somatic_tumor_only(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def cnv_somatic_tumor_only(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='cnv_somatic_tumor_only',
         task_id='cnv_somatic_tumor_only',
         name='etl-normalize-cnv_somatic-tumor-only',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_normalize_cnv_somatic',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'cnv_somatic_tumor_only',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_normalize_cnv_somatic',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id
     )
 
 
-def variants(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def variants(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='variants',
         task_id='variants',
         name='etl-normalize-variants',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_normalize_variants',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'variants',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_normalize_variants',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id
     )
 
 
-def consequences(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def consequences(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='consequences',
         task_id='consequences',
         name='etl-normalize-consequences',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_normalize_consequences',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'consequences',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_normalize_consequences',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id
     )
 
 
-def coverage_by_gene(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def coverage_by_gene(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='coverage_by_gene',
         task_id='coverage_by_gene',
         name='etl-normalize-coverage-by-gene',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_ingest_normalize_by_gene',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'coverage_by_gene',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_ingest_normalize_by_gene',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id
     )
 
 
-def exomiser(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def exomiser(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='exomiser',
         task_id='exomiser',
         name='etl-normalize-exomiser',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_normalize_exomiser',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'exomiser',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_normalize_exomiser',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id
     )
 
 
-def franklin(batch_id: str, spark_jar: str, skip: str) -> SparkOperator:
-    return SparkOperator(
+def franklin(batch_id: str, spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='franklin',
         task_id='franklin',
         name='etl-normalize-franklin',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+        steps='default',
+        app_name='etl_normalize_franklin',
+        spark_class=NORMALIZED_MAIN_CLASS,
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        arguments=[
-            'franklin',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl-normalize-franklin',
-            '--batchId', batch_id
-        ],
+        batch_id=batch_id
     )
-
