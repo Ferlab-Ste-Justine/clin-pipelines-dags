@@ -68,7 +68,7 @@ with DAG(
 
     def _download_files(sequencing_type: SequencingType):
         seq_type = sequencing_type.value
-        destination_prefix = f'raw/landing/gnomad_v4/{seq_type}'
+        destination_prefix = f'raw/landing/gnomad_v4_1/{seq_type}'
         gnomad_prefix = f'release/{LATEST_VERSION}/vcf/{seq_type}'
 
         # Get imported version
