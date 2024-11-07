@@ -42,8 +42,8 @@ with DAG(
 
 
     release_id = es.get_release_id(release_id(), color('_'), index='cnv_centric')
-    index_cnv_centric_task = index.cnv_centric(release_id, color(), spark_jar(), task_id='index_cnv_centric')
-    publish_cnv_centric_task = publish_index.cnv_centric(release_id, color(), spark_jar(),
+    index_cnv_centric_task = index.cnv_centric(release_id, color('_'), spark_jar(), task_id='index_cnv_centric')
+    publish_cnv_centric_task = publish_index.cnv_centric(release_id, color('_'), spark_jar(),
                                                          task_id='publish_cnv_centric',
                                                          on_success_callback=Slack.notify_dag_completion)
 
