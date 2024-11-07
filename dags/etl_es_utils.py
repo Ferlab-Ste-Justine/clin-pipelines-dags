@@ -1,19 +1,17 @@
-import logging
 from datetime import datetime
 
-import requests
 from airflow import DAG
-from airflow.exceptions import AirflowFailException, AirflowSkipException
+from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
+from airflow.operators.python import task
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import Env, K8sContext, env, es_url
-from lib.groups.es import (format_es_url, test_disk_usage,
-                           test_duplicated_by_url)
+
+from lib.config import K8sContext, env, es_url
+from lib.groups.es import (format_es_url)
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack
-from lib.tasks import arranger
+from lib.tasks import es
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import color, release_id, skip_if_param_not
 
@@ -39,7 +37,7 @@ with DAG(
     def show_indexes() -> str:
         return '{{ params.show_indexes or "" }}'
 
-    def _test_disk_usage() -> str:
+    def test_disk_usage() -> str:
         return '{{ params.test_disk_usage or "" }}'
 
     def delete_release() -> str:
@@ -50,15 +48,13 @@ with DAG(
 
     params_validate = validate_color(color())
 
-    def _validate_action_params(delete_release, test_duplicated_variants, release_id):
-        if (delete_release == 'yes' or test_duplicated_variants == 'yes') and release_id == '':
+
+    @task(task_id='params_action_validate')
+    def validate_action_params(_delete_release, _test_duplicated_variants, _release_id):
+        if (_delete_release == 'yes' or _test_duplicated_variants == 'yes') and _release_id == '':
             raise AirflowFailException('release_id is required for delete_release')
 
-    params_action_validate = PythonOperator(
-        task_id='params_action_validate',
-        op_args=[delete_release(), test_duplicated_variants(), release_id()],
-        python_callable=_validate_action_params,
-    )
+    params_action_validate = validate_action_params(delete_release(), test_duplicated_variants(), release_id())
 
     es_delete_release = CurlOperator(
         task_id='es_delete_release',
@@ -75,26 +71,18 @@ with DAG(
                 ),
         ],
     )
-    
-    es_test_duplicated_release_variant = PythonOperator(
-        task_id='es_test_duplicated_release_variant',
-        python_callable=test_duplicated_by_url,
-        op_args=[
-            format_es_url('variant', _color=color(), release_id=release_id()),
-            skip_if_param_not(test_duplicated_variants(), "yes")
-            ],
-        dag=dag,
-    )
 
-    es_test_duplicated_release_cnv = PythonOperator(
-        task_id='es_test_duplicated_release_cnv',
-        python_callable=test_duplicated_by_url,
-        op_args=[
-            format_es_url('cnv', _color=color(), release_id=release_id()),
-            skip_if_param_not(test_duplicated_variants(), "yes")
-            ],
-        dag=dag,
-    )
+    es_test_duplicated_release_variant = es.test_duplicated_by_url \
+        .override(task_id='es_test_duplicated_release_variant')(
+            url=format_es_url('variant', _color=color(), release_id=release_id()),
+            skip=skip_if_param_not(test_duplicated_variants(), "yes")
+        )
+
+    es_test_duplicated_release_cnv = es.test_duplicated_by_url \
+        .override(task_id='es_test_duplicated_release_cnv')(
+            url=format_es_url('cnv', _color=color(), release_id=release_id()),
+            skip=skip_if_param_not(test_duplicated_variants(), "yes")
+        )
 
     es_list_indexes = CurlOperator(
         task_id='es_list_indexes',
@@ -106,15 +94,7 @@ with DAG(
         ],
     )
 
-
-    es_test_disk_usage = PythonOperator(
-        task_id='es_test_disk_usage',
-        python_callable=test_disk_usage,
-        op_args=[
-            skip_if_param_not(_test_disk_usage(), "yes")
-            ],
-        dag=dag,
-    )
+    es_test_disk_usage = es.test_disk_usage(skip= skip_if_param_not(test_disk_usage(), "yes"))
 
     slack = EmptyOperator(
         task_id="slack",

@@ -185,6 +185,34 @@ def no_dup_coverage_by_gene(spark_jar: str) -> SparkOperator:
     )
 
 
+def no_dup_nextflow_svclustering(spark_jar: str) -> SparkOperator:
+    return SparkOperator(
+        task_id='no_dup_nextflow_svclustering',
+        doc_md=doc.no_dup_nextflow_svclustering,
+        name='etl-qc-no-dup-nextflow-svclustering',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNextflowSVClustering',
+        spark_config='config-etl-small',
+        spark_jar=spark_jar,
+        arguments=['clin' + env_url('_')],
+        skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+    )
+
+
+def no_dup_nextflow_svclustering_parental_origin(spark_jar: str) -> SparkOperator:
+    return SparkOperator(
+        task_id='no_dup_nextflow_svclustering_parental_origin',
+        doc_md=doc.no_dup_nextflow_svclustering_parental_origin,
+        name='etl-qc-no-dup-nextflow-svclustering-parental-origin',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNextflowSVClusteringParentalOrigin',
+        spark_config='config-etl-small',
+        spark_jar=spark_jar,
+        arguments=['clin' + env_url('_')],
+        skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+    )
+
+
 def same_list_nor_snv_nor_variants(spark_jar: str) -> SparkOperator:
     return SparkOperator(
         task_id='same_list_nor_snv_nor_variants',

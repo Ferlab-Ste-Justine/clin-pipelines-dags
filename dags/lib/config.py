@@ -54,7 +54,7 @@ if env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.5.1.jar'
+    spark_jar = 'clin-variant-etl-v3.6.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -232,28 +232,3 @@ def k8s_load_config(context: str) -> None:
             config_file=k8s_config_file(context),
             context=k8s_context[context],
         )
-
-
-# This is meant to be used in DAGS depending on the KubernetesPodOperator.
-# It may not be used in older dags, but please use it in new ones.
-kube_config_etl = KubeConfig(
-    in_cluster=k8s_in_cluster(K8sContext.ETL),
-    cluster_context=k8s_cluster_context(K8sContext.ETL),
-    namespace=Variable.get('kubernetes_namespace'),
-    image_pull_secrets_name='images-registry-credentials'
-)
-
-# This is meant to be used in DAGS depending on the NextflowOperator.
-nextflow_base_config = NextflowOperatorConfig(
-    kube_config=kube_config_etl,
-    is_delete_operator_pod=True,
-    image='nextflow/nextflow:23.10.1',
-    service_account_name='nextflow',
-    minio_credentials_secret_name=f'cqgc-{env}-minio-app-nextflow',
-    minio_credentials_secret_access_key='access_key',
-    minio_credentials_secret_secret_key='secret_key',
-    persistent_volume_claim_name=f'cqgc-{env}-nextflow-pvc',
-    persistent_volume_sub_path='workspace',
-    persistent_volume_mount_path="/mnt/workspace",
-    nextflow_working_dir=f's3://{clin_scratch_bucket}/nextflow/scratch',
-)

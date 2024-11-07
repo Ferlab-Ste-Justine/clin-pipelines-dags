@@ -2,9 +2,10 @@ from lib.config import indexer_context, es_url, env
 from lib.operators.spark import SparkOperator
 
 
-def gene_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
+def gene_centric(release_id: str, color: str, spark_jar: str, skip: str = '', task_id='gene_centric',
+                 **kwargs) -> SparkOperator:
     return SparkOperator(
-        task_id='gene_centric',
+        task_id=task_id,
         name='etl-index-gene-centric',
         k8s_context=indexer_context,
         spark_class='bio.ferlab.clin.etl.es.Indexer',
@@ -20,12 +21,14 @@ def gene_centric(release_id: str, color: str, spark_jar: str, skip: str = '') ->
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
         ],
+        **kwargs
     )
 
 
-def gene_suggestions(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
+def gene_suggestions(release_id: str, color: str, spark_jar: str, skip: str = '', task_id='gene_suggestions',
+                     **kwargs) -> SparkOperator:
     return SparkOperator(
-        task_id='gene_suggestions',
+        task_id=task_id,
         name='etl-index-gene-suggestions',
         k8s_context=indexer_context,
         spark_class='bio.ferlab.clin.etl.es.Indexer',
@@ -41,12 +44,14 @@ def gene_suggestions(release_id: str, color: str, spark_jar: str, skip: str = ''
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
         ],
+        **kwargs
     )
 
 
-def variant_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
+def variant_centric(release_id: str, color: str, spark_jar: str, skip: str = '', task_id='variant_centric',
+                    **kwargs) -> SparkOperator:
     return SparkOperator(
-        task_id='variant_centric',
+        task_id=task_id,
         name='etl-index-variant-centric',
         k8s_context=indexer_context,
         spark_class='bio.ferlab.clin.etl.es.Indexer',
@@ -62,12 +67,14 @@ def variant_centric(release_id: str, color: str, spark_jar: str, skip: str = '')
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
         ],
+        **kwargs
     )
 
 
-def variant_suggestions(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
+def variant_suggestions(release_id: str, color: str, spark_jar: str, skip: str = '', task_id='variant_suggestions',
+                        **kwargs) -> SparkOperator:
     return SparkOperator(
-        task_id='variant_suggestions',
+        task_id=task_id,
         name='etl-index-variant-suggestions',
         k8s_context=indexer_context,
         spark_class='bio.ferlab.clin.etl.es.Indexer',
@@ -83,12 +90,14 @@ def variant_suggestions(release_id: str, color: str, spark_jar: str, skip: str =
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
         ],
+        **kwargs
     )
 
 
-def cnv_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
+def cnv_centric(release_id: str, color: str, spark_jar: str, skip: str = '', task_id='cnv_centric',
+                **kwargs) -> SparkOperator:
     return SparkOperator(
-        task_id='cnv_centric',
+        task_id=task_id,
         name='etl-index-cnv-centric',
         k8s_context=indexer_context,
         spark_class='bio.ferlab.clin.etl.es.Indexer',
@@ -104,12 +113,14 @@ def cnv_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> 
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
         ],
+        **kwargs
     )
 
 
-def coverage_by_gene_centric(release_id: str, color: str, spark_jar: str, skip: str = '') -> SparkOperator:
+def coverage_by_gene_centric(release_id: str, color: str, spark_jar: str, skip: str = '',
+                             task_id='coverage_by_gene_centric', **kwargs) -> SparkOperator:
     return SparkOperator(
-        task_id='coverage_by_gene_centric',
+        task_id=task_id,
         name='etl-index-coverage-by-gene',
         k8s_context=indexer_context,
         spark_class='bio.ferlab.clin.etl.es.Indexer',
@@ -125,4 +136,5 @@ def coverage_by_gene_centric(release_id: str, color: str, spark_jar: str, skip: 
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
         ],
+        **kwargs
     )

@@ -1,9 +1,11 @@
 import json
 from enum import Enum
+from typing import Optional
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+
 from lib import config
-from lib.config import clin_import_bucket, obo_parser_spark_jar
+from lib.config import clin_import_bucket
 
 
 class ClinAnalysis(Enum):
@@ -29,15 +31,19 @@ def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
 
 
-def release_id() -> str:
-    return '{{ params.release_id or "" }}'
+def release_id(index: Optional[str] = None) -> str:
+    if not index:
+        return '{{ params.release_id or "" }}'
+
+    return f"{{{{ task_instance.xcom_pull(task_ids='get_release_ids.get_{index}_release_id') }}}}"
 
 
 def spark_jar() -> str:
     return '{{ params.spark_jar or "" }}'
 
+
 def obo_parser_spark_jar() -> str:
-    return '{{ params.obo_parser_spark_jar or "'+config.obo_parser_spark_jar+'" }}'
+    return '{{ params.obo_parser_spark_jar or "' + config.obo_parser_spark_jar + '" }}'
 
 
 def color(prefix: str = '') -> str:
@@ -59,8 +65,11 @@ def default_or_initial(batch_param_name: str = 'batch_id') -> str:
 def skip_notify(batch_param_name: str = 'batch_id') -> str:
     return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.notify == "yes" %}}{{% else %}}yes{{% endif %}}'
 
+
 def skip_if_param_not(param_template, value) -> str:
-    return f'{{% if ({param_template}) and ({param_template}|length) and ({param_template}) == "{value}" %}}{{% else %}}yes{{% endif %}}'.replace('{{', '').replace('}}', '')
+    return f'{{% if ({param_template}) and ({param_template}|length) and ({param_template}) == "{value}" %}}{{% else %}}yes{{% endif %}}'.replace(
+        '{{', '').replace('}}', '')
+
 
 def skip(cond1: str, cond2: str) -> str:
     """

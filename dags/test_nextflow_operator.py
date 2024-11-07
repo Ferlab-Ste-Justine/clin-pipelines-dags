@@ -4,8 +4,9 @@ from airflow import DAG
 from airflow.models.param import Param
 
 from lib import config
-from lib.config import env, Env, nextflow_base_config
+from lib.config import env, Env
 from lib.config_nextflow import default_nextflow_config_file
+from lib.config_operators import nextflow_base_config
 from lib.slack import Slack
 
 DEFAULT_NEXTFLOW_PIPELINE = "nextflow-io/hello"
