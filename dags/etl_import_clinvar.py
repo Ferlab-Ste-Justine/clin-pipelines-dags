@@ -3,13 +3,11 @@ import re
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException
-from airflow.exceptions import AirflowSkipException
+from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 from lib import config
-from lib.config import env, K8sContext, config_file
+from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import file_md5, http_get, http_get_file
@@ -23,7 +21,7 @@ with DAG(
         'on_failure_callback': Slack.notify_task_failure,
     },
     catchup=False,
-    max_active_tasks=1
+    max_active_runs=1
 ) as dag:
 
     def _file():
