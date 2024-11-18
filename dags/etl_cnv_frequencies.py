@@ -4,12 +4,12 @@ import pendulum
 from airflow import DAG
 from airflow.decorators import task_group
 from airflow.models import Param
-
-from lib.config import env, Env
+from lib.config import Env, env
 from lib.doc import cnv_frequencies as doc
 from lib.slack import Slack
-from lib.tasks import nextflow, params_validate, enrich, prepare_index, index, publish_index, qa, es
-from lib.utils_etl import spark_jar, release_id, color
+from lib.tasks import (enrich, es, index, nextflow, params_validate,
+                       prepare_index, publish_index, qa)
+from lib.utils_etl import color, release_id, spark_jar
 
 with DAG(
         dag_id='etl_cnv_frequencies',
@@ -23,7 +23,9 @@ with DAG(
         },
         default_args={
             'on_failure_callback': Slack.notify_task_failure
-        }
+        },
+        catchup=False,
+        max_active_tasks=1
 ) as dag:
     params_validate_task = params_validate.validate_color(color=color())
     prepare_svclustering_task = nextflow.prepare_svclustering(spark_jar())
