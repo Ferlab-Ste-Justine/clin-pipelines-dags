@@ -25,7 +25,7 @@ with DAG(
             'on_failure_callback': Slack.notify_task_failure
         },
         catchup=False,
-        max_active_tasks=1
+        max_active_runs=1
 ) as dag:
     params_validate_task = params_validate.validate_color(color=color())
     prepare_svclustering_task = nextflow.prepare_svclustering(spark_jar())
