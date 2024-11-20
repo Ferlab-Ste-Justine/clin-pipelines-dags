@@ -7,6 +7,7 @@ from airflow.operators.python import PythonOperator
 from lib.config import Env, K8sContext, env
 from lib.operators.pipeline import PipelineOperator
 from lib.slack import Slack
+from lib.utils_etl import color
 
 with DAG(
     dag_id='scripts',
@@ -31,9 +32,6 @@ with DAG(
 
     def bucket() -> str:
         return '{{ params.bucket }}'
-
-    def color(prefix: str = '') -> str:
-        return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
     def _params_validate(script, color):
         if script == '':
