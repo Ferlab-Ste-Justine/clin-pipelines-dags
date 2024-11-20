@@ -63,8 +63,8 @@ def get_release_id(release_id: str, color: str, index: str, increment: bool = Tr
 
     logging.info(f'No release id passed to DAG. Fetching release id from ES for index {index}.')
     # Fetch current id from ES
-    url = format_es_url(index, _color=color, suffix='?&pretty'),
-    response = requests.get(url)
+    url = format_es_url(index, _color=color, suffix='?&pretty')
+    response = requests.get(url, verify=False)
     logging.info(f'ES response:\n{response.text}')
 
     # Parse current id
