@@ -6,13 +6,12 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import task
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import K8sContext, env, es_url
-from lib.groups.es import (format_es_url)
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack
 from lib.tasks import es
 from lib.tasks.params_validate import validate_color
+from lib.utils_es import format_es_url
 from lib.utils_etl import color, release_id, skip_if_param_not
 
 with DAG(
@@ -74,13 +73,13 @@ with DAG(
 
     es_test_duplicated_release_variant = es.test_duplicated_by_url \
         .override(task_id='es_test_duplicated_release_variant')(
-            url=format_es_url('variant', _color=color(), release_id=release_id()),
+            url=format_es_url('variant_centric', _color=color("_"), release_id=release_id(), suffix="/_search"),
             skip=skip_if_param_not(test_duplicated_variants(), "yes")
         )
 
     es_test_duplicated_release_cnv = es.test_duplicated_by_url \
         .override(task_id='es_test_duplicated_release_cnv')(
-            url=format_es_url('cnv', _color=color(), release_id=release_id()),
+            url=format_es_url('cnv_centric', _color=color("_"), release_id=release_id(), suffix="/_search"),
             skip=skip_if_param_not(test_duplicated_variants(), "yes")
         )
 
