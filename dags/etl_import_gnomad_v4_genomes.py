@@ -8,8 +8,9 @@ from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from lib import config
-from lib.config import clin_datalake_bucket
+from lib.config import clin_datalake_bucket, K8sContext, config_file
 from lib.slack import Slack
+from lib.operators.spark import SparkOperator
 from lib.utils_import import stream_upload_to_s3, get_s3_file_version
 
 
@@ -70,9 +71,22 @@ def etl_import_gnomad_v4_genomes():
 
     genome_files = download_files(SequencingType.GENOMES)
 
-    slack = EmptyOperator(task_id="slack", on_success_callback=Slack.notify_dag_completion)
+    table = SparkOperator(
+        task_id='table',
+        name='etl_import_gnomad_v4_genomes',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
+        spark_config='config-etl-large',
+        arguments=[
+            'gnomadv4',
+            '--config', config_file,
+            '--steps', 'default',
+            '--app-name', 'etl_import_gnomad_v4_genomes',
+        ],
+        on_success_callback=Slack.notify_dag_completion,
+    )
 
-    [genome_files] >> slack
+    [genome_files] >> table
 
 
 etl_import_gnomad_v4_genomes()
