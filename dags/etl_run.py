@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import List
 
 from airflow import DAG
 from airflow.models.param import Param
@@ -16,6 +17,7 @@ with DAG(
     params={
         'sequencing_ids': Param([], type=['null', 'array']),
     },
+    render_template_as_native_obj=True,
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
@@ -24,11 +26,11 @@ with DAG(
     max_active_runs=1
 ) as dag:
 
-    def sequencing_ids() -> str:
+    def sequencing_ids():
         return '{{ params.sequencing_ids }}'
 
-    def _run(sequencing_ids: list) -> None:
-        logging.info(f'Run ETLs for: {sequencing_ids}')
+    def _run(sequencing_ids: List[str]):
+        logging.info(f'Run ETLs for total: {len(sequencing_ids)} sequencing_ids: {sequencing_ids}')
 
     start = EmptyOperator(
         task_id="start",
@@ -46,4 +48,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    start >> slack
+    start >> run_etl >> slack
