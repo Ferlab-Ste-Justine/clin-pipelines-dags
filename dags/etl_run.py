@@ -13,6 +13,7 @@ from lib.slack import Slack
 with DAG(
     dag_id='etl_run',
     start_date=datetime(2022, 1, 1),
+    schedule_interval=None,
     catchup=False,
     params={
         'sequencing_ids': Param([], type=['null', 'array']),
