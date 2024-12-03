@@ -43,7 +43,6 @@ def etl_import_gnomad_v4_genomes():
             '--steps', 'default',
             '--app-name', 'etl_import_gnomad_v4_genomes',
         ],
-        on_success_callback=Slack.notify_dag_completion,
     )
 
     slack = EmptyOperator(task_id="slack", on_success_callback=Slack.notify_dag_completion)
