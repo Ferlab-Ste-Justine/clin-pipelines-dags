@@ -32,16 +32,19 @@ GNOMAD_S3_BUCKET = "gnomad-public-us-east-1"
 def etl_import_gnomad_v4_genomes():
 
     table = SparkOperator(
-        task_id='table',
-        name='etl_import_gnomad_v4_genomes',
+        task_id="table",
+        name="etl_import_gnomad_v4_genomes",
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='config-etl-large',
+        spark_class="bio.ferlab.datalake.spark3.publictables.ImportPublicTable",
+        spark_config="config-etl-large",
         arguments=[
-            'gnomadv4',
-            '--config', config_file,
-            '--steps', 'default',
-            '--app-name', 'etl_import_gnomad_v4_genomes',
+            "gnomadv4",
+            "--config",
+            config_file,
+            "--steps",
+            "default",
+            "--app-name",
+            "etl_import_gnomad_v4_genomes",
         ],
     )
 
