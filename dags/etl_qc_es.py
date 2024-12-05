@@ -3,7 +3,6 @@ from datetime import datetime
 from airflow import DAG
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.groups.es import es
 from lib.slack import Slack
 
@@ -13,6 +12,7 @@ with DAG(
     schedule_interval='0 1 * * *',
     catchup=False,
     default_args={
+        'on_failure_callback': Slack.notify_task_failure,
         'trigger_rule': TriggerRule.NONE_FAILED,
     },
     max_active_tasks=1
