@@ -92,6 +92,7 @@ elif env == Env.STAGING:
         '240201_A00516_0001_SYNTH',
         'test_dragen_4_2_4_germline',
         '240613_A00516_0566_AH5WJVDRX5_CAP',
+        '241213_A00516_0629_AHL7GJDRX5_somatic_CAP',
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:a77e25a'
@@ -214,6 +215,7 @@ elif env == Env.PROD:
         '241125_A00516_0621_BHJKYMDRX5_somatic_normal',
         '241206_A00516_0628_BHLC7LDRX5_somatic_normal',
         '241129_A00977_0750_BHJL23DRX5_somatic_normal',
+        '241213_A00516_0629_AHL7GJDRX5_somatic'
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
