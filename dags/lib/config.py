@@ -72,7 +72,7 @@ elif env == Env.STAGING:
     pipeline_image = 'ferlabcrsj/clin-pipelines:f13db33'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.6.2.jar'
+    spark_jar = 'clin-variant-etl-v3.6.3.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -92,13 +92,14 @@ elif env == Env.STAGING:
         '240201_A00516_0001_SYNTH',
         'test_dragen_4_2_4_germline',
         '240613_A00516_0566_AH5WJVDRX5_CAP',
+        '241213_A00516_0629_AHL7GJDRX5_somatic_CAP',
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:a77e25a'
     pipeline_image = 'ferlabcrsj/clin-pipelines:f13db33'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.6.1.jar'
+    spark_jar = 'clin-variant-etl-v3.6.3.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
@@ -208,6 +209,13 @@ elif env == Env.PROD:
         '241107_A00516_0616_BHJMHHDRX5_somatic_normal',
         '241125_A00516_0621_BHJKYMDRX5_somatic',
         '241125_A00516_0620_AH27TMDMX2_germinal',
+        '241206_A00516_0628_BHLC7LDRX5_somatic',
+        '241206_A00516_0627_AHKYKHDSXC_germinal',
+        '230703_A00516_0432_BHVW7WDRX2_somatic_normal',
+        '241125_A00516_0621_BHJKYMDRX5_somatic_normal',
+        '241206_A00516_0628_BHLC7LDRX5_somatic_normal',
+        '241129_A00977_0750_BHJL23DRX5_somatic_normal',
+        '241213_A00516_0629_AHL7GJDRX5_somatic'
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
