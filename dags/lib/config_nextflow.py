@@ -23,7 +23,7 @@ default_nextflow_config_file = f"{default_nextflow_config_map.mount_path}/nextfl
 ##################################
 # Define nextflow revisions here #
 ##################################
-nextflow_svclustering_revision = 'v1.1.1-clin'
+nextflow_svclustering_revision = 'v1.2.0-clin'
 nextflow_svclustering_parental_origin_revision = 'v1.1.1-clin'
 
 #######################################
