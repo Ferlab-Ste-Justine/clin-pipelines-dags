@@ -26,6 +26,7 @@ base_url = Variable.get('base_url', None)
 s3_conn_id = Variable.get('s3_conn_id', None)
 s3_franklin = Variable.get('s3_franklin', None)
 s3_franklin_bucket = Variable.get('s3_franklin_bucket', None)
+s3_gnomad = Variable.get('s3_gnomad', None)
 franklin_url = Variable.get('franklin_url', None)
 franklin_email = Variable.get('franklin_email', None)
 franklin_password = Variable.get('franklin_password', None)
@@ -54,7 +55,7 @@ if env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.7.4.jar'
+    spark_jar = 'clin-variant-etl-v3.7.5.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
