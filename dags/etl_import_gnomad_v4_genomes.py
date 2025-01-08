@@ -6,6 +6,7 @@ from airflow.decorators import dag, task
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.trigger_rule import TriggerRule
 
 from lib import config
 from lib.config import clin_datalake_bucket, K8sContext, config_file
@@ -78,6 +79,7 @@ def etl_import_gnomad_v4_genomes():
         k8s_context=K8sContext.ETL,
         spark_class="bio.ferlab.datalake.spark3.publictables.ImportPublicTable",
         spark_config="config-etl-large",
+        trigger_rule=TriggerRule.ALWAYS,
         arguments=[
             "gnomadv4",
             "--config",
