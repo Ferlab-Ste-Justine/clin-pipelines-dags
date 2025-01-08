@@ -70,7 +70,7 @@ def etl_import_gnomad_v4_genomes():
         logging.info(f"Version {LATEST_VERSION} of gnomAD {seq_type} imported to S3.")
         clin_s3.load_string(LATEST_VERSION, f"{destination_prefix}.version", clin_datalake_bucket, replace=True)
 
-    download_files(SequencingType.GENOMES)
+    files = download_files(SequencingType.GENOMES)
 
     table = SparkOperator(
         task_id="table",
@@ -91,7 +91,7 @@ def etl_import_gnomad_v4_genomes():
 
     slack = EmptyOperator(task_id="slack", on_success_callback=Slack.notify_dag_completion)
 
-    table >> slack
+    files >> table >> slack
 
 
 etl_import_gnomad_v4_genomes()
