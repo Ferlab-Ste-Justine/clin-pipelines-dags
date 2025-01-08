@@ -57,7 +57,7 @@ def etl_import_gnomad_v4_genomes():
         keys = keys = gnomad_s3.list_keys(bucket_name=GNOMAD_S3_BUCKET, prefix=f"{gnomad_prefix}/")
 
         for key in keys:
-            if not key.endswith("/"):
+            if not key.endswith("/") and not key.endswith(".tbi"):
                 generation_params = {"Bucket": GNOMAD_S3_BUCKET, "Key": key}
                 presigned_url = gnomad_s3.generate_presigned_url("get_object", params=generation_params)
                 destination_key = f"{destination_prefix}/{key}"
@@ -70,7 +70,7 @@ def etl_import_gnomad_v4_genomes():
         logging.info(f"Version {LATEST_VERSION} of gnomAD {seq_type} imported to S3.")
         clin_s3.load_string(LATEST_VERSION, f"{destination_prefix}.version", clin_datalake_bucket, replace=True)
 
-    genome_files = download_files(SequencingType.GENOMES)
+    download_files(SequencingType.GENOMES)
 
     table = SparkOperator(
         task_id="table",
@@ -91,7 +91,7 @@ def etl_import_gnomad_v4_genomes():
 
     slack = EmptyOperator(task_id="slack", on_success_callback=Slack.notify_dag_completion)
 
-    genome_files >> table >> slack
+    table >> slack
 
 
 etl_import_gnomad_v4_genomes()
