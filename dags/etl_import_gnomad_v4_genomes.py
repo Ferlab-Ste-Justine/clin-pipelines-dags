@@ -57,7 +57,7 @@ def etl_import_gnomad_v4_genomes():
         keys = keys = gnomad_s3.list_keys(bucket_name=GNOMAD_S3_BUCKET, prefix=f"{gnomad_prefix}/")
 
         for key in keys:
-            if not key.endswith("/") and not key.endswith(".tbi"):
+            if not key.endswith("/"):
                 generation_params = {"Bucket": GNOMAD_S3_BUCKET, "Key": key}
                 presigned_url = gnomad_s3.generate_presigned_url("get_object", params=generation_params)
                 destination_key = f"{destination_prefix}/{key}"
