@@ -14,9 +14,11 @@ from lib.utils_etl import color, release_id
 with DAG(
         dag_id='etl_arranger',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule_interval="0 8 * * *", # 8am UTC / 2am Montreal
+        catchup=False,
+        max_active_runs=1,
         params={
-
+            'remove_project': Param('no', enum=['yes', 'no']),
         },
         default_args={
             'on_failure_callback': Slack.notify_task_failure,
@@ -24,12 +26,15 @@ with DAG(
         },
 ) as dag:
 
+    def skip_remove_project() -> str:
+        return '{% if params.remove_project == "yes" %}{% else %}yes{% endif %}'
+
     slack_start = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_start
     )
 
-    arranger_remove_project_task = arranger.remove_project()
+    arranger_remove_project_task = arranger.remove_project(skip=skip_remove_project())
     arranger_restart_task = arranger.restart(on_success_callback=Slack.notify_dag_completion)
     
 
