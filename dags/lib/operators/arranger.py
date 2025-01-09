@@ -1,13 +1,20 @@
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.exceptions import AirflowFailException, AirflowSkipException
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import \
+    KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
 
 
 class ArrangerOperator(KubernetesPodOperator):
 
+    template_fields = KubernetesPodOperator.template_fields + (
+        'skip',
+    )
+
     def __init__(
         self,
         k8s_context: str,
+        skip: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(
@@ -19,8 +26,12 @@ class ArrangerOperator(KubernetesPodOperator):
             image=config.arranger_image,
             **kwargs,
         )
+        self.skip = skip
 
     def execute(self, **kwargs):
+        if self.skip:
+            raise AirflowSkipException()
+            
         self.image_pull_secrets = [
             k8s.V1LocalObjectReference(
                 name='images-registry-credentials',
