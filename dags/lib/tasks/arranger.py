@@ -3,11 +3,12 @@ from lib.operators.arranger import ArrangerOperator
 from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 
 
-def remove_project():
+def remove_project(skip: str = None):
     return ArrangerOperator(
         task_id='arranger_remove_project',
         name='etl-publish-arranger-remove-project',
         k8s_context=K8sContext.DEFAULT,
+        skip=skip,
         cmds=[
             'node',
             '--experimental-modules=node',
