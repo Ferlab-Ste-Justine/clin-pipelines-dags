@@ -14,7 +14,7 @@ from lib.utils_etl import color, release_id
 with DAG(
         dag_id='etl_arranger',
         start_date=datetime(2022, 1, 1),
-        schedule_interval="0 8 * * *", # 8am UTC / 2am Montreal
+        schedule_interval="0 6 * * *" if env == Env.PROD else None, # 8am UTC / 2am Montreal
         catchup=False,
         max_active_runs=1,
         params={
