@@ -7,6 +7,7 @@ from airflow.utils.trigger_rule import TriggerRule
 from lib.config import K8sContext, env
 from lib.operators.fhir import FhirOperator
 from lib.operators.fhir_csv import FhirCsvOperator
+from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.wait import WaitOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
@@ -58,9 +59,15 @@ with DAG(
         arguments=['-f', f'{env}.yml'],
     )
 
+    fhir_restart = K8sDeploymentRestartOperator(
+        task_id='fhir_restart',
+        k8s_context=K8sContext.DEFAULT,
+        deployment='fhir-server' + color('-'),
+    )
+
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> ig_publish >> wait_30s >> csv_import >> slack
+    params_validate >> ig_publish >> wait_30s >> csv_import >> fhir_restart >> slack
