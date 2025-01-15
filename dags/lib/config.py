@@ -64,10 +64,11 @@ if env == Env.QA:
     config_file = 'config/qa.conf'
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [
-        '201106_A00516_0169_AHFM3HDSXY',
-        'test_extum', 'Batch_ParCas', 'test_franklin',
-        'test_somatic_normal_part1', 'test_somatic_normal_part2',
-        '2_data_to_import_germinal', 'test_dragen_4_2_4_germline', 'test_franklin']
+        '1_data_to_import_germinal',
+        '2_data_to_import_germinal',
+        '3_data_to_import_somatic',
+        '4_data_to_import_somatic_normal',
+    ]
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:a77e25a'
     pipeline_image = 'ferlabcrsj/clin-pipelines:f13db33'
