@@ -5,7 +5,7 @@ from airflow.operators.bash import BashOperator
 class WaitOperator(BashOperator):
 
     template_fields = BashOperator.template_fields + (
-        'skip'
+        'skip',
     )
 
     def __init__(
