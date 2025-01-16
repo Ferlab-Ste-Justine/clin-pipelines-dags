@@ -63,4 +63,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> ig_publish >> wait_30s >> csv_import >> fhir_restart >> slack
+    params_validate >> ig_publish >> wait_30s >> csv_import >> slack
