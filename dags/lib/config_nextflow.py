@@ -20,14 +20,25 @@ default_nextflow_config_map = ConfigMap(
 )
 default_nextflow_config_file = f"{default_nextflow_config_map.mount_path}/nextflow.config"
 
+nextflow_variant_annotation_config_map = ConfigMap(
+    name='nextflow-postprocessing',
+    mount_path='/root/nextflow/config/postprocessing'
+)
+nextflow_variant_annotation_config_file = f"{nextflow_variant_annotation_config_map.mount_path}/postprocessing.config"
+nextflow_variant_annotation_params_file = f"{nextflow_variant_annotation_config_map.mount_path}/postprocessing-params.json"
+
 ##################################
 # Define nextflow revisions here #
 ##################################
 nextflow_svclustering_revision = 'v1.2.0-clin'
 nextflow_svclustering_parental_origin_revision = 'v1.1.1-clin'
 
+nextflow_variant_annotation_revision = 'v2.4.1'
+
 #######################################
 # Define nextflow pipeline names here #
 #######################################
 nextflow_svclustering_pipeline = 'Ferlab-Ste-Justine/ferlab-svclustering'
 nextflow_svclustering_parental_origin_pipeline = 'Ferlab-Ste-Justine/ferlab-svclustering-parental-origin'
+
+nextflow_variant_annotation_pipeline = 'Ferlab-Ste-Justine/Post-processing-Pipeline'
