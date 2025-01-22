@@ -68,11 +68,11 @@ if env == Env.QA:
         'test_somatic_normal_part1', 'test_somatic_normal_part2',
         '2_data_to_import_germinal', 'test_dragen_4_2_4_germline', 'test_franklin']
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:a77e25a'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:f13db33'
+    fhir_image = 'ferlabcrsj/clin-fhir:7f9259d'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:60e20ec'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.6.3.jar'
+    spark_jar = 'clin-variant-etl-v3.7.9.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -95,11 +95,11 @@ elif env == Env.STAGING:
         '241213_A00516_0629_AHL7GJDRX5_somatic_CAP',
     ]
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:a77e25a'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:f13db33'
+    fhir_image = 'ferlabcrsj/clin-fhir:7f9259d'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:60e20ec'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.6.3.jar'
+    spark_jar = 'clin-variant-etl-v3.7.9.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
