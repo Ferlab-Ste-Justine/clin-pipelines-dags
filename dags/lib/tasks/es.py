@@ -18,13 +18,12 @@ def get_previous_release(release: str, n: int = 2):
     return previous_release
 
 @task(task_id='delete_previous_release')
-def delete_previous_release(index_name: str, release_id: str, skip=None):
+def delete_previous_release(index_name: str, release_id: str, under_color: str, skip=None):
     if skip:
         raise AirflowSkipException()
 
     previous_release = get_previous_release(release_id)
 
-    under_color = color('_')
     response = requests.delete(f'{es_url}/clin_{env}{under_color}_{index_name}_{previous_release}?ignore_unavailable=true', verify=False)
     logging.info(f'ES response:\n{response.text}')
 
