@@ -10,9 +10,10 @@ from lib.utils_es import color, format_es_url
 def get_previous_release(release: str, n: int = 2):
     if not release.startswith('re_') or len(release) != 6:
         raise AirflowFailException("Invalid release format. Expected format: re_XXX where XXX are digits.")
-    num_str = release[3:]
-    num = int(num_str)
-    previous_num = max(0, num - n)
+    num = int(release[3:])
+    previous_num = num - n
+    if previous_num < 0:
+        raise AirflowSkipException("Previous release number is less than 0.")
     previous_release = f"re_{previous_num:03d}"
     return previous_release
 
