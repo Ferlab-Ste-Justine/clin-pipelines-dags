@@ -1,3 +1,9 @@
+from airflow.decorators import task
+from airflow.exceptions import AirflowSkipException
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.www.views import Airflow
+
+from lib import config
 from lib.config import clin_datalake_bucket
 from lib.config_nextflow import (
     nextflow_svclustering_revision,
@@ -16,6 +22,7 @@ from lib.config_operators import (
 )
 from lib.operators.nextflow import NextflowOperator
 from lib.operators.spark_etl import SparkETLOperator
+from lib.utils_etl import skip
 
 NEXTFLOW_MAIN_CLASS = 'bio.ferlab.clin.etl.nextflow.RunNextflow'
 
@@ -86,6 +93,19 @@ def prepare_svclustering_parental_origin(batch_id: str, spark_jar: str, skip: st
         batch_id=batch_id,
         **kwargs
     )
+
+
+def skip_svclustering_parental_origin(batch_id: str, skip_all: str, skip_nextflow: str) -> str:
+    if skip(skip_all, skip_nextflow):
+        return 'yes'
+    else:
+        s3 = S3Hook(config.s3_conn_id)
+        input_file_path = f"nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv"
+        exists = s3.check_for_key(input_file_path, clin_datalake_bucket)
+        if not exists:
+            return 'yes'
+        else:
+            return ''
 
 
 def svclustering_parental_origin(batch_id: str, skip: str = '', **kwargs):
