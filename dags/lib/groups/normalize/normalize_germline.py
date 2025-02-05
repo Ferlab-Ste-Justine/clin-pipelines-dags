@@ -39,8 +39,8 @@ def normalize_germline(
     @task_group(group_id="nextflow")
     def nextflow_group():
         prepare_svclustering_parental_origin_task = nextflow.prepare_svclustering_parental_origin(batch_id, spark_jar, skip(skip_all, skip_nextflow))
-        run_svclustering_parental_origin = nextflow.svclustering_parental_origin(batch_id, skip(skip_all, skip_nextflow))
-        normalize_svclustering_parental_origin_task = nextflow.normalize_svclustering_parental_origin(batch_id, spark_jar, skip(skip_all, skip_nextflow))
+        run_svclustering_parental_origin = nextflow.svclustering_parental_origin(batch_id, nextflow.skip_svclustering_parental_origin(batch_id, skip_all, skip_nextflow))
+        normalize_svclustering_parental_origin_task = nextflow.normalize_svclustering_parental_origin(batch_id, spark_jar, nextflow.skip_svclustering_parental_origin(batch_id, skip_all, skip_nextflow))
 
         prepare_svclustering_parental_origin_task >> run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task
 
