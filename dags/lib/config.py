@@ -1,8 +1,6 @@
 import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
-from lib.operators.base_kubernetes import ConfigMap, KubeConfig
-from lib.operators.nextflow import NextflowOperatorConfig
 
 
 class Env:
