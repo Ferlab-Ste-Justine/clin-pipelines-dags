@@ -34,7 +34,7 @@ nextflow_variant_annotation_params_file = f"{nextflow_variant_annotation_config_
 nextflow_svclustering_revision = 'v1.2.0-clin'
 nextflow_svclustering_parental_origin_revision = 'v1.1.1-clin'
 
-nextflow_variant_annotation_revision = 'v2.4.1'
+nextflow_variant_annotation_revision = 'v2.6.0'
 
 #######################################
 # Define nextflow pipeline names here #
