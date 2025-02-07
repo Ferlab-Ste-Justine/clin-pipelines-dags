@@ -1,5 +1,7 @@
 from airflow.decorators import task_group
 
+from lib import utils_nextflow
+from lib.config_nextflow import nextflow_svclustering_parental_origin_input_key, nextflow_bucket
 from lib.groups.franklin.franklin_update import FranklinUpdate
 from lib.tasks import normalize, nextflow
 from lib.utils_etl import skip
@@ -38,10 +40,20 @@ def normalize_germline(
 
     @task_group(group_id="nextflow")
     def nextflow_group():
-        prepare_svclustering_parental_origin_task = nextflow.prepare_svclustering_parental_origin(batch_id, spark_jar, skip(skip_all, skip_nextflow))
-        run_svclustering_parental_origin = nextflow.svclustering_parental_origin(batch_id, nextflow.skip_svclustering_parental_origin(batch_id, skip_all, skip_nextflow))
-        normalize_svclustering_parental_origin_task = nextflow.normalize_svclustering_parental_origin(batch_id, spark_jar, nextflow.skip_svclustering_parental_origin(batch_id, skip_all, skip_nextflow))
 
-        prepare_svclustering_parental_origin_task >> run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task
+        prepare_svclustering_parental_origin_task = nextflow.prepare_svclustering_parental_origin(batch_id, spark_jar, skip(skip_all, skip_nextflow))
+        check_svclustering_parental_origin_input_file_exists = utils_nextflow.check_input_file_exists.override(task_id='check_svclustering_parental_origin_input_file_exists')(
+            bucket=nextflow_bucket,
+            key=nextflow_svclustering_parental_origin_input_key(batch_id),
+            skip=skip(skip_all, skip_nextflow))
+
+        # Skipped if no input file
+        run_svclustering_parental_origin = nextflow.svclustering_parental_origin(batch_id, skip(skip_all, skip_nextflow))
+
+        # Will still run if no input file but the normalization task is resilient
+        normalize_svclustering_parental_origin_task = nextflow.normalize_svclustering_parental_origin(batch_id, spark_jar, skip(skip_all, skip_nextflow))
+
+        (prepare_svclustering_parental_origin_task >> check_svclustering_parental_origin_input_file_exists >>
+         run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task)
 
     snv >> cnv >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update >> franklin >> nextflow_group()

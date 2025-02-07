@@ -1,10 +1,3 @@
-from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.www.views import Airflow
-
-from lib import config
-from lib.config import clin_datalake_bucket
 from lib.config_nextflow import (
     nextflow_svclustering_revision,
     nextflow_svclustering_parental_origin_pipeline,
@@ -14,7 +7,7 @@ from lib.config_nextflow import (
     nextflow_variant_annotation_pipeline,
     nextflow_variant_annotation_config_map,
     nextflow_variant_annotation_config_file,
-    nextflow_variant_annotation_params_file
+    nextflow_variant_annotation_params_file, nextflow_bucket, nextflow_svclustering_parental_origin_input_key
 )
 from lib.config_operators import (
     nextflow_base_config,
@@ -22,7 +15,6 @@ from lib.config_operators import (
 )
 from lib.operators.nextflow import NextflowOperator
 from lib.operators.spark_etl import SparkETLOperator
-from lib.utils_etl import skip
 
 NEXTFLOW_MAIN_CLASS = 'bio.ferlab.clin.etl.nextflow.RunNextflow'
 
@@ -50,8 +42,8 @@ def svclustering(skip: str = '', **kwargs):
         .with_pipeline(nextflow_svclustering_pipeline) \
         .with_revision(nextflow_svclustering_revision) \
         .append_args(
-            '--input', f's3://{clin_datalake_bucket}/nextflow/svclustering_input/svclustering_input.csv',
-            '--outdir', f's3://{clin_datalake_bucket}/nextflow/svclustering_output') \
+            '--input', f's3://{nextflow_bucket}/nextflow/svclustering_input/svclustering_input.csv',
+            '--outdir', f's3://{nextflow_bucket}/nextflow/svclustering_output') \
         .operator(
             NextflowOperator,
             task_id='svclustering',
@@ -95,26 +87,13 @@ def prepare_svclustering_parental_origin(batch_id: str, spark_jar: str, skip: st
     )
 
 
-def skip_svclustering_parental_origin(batch_id: str, skip_all: str, skip_nextflow: str) -> str:
-    if skip(skip_all, skip_nextflow):
-        return 'yes'
-    else:
-        s3 = S3Hook(config.s3_conn_id)
-        input_file_path = f"nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv"
-        exists = s3.check_for_key(input_file_path, clin_datalake_bucket)
-        if not exists:
-            return 'yes'
-        else:
-            return ''
-
-
 def svclustering_parental_origin(batch_id: str, skip: str = '', **kwargs):
     return nextflow_svclustering_base_config \
         .with_pipeline(nextflow_svclustering_parental_origin_pipeline) \
         .with_revision(nextflow_svclustering_parental_origin_revision) \
         .append_args(
-            '--input', f's3://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv',
-            '--outdir', f's3://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}') \
+            '--input', f's3://{nextflow_bucket}/{nextflow_svclustering_parental_origin_input_key(batch_id)}',
+            '--outdir', f's3://{nextflow_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}') \
         .operator(
             NextflowOperator,
             task_id='svclustering_parental_origin',
