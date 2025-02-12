@@ -1,13 +1,16 @@
 import logging
 from datetime import datetime
-from typing import List
+from typing import List, Set
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
-from lib.groups.es import es
+from pandas import DataFrame
+
+from lib.datasets import enriched_clinical
 from lib.slack import Slack
 
 with DAG(
@@ -38,6 +41,40 @@ with DAG(
         on_success_callback=Slack.notify_dag_start
     )
 
+
+    @task.virtualenv(task_id='get_all_sequencing_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
+    def get_all_sequencing_ids(_sequencing_ids: List[str]) -> Set[str]:
+        """
+        Retrieves all sequencing IDs that share the same analysis ID as the given sequencing IDs from the
+        `enriched_clinical` Delta table.
+
+        TODO:
+            - Rename service_request_id to sequencing_id when enriched_clinical table is refactored
+            - Rename analysis_service_request_id to analysis_id when enriched_clinical table is refactored
+        """
+        from airflow.hooks.base import BaseHook
+        from deltalake import DeltaTable
+        from lib.config import s3_conn_id
+        from lib.datasets import enriched_clinical
+
+        distinct_sequencing_ids: Set[str] = set(_sequencing_ids)
+
+        conn = BaseHook.get_connection(s3_conn_id)
+        storage_options = {
+            "AWS_ACCESS_KEY_ID": conn.login,
+            "AWS_SECRET_ACCESS_KEY": conn.get_password(),
+            "AWS_ENDPOINT_URL": conn.host
+        }
+
+        dt: DeltaTable = DeltaTable(enriched_clinical.uri, storage_options=storage_options)
+        df: DataFrame = dt.to_pandas()
+        filtered_df = df[["service_request_id", "analysis_service_request_id"]]
+        analysis_ids = set(filtered_df.loc[filtered_df["service_request_id"].isin(distinct_sequencing_ids), "analysis_service_request_id"])
+        all_sequencing_ids = set(filtered_df.loc[filtered_df["analysis_service_request_id"].isin(analysis_ids), "service_request_id"])
+
+        return all_sequencing_ids
+
+
     run_etl = PythonOperator(
         task_id='run',
         op_args=[sequencing_ids()],
@@ -49,4 +86,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    start >> run_etl >> slack
+    start >> run_etl >> get_all_sequencing_ids(sequencing_ids()) >> slack
