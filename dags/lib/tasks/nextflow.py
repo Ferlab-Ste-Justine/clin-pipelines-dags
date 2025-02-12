@@ -1,4 +1,3 @@
-from lib.config import clin_datalake_bucket
 from lib.config_nextflow import (
     nextflow_svclustering_revision,
     nextflow_svclustering_parental_origin_pipeline,
@@ -8,7 +7,7 @@ from lib.config_nextflow import (
     nextflow_variant_annotation_pipeline,
     nextflow_variant_annotation_config_map,
     nextflow_variant_annotation_config_file,
-    nextflow_variant_annotation_params_file
+    nextflow_variant_annotation_params_file, nextflow_bucket, nextflow_svclustering_parental_origin_input_key
 )
 from lib.config_operators import (
     nextflow_base_config,
@@ -43,8 +42,8 @@ def svclustering(skip: str = '', **kwargs):
         .with_pipeline(nextflow_svclustering_pipeline) \
         .with_revision(nextflow_svclustering_revision) \
         .append_args(
-            '--input', f's3://{clin_datalake_bucket}/nextflow/svclustering_input/svclustering_input.csv',
-            '--outdir', f's3://{clin_datalake_bucket}/nextflow/svclustering_output') \
+            '--input', f's3://{nextflow_bucket}/nextflow/svclustering_input/svclustering_input.csv',
+            '--outdir', f's3://{nextflow_bucket}/nextflow/svclustering_output') \
         .operator(
             NextflowOperator,
             task_id='svclustering',
@@ -93,8 +92,8 @@ def svclustering_parental_origin(batch_id: str, skip: str = '', **kwargs):
         .with_pipeline(nextflow_svclustering_parental_origin_pipeline) \
         .with_revision(nextflow_svclustering_parental_origin_revision) \
         .append_args(
-            '--input', f's3://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv',
-            '--outdir', f's3://{clin_datalake_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}') \
+            '--input', f's3://{nextflow_bucket}/{nextflow_svclustering_parental_origin_input_key(batch_id)}',
+            '--outdir', f's3://{nextflow_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}') \
         .operator(
             NextflowOperator,
             task_id='svclustering_parental_origin',

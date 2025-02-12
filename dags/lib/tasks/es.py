@@ -4,8 +4,33 @@ import requests
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException, AirflowSkipException
 from lib.config import env, es_url
-from lib.utils_es import format_es_url
+from lib.utils_es import color, format_es_url
 
+
+def get_previous_release(release: str, n: int = 2):
+    if not release.startswith('re_') or len(release) != 6:
+        raise AirflowFailException("Invalid release format. Expected format: re_XXX where XXX are digits.")
+    num = int(release[3:])
+    previous_num = num - n
+    if previous_num < 0:
+        raise AirflowSkipException("Previous release number is less than 0.")
+    previous_release = f"re_{previous_num:03d}"
+    return previous_release
+
+@task(task_id='delete_previous_release')
+def delete_previous_release(index_name: str, release_id: str, under_color: str, skip=None):
+    if skip:
+        raise AirflowSkipException()
+
+    previous_release = get_previous_release(release_id)
+
+    response = requests.delete(f'{es_url}/clin_{env}{under_color}_{index_name}_{previous_release}?ignore_unavailable=true', verify=False)
+    logging.info(f'ES response:\n{response.text}')
+
+    if not response.ok:
+        raise AirflowFailException('Failed')
+
+    return
 
 @task(task_id='test_duplicated_by_url')
 def test_duplicated_by_url(url, skip=None):

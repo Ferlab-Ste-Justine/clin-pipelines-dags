@@ -8,6 +8,7 @@ config maps must be mounted in this pod.
 Centralization helps identify required config maps and their mount paths. It also prevents mount path conflicts. Always
 use a unique mount path for each config map.
 """
+from lib import config
 from lib.operators.base_kubernetes import ConfigMap
 
 
@@ -33,7 +34,7 @@ nextflow_variant_annotation_params_file = f"{nextflow_variant_annotation_config_
 nextflow_svclustering_revision = 'v1.2.0-clin'
 nextflow_svclustering_parental_origin_revision = 'v1.1.1-clin'
 
-nextflow_variant_annotation_revision = 'v2.4.1'
+nextflow_variant_annotation_revision = 'v2.6.0'
 
 #######################################
 # Define nextflow pipeline names here #
@@ -42,3 +43,10 @@ nextflow_svclustering_pipeline = 'Ferlab-Ste-Justine/ferlab-svclustering'
 nextflow_svclustering_parental_origin_pipeline = 'Ferlab-Ste-Justine/ferlab-svclustering-parental-origin'
 
 nextflow_variant_annotation_pipeline = 'Ferlab-Ste-Justine/Post-processing-Pipeline'
+
+####################################
+# Define nextflow input files here #
+####################################
+nextflow_bucket = config.clin_datalake_bucket
+nextflow_svclustering_parental_origin_input_key = lambda batch_id: \
+    f'nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv'

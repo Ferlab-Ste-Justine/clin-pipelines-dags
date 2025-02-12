@@ -27,5 +27,5 @@ The DAG accepts the following parameters:
 
 #### Scheduling
 
-- The DAG runs weekly in production environment to keep the CNV frequency indices up-to-date. In other environments, it does not run on a schedule and can be triggered manually.
+- The DAG runs daily in production environment to keep the CNV frequency indices up-to-date. In other environments, it does not run on a schedule and can be triggered manually.
 """

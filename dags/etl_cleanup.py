@@ -2,8 +2,7 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.models.param import Param
-
-from lib.config import env, es_url, Env, K8sContext
+from lib.config import Env, K8sContext, env, es_url
 from lib.operators.aws import AwsOperator
 from lib.operators.curl import CurlOperator
 from lib.operators.k8s_deployment_pause import K8sDeploymentPauseOperator
@@ -102,10 +101,22 @@ if env in [Env.QA, Env.STAGING]:
             arguments=[
                 's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
                 f's3://cqgc-{env}-app-datalake/', '--recursive', '--exclude', '*',
+                '--include', 'nextflow/*',
                 '--include', 'normalized/*',
                 '--include', 'enriched/*',
                 '--include', 'raw/landing/fhir/*',
                 '--include', 'es_index/*',
+            ],
+        )
+
+        s3_nextflow_delete = AwsOperator(
+            task_id='s3_nextflow_delete',
+            name='etl-cleanup-s3-nextflow-delete',
+            k8s_context=K8sContext.DEFAULT,
+            arguments=[
+                's3', '--endpoint-url', 'https://s3.cqgc.hsj.rtss.qc.ca', 'rm',
+                f's3://cqgc-{env}-app-files-scratch/',
+                '--recursive',
             ],
         )
 
@@ -115,4 +126,4 @@ if env in [Env.QA, Env.STAGING]:
             on_success_callback=Slack.notify_dag_completion,
         )
 
-        params_validate >> fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> wait_2m
+        params_validate >> fhir_pause >> db_tables_delete >> fhir_resume >> fhir_restart >> es_indices_delete >> s3_download_delete >> s3_datalake_delete >> s3_nextflow_delete >> wait_2m
