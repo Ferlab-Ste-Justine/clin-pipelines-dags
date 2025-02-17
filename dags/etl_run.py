@@ -52,6 +52,8 @@ with DAG(
             - Rename service_request_id to sequencing_id when enriched_clinical table is refactored
             - Rename analysis_service_request_id to analysis_id when enriched_clinical table is refactored
         """
+        import json
+
         from airflow.hooks.base import BaseHook
         from deltalake import DeltaTable
         from lib.config import s3_conn_id
@@ -60,10 +62,11 @@ with DAG(
         distinct_sequencing_ids: Set[str] = set(_sequencing_ids)
 
         conn = BaseHook.get_connection(s3_conn_id)
+        host = json.loads(conn.get_extra()).get("host")
         storage_options = {
             "AWS_ACCESS_KEY_ID": conn.login,
             "AWS_SECRET_ACCESS_KEY": conn.get_password(),
-            "AWS_ENDPOINT_URL": conn.host
+            "AWS_ENDPOINT_URL": host
         }
 
         dt: DeltaTable = DeltaTable(enriched_clinical.uri, storage_options=storage_options)
