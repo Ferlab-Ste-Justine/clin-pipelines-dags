@@ -232,6 +232,9 @@ elif env == Env.PROD:
         '241230_A00516_0637_AHL3LMDRX5_somatic_normal',
         '250205_A00516_0646_BHTCM5DRX5_somatic',
         '250207_A00516_0647_BH2F2GDMX2_germinal',
+        '250214_A00516_0650_AHWHH2DSXC_germinal',
+        '250214_A00516_0650_AHWHH2DSXC_somatic',
+        '250214_A00516_0651_BHJJKYDRX5_germinal',
 
     ]
 else:
