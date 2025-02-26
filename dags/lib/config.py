@@ -236,7 +236,9 @@ elif env == Env.PROD:
         '250214_A00516_0650_AHWHH2DSXC_somatic',
         '250214_A00516_0651_BHJJKYDRX5_germinal',
         '250221_A00516_0653_BHTCMHDRX5_somatic',
-
+        '250205_A00516_0646_BHTCM5DRX5_somatic_normal',
+        '250124_A00516_0643_BHMMNFDRX5_somatic_normal',
+        '250214_A00516_0650_AHWHH2DSXC_somatic_normal',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
