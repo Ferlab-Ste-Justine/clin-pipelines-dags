@@ -7,6 +7,8 @@ from airflow.utils.trigger_rule import TriggerRule
 from lib.config import K8sContext, env
 from lib.operators.fhir import FhirOperator
 from lib.operators.fhir_csv import FhirCsvOperator
+from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.operators.wait import WaitOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
@@ -43,6 +45,16 @@ with DAG(
         color=color(),
     )
 
+    trigger_import_hpo = TriggerDagRunOperator(
+        task_id='import_hpo',
+        trigger_dag_id='etl_import_hpo',
+        wait_for_completion=True,
+        skip=skip_if_param_not(fhir(), "yes"),  # only if we are importing FHIR
+        conf={
+            'color': color(),
+        }
+    )
+
     wait_30s = WaitOperator(
         task_id='wait_30s',
         time='30s',
@@ -58,9 +70,16 @@ with DAG(
         arguments=['-f', f'{env}.yml'],
     )
 
+    restart_qlin_me = K8sDeploymentRestartOperator(
+        task_id='restart_qlin_me',
+        k8s_context=K8sContext.DEFAULT,
+        deployment='qlin-me-hybrid',
+        skip=skip_if_param_not(fhir(), "yes") + skip_if_param_not(csv(), "yes"),
+    )
+
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> ig_publish >> wait_30s >> csv_import >> slack
+    params_validate >> ig_publish >> trigger_import_hpo >> wait_30s >> csv_import >> restart_qlin_me >> slack
