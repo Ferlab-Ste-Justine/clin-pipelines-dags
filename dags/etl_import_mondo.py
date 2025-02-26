@@ -109,7 +109,7 @@ with DAG(
         spark_jar=spark_jar(),
         arguments=[
             es_url, '', '',
-            f'clin_{env}' + color('_') + '_mondo', #clin_qa_green_hpo_v2024-01-01
+            'mondo',
             '{{ ti.xcom_pull(task_ids="download_mondo_terms", key="mondo.obo.version") }}',
             'mondo_terms_template.json',
             'mondo_terms',
