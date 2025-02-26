@@ -74,7 +74,6 @@ with DAG(
         task_id='restart_qlin_me',
         k8s_context=K8sContext.DEFAULT,
         deployment='qlin-me-hybrid',
-        skip=skip_if_param_not(fhir(), "yes") + skip_if_param_not(csv(), "yes"),
     )
 
     slack = EmptyOperator(
