@@ -92,7 +92,7 @@ with DAG(
         spark_config='config-etl-medium',
         spark_jar=obo_parser_spark_jar(),
         arguments=[
-            'https://github.com/monarch-initiative/mondo/releases/download/{{ ti.xcom_pull(task_ids="download_mondo_terms", key="mondo.obo.version") }}/mondo.obo',
+            'https://github.com/monarch-initiative/mondo/releases/download/{{ ti.xcom_pull(task_ids="download_mondo_terms", key="mondo.obo.version") }}/mondo-base.obo',
             f'cqgc-{env}-app-datalake',
             'public/mondo_terms',
             'False',
