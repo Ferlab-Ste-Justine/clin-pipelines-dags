@@ -55,13 +55,6 @@ with DAG(
         }
     )
 
-    restart_qlin_me = K8sDeploymentRestartOperator(
-        task_id='restart_qlin_me',
-        k8s_context=K8sContext.DEFAULT,
-        deployment='qlin-me-hybrid',
-        skip=skip_if_param_not(fhir(), "yes"),  # only if we are importing FHIR
-    )
-
     wait_30s = WaitOperator(
         task_id='wait_30s',
         time='30s',
@@ -77,9 +70,16 @@ with DAG(
         arguments=['-f', f'{env}.yml'],
     )
 
+    restart_qlin_me = K8sDeploymentRestartOperator(
+        task_id='restart_qlin_me',
+        k8s_context=K8sContext.DEFAULT,
+        deployment='qlin-me-hybrid',
+        skip=skip_if_param_not(fhir(), "yes") + skip_if_param_not(csv(), "yes"),
+    )
+
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> ig_publish >> trigger_import_hpo >> restart_qlin_me >> wait_30s >> csv_import >> slack
+    params_validate >> ig_publish >> trigger_import_hpo >> wait_30s >> csv_import >> restart_qlin_me >> slack
