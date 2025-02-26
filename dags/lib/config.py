@@ -95,11 +95,11 @@ elif env == Env.STAGING:
         '241213_A00516_0629_AHL7GJDRX5_somatic_CAP',
     ]
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:7f9259d'
+    fhir_image = 'ferlabcrsj/clin-fhir:3d8a8b1'
     pipeline_image = 'ferlabcrsj/clin-pipelines:60e20ec'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.7.14.jar'
+    spark_jar = 'clin-variant-etl-v3.7.15.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
