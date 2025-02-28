@@ -17,12 +17,14 @@ def get_previous_release(release: str, n: int = 2):
     previous_release = f"re_{previous_num:03d}"
     return previous_release
 
-@task(task_id='delete_previous_release')
+
 def delete_previous_release(index_name: str, release_id: str, under_color: str, skip=None):
     if skip:
         raise AirflowSkipException()
 
     previous_release = get_previous_release(release_id)
+
+    logging.info(f'Delete previous release for index: {index_name} {previous_release}')
 
     response = requests.delete(f'{es_url}/clin_{env}{under_color}_{index_name}_{previous_release}?ignore_unavailable=true', verify=False)
     logging.info(f'ES response:\n{response.text}')
@@ -32,6 +34,30 @@ def delete_previous_release(index_name: str, release_id: str, under_color: str, 
 
     return
 
+@task(task_id='delete_previous_gene_centric_release')
+def delete_previous_gene_centric_release(release_id: str, color: str, skip=None):
+    delete_previous_release('gene_centric', release_id, color, skip=skip)
+
+@task(task_id='delete_previous_gene_suggestions_release')
+def delete_previous_gene_suggestions_release(release_id: str, color: str, skip=None):
+    delete_previous_release('gene_suggestions', release_id, color, skip=skip)
+
+@task(task_id='delete_previous_variant_centric_release')
+def delete_previous_variant_centric_release(release_id: str, color: str, skip=None):
+    delete_previous_release('variant_centric', release_id, color, skip=skip)
+
+@task(task_id='delete_previous_variant_suggestions_release')
+def delete_previous_variant_suggestions_release(release_id: str, color: str, skip=None):
+    delete_previous_release('variant_suggestions', release_id, color, skip=skip)
+
+@task(task_id='delete_previous_cnv_centric_release')
+def delete_previous_cnv_centric_release(release_id: str, color: str, skip=None):
+    delete_previous_release('cnv_centric', release_id, color, skip=skip)
+
+@task(task_id='delete_previous_coverage_by_gene_centric_release')
+def delete_previous_coverage_by_gene_centric_release(release_id: str, color: str, skip=None):
+    delete_previous_release('coverage_by_gene_centric', release_id, color, skip=skip)
+    
 @task(task_id='test_duplicated_by_url')
 def test_duplicated_by_url(url, skip=None):
     if skip:

@@ -15,7 +15,7 @@ with DAG(
         dag_id='etl_cnv_frequencies',
         doc_md=doc.cnv_frequencies,
         start_date=datetime(2024, 10, 20, 2, tzinfo=pendulum.timezone("America/Montreal")),
-        schedule="0 2 * * *" if env == Env.PROD else None,
+        schedule_interval=None,
         params={
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
@@ -48,7 +48,7 @@ with DAG(
     publish_cnv_centric_task = publish_index.cnv_centric(release_id, color('_'), spark_jar(),
                                                          task_id='publish_cnv_centric',
                                                          on_success_callback=Slack.notify_dag_completion)
-    delete_previous_release_task = es.delete_previous_release('cnv_centric', release_id, color('_'))
+    delete_previous_release_task = es.delete_previous_cnv_centric_release(release_id, color('_'))
 
     (params_validate_task >> prepare_svclustering_task >> run_svclustering_task >> normalize_svclustering_task >>
      enrich_cnv_task >> prepare_cnv_centric_task >> qa_group() >> index_cnv_centric_task >> publish_cnv_centric_task >> delete_previous_release_task)
