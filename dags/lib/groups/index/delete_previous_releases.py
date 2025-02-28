@@ -15,11 +15,22 @@ def delete_previous_releases(
         color: str,
         skip: str = ''
 ):
-    delete_gene_centric = es.delete_previous_gene_centric_release(gene_centric_release_id, color, skip=skip)
-    delete_gene_suggestions = es.delete_previous_gene_suggestions_release(gene_suggestions_release_id, color)
-    delete_variant_centric = es.delete_previous_variant_centric_release(variant_centric_release_id, color, skip=skip)
-    delete_variant_suggestions = es.delete_previous_variant_suggestions_release(variant_suggestions_release_id, color, skip=skip)
-    delete_cnv_centric = es.delete_previous_cnv_centric_release(cnv_centric_release_id, color, skip=skip)
-    delete_coverage_by_gene_centric = es.delete_previous_coverage_by_gene_centric_release(coverage_by_gene_centric_release_id, color, skip=skip)
+    delete_gene_centric = es.delete_previous_release \
+        .override(task_id='delete_gene_centric')(index_name='gene_centric', release_id=gene_centric_release_id, color=color, skip=skip)
+
+    delete_gene_suggestions = es.delete_previous_release \
+        .override(task_id='delete_gene_suggestions')(index_name='gene_suggestions', release_id=gene_suggestions_release_id, color=color, skip=skip)
+
+    delete_variant_centric = es.delete_previous_release \
+        .override(task_id='delete_variant_centric')(index_name='variant_centric', release_id=variant_centric_release_id, color=color, skip=skip)
+
+    delete_variant_suggestions = es.delete_previous_release \
+        .override(task_id='delete_variant_suggestions')(index_name='variant_suggestions', release_id=variant_suggestions_release_id, color=color, skip=skip)
+
+    delete_cnv_centric = es.delete_previous_release \
+        .override(task_id='delete_cnv_centric')(index_name='cnv_centric', release_id=cnv_centric_release_id, color=color, skip=skip)
+
+    delete_coverage_by_gene_centric = es.delete_previous_release \
+        .override(task_id='delete_coverage_by_gene_centric')(index_name='coverage_by_gene_centric', release_id=coverage_by_gene_centric_release_id, color=color, skip=skip)
 
     [delete_gene_centric, delete_gene_suggestions, delete_variant_centric, delete_variant_suggestions, delete_cnv_centric, delete_coverage_by_gene_centric]

@@ -8,6 +8,7 @@ from airflow.operators.python import task
 from airflow.utils.trigger_rule import TriggerRule
 from lib.config import K8sContext, env, es_url
 from lib.groups.index.delete_previous_releases import delete_previous_releases
+from lib.groups.index.get_release_ids import get_release_ids
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack
 from lib.tasks import es
@@ -20,6 +21,7 @@ with DAG(
         start_date=datetime(2022, 1, 1),
         schedule_interval=None,
         params={
+            'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
         },
          default_args={
@@ -31,6 +33,12 @@ with DAG(
 ) as dag:
 
     params_validate = validate_color(color())
+
+    get_release_ids_group = get_release_ids(
+        release_id=release_id(),
+        color=color('_'),
+        increment_release_id=False,
+    )
 
     delete_previous_releases = delete_previous_releases(
         gene_centric_release_id=release_id('gene_centric'),
@@ -48,4 +56,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    params_validate >> delete_previous_releases >> slack
+    params_validate >> get_release_ids_group >> delete_previous_releases >> slack
