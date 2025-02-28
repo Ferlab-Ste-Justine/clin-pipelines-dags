@@ -252,6 +252,7 @@ with DAG(
         wait_for_completion=True,
         skip=skip_delete_previous_releases(),
         conf={
+            'release_id': release_id(),
             'color': color(),
         }
     )
