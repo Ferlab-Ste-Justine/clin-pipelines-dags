@@ -246,21 +246,20 @@ with DAG(
         }
     )
 
-    delete_previous_releases = delete_previous_releases(
-        gene_centric_release_id=release_id('gene_centric'),
-        gene_suggestions_release_id=release_id('gene_suggestions'),
-        variant_centric_release_id=release_id('variant_centric'),
-        variant_suggestions_release_id=release_id('variant_suggestions'),
-        coverage_by_gene_centric_release_id=release_id('coverage_by_gene_centric'),
-        cnv_centric_release_id=release_id('cnv_centric'),
-        color=color('_'),
-        skip=skip_delete_previous_releases()
+    trigger_delete_previous_releases = TriggerDagRunOperator(
+        task_id='delete_previous_releases',
+        trigger_dag_id='etl_delete_previous_releases',
+        wait_for_completion=True,
+        skip=skip_delete_previous_releases(),
+        conf={
+            'color': color(),
+        }
     )
 
     trigger_cnv_frequencies = TriggerDagRunOperator(
         task_id='cnv_frequencies',
         trigger_dag_id='etl_cnv_frequencies',
-        wait_for_completion=False,
+        wait_for_completion=True,
         skip=skip_cnv_frequencies(),
         conf={
             'color': color(),
@@ -275,4 +274,4 @@ with DAG(
 
     (params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >>
      trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
-     publish_group >> notify_task >> trigger_rolling_dag >> slack >> delete_previous_releases >> trigger_qc_es_dag >> trigger_cnv_frequencies >> trigger_qc_dag)
+     publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_delete_previous_releases >> trigger_qc_es_dag >> trigger_cnv_frequencies >> trigger_qc_dag)

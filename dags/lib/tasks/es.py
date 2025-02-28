@@ -34,27 +34,27 @@ def delete_previous_release(index_name: str, release_id: str, under_color: str, 
 
     return
 
-@task(task_id='delete_previous_gene_centric_release')
+@task(task_id='gene_centric_release')
 def delete_previous_gene_centric_release(release_id: str, color: str, skip=None):
     delete_previous_release('gene_centric', release_id, color, skip=skip)
 
-@task(task_id='delete_previous_gene_suggestions_release')
+@task(task_id='gene_suggestions_release')
 def delete_previous_gene_suggestions_release(release_id: str, color: str, skip=None):
     delete_previous_release('gene_suggestions', release_id, color, skip=skip)
 
-@task(task_id='delete_previous_variant_centric_release')
+@task(task_id='variant_centric_release')
 def delete_previous_variant_centric_release(release_id: str, color: str, skip=None):
     delete_previous_release('variant_centric', release_id, color, skip=skip)
 
-@task(task_id='delete_previous_variant_suggestions_release')
+@task(task_id='variant_suggestions_release')
 def delete_previous_variant_suggestions_release(release_id: str, color: str, skip=None):
     delete_previous_release('variant_suggestions', release_id, color, skip=skip)
 
-@task(task_id='delete_previous_cnv_centric_release')
+@task(task_id='cnv_centric_release')
 def delete_previous_cnv_centric_release(release_id: str, color: str, skip=None):
     delete_previous_release('cnv_centric', release_id, color, skip=skip)
 
-@task(task_id='delete_previous_coverage_by_gene_centric_release')
+@task(task_id='coverage_by_gene_centric_release')
 def delete_previous_coverage_by_gene_centric_release(release_id: str, color: str, skip=None):
     delete_previous_release('coverage_by_gene_centric', release_id, color, skip=skip)
     
