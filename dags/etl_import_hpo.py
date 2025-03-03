@@ -53,7 +53,8 @@ with DAG(
 
         # Get latest version
         html = http_get(url).text
-        latest_ver = re.search(f'/download/(v.+)/{file}', html).group(1)
+        latest_ver = re.search(f'/download/(v?.+)/{file}', html).group(1)
+        latest_ver = latest_ver if latest_ver.startswith('v') else f'v{latest_ver}'
         logging.info(f'{file} latest version: {latest_ver}')
 
         # Get imported version
