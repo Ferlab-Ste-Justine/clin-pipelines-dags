@@ -7,8 +7,8 @@ from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import Env, K8sContext, env
+from lib.groups.index.delete_previous_releases import delete_previous_releases
 from lib.groups.index.get_release_ids import get_release_ids
 from lib.groups.index.index import index
 from lib.groups.index.prepare_index import prepare_index
@@ -33,6 +33,8 @@ with DAG(
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
+            'cnv_frequencies': Param('yes', enum=['yes', 'no']),
+            'delete_previous_releases': Param('yes', enum=['yes', 'no']),
             'notify': Param('no', enum=['yes', 'no']),
             'qc': Param('yes', enum=['yes', 'no']),
             'rolling': Param('no', enum=['yes', 'no']),
@@ -50,6 +52,11 @@ with DAG(
     def skip_qc() -> str:
         return '{% if params.qc == "yes" %}{% else %}yes{% endif %}'
 
+    def skip_cnv_frequencies() -> str:
+        return '{% if params.cnv_frequencies == "yes" %}{% else %}yes{% endif %}'
+    
+    def skip_delete_previous_releases() -> str:
+        return '{% if params.delete_previous_releases == "yes" %}{% else %}yes{% endif %}'
 
     def skip_rolling() -> str:
         if env != Env.QA:
@@ -239,6 +246,28 @@ with DAG(
         }
     )
 
+    trigger_delete_previous_releases = TriggerDagRunOperator(
+        task_id='delete_previous_releases',
+        trigger_dag_id='etl_delete_previous_releases',
+        wait_for_completion=True,
+        skip=skip_delete_previous_releases(),
+        conf={
+            'release_id': release_id(),
+            'color': color(),
+        }
+    )
+
+    trigger_cnv_frequencies = TriggerDagRunOperator(
+        task_id='cnv_frequencies',
+        trigger_dag_id='etl_cnv_frequencies',
+        wait_for_completion=True,
+        skip=skip_cnv_frequencies(),
+        conf={
+            'color': color(),
+            'spark_jar': spark_jar()
+        }
+    )
+
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
@@ -246,4 +275,4 @@ with DAG(
 
     (params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >>
      trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
-     publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
+     publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_delete_previous_releases >> trigger_qc_es_dag >> trigger_cnv_frequencies >> trigger_qc_dag)
