@@ -1,4 +1,4 @@
-from lib.config import K8sContext, Env, es_url, env
+from lib.config import Env, K8sContext, env, es_url
 from lib.operators.spark import SparkOperator
 
 
@@ -116,6 +116,25 @@ def coverage_by_gene_centric(release_id: str, color: str, spark_jar: str, skip: 
         arguments=[
             es_url, '', '',
             f'clin_{env}' + color + '_coverage_by_gene_centric',
+            release_id,
+        ],
+        **kwargs
+    )
+
+def mondo(release_id: str, color: str, spark_jar: str, skip: str = '',
+                             task_id='mondo', **kwargs) -> SparkOperator:
+    return SparkOperator(
+        task_id=task_id,
+        name='etl-publish-mondo',
+        k8s_context=K8sContext.DEFAULT,
+        spark_class='bio.ferlab.clin.etl.es.Publish',
+        spark_config='config-etl-singleton',
+        spark_jar=spark_jar,
+        skip=skip,
+        skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+        arguments=[
+            es_url, '', '',
+            'mondo',
             release_id,
         ],
         **kwargs
