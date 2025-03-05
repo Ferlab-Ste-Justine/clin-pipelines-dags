@@ -52,14 +52,21 @@ with DAG(
         s3_bucket = f'cqgc-{env}-app-datalake'
         s3_key = f'raw/landing/mondo/{destFile}'
 
-        # Get latest version
-        html = http_get(url).text
-        latest_ver = re.search(f'/download/(v.+)/{file}', html).group(1)
-        logging.info(f'{file} latest version: {latest_ver}')
-
         # Get imported version
         imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
         logging.info(f'{file} imported version: {imported_ver}')
+
+        # Get latest version
+        html = http_get(url).text
+        latest_ver_search = re.search(f'/download/(v?.+)/{file}', html)
+
+        if latest_ver_search is None:
+            logging.error(f'Could not find source latest version for: {file}')
+            context['ti'].xcom_push(key=f'{destFile}.version', value=imported_ver)
+            raise AirflowSkipException()
+
+        latest_ver = latest_ver_search.group(1)
+        logging.info(f'{file} latest version: {latest_ver}')
 
         # share the current version with other tasks
         context['ti'].xcom_push(key=f'{destFile}.version', value=latest_ver)
