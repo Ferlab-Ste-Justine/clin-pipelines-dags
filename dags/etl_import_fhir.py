@@ -76,9 +76,15 @@ with DAG(
         deployment='qlin-me-hybrid',
     )
 
+    restart_forms = K8sDeploymentRestartOperator(
+        task_id='restart_forms',
+        k8s_context=K8sContext.DEFAULT,
+        deployment='forms',
+    )
+
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> ig_publish >> trigger_import_hpo >> wait_30s >> csv_import >> restart_qlin_me >> slack
+    params_validate >> ig_publish >> trigger_import_hpo >> wait_30s >> csv_import >> [restart_qlin_me, restart_forms] >> slack
