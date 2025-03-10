@@ -76,7 +76,7 @@ class RollingAutoSensor(BaseSensorOperator):
                 return False
 
             # FHIR rebooted and we know the color
-            logging.info('Analysis not found for color: {color}')
+            logging.info(f'Analysis not found for color: {color}')
             
             # swap the aliases
             swap_aliases(color)
