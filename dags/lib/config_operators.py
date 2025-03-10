@@ -33,5 +33,5 @@ nextflow_svclustering_base_config = nextflow_base_config \
         '--fasta', f's3://{clin_datalake_bucket}/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta',
         '--fasta_fai', f's3://{clin_datalake_bucket}/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta.fai',
         '--fasta_dict', f's3://{clin_datalake_bucket}/public/refgenomes/hg38/Homo_sapiens_assembly38.dict',
-        '--filter_batch_size', svclustering_batch_size
+        '--filter_batch_size', f'{svclustering_batch_size}'
     )
