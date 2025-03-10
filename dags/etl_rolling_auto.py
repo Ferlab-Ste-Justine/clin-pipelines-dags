@@ -24,6 +24,11 @@ if env == Env.QA:
             max_active_runs=1
     ) as dag:
 
+        slack_start = EmptyOperator(
+            task_id="slack_start",
+            on_success_callback=Slack.notify_dag_start
+        )
+
         sensor = RollingAutoSensor(
             task_id='sensor',
             mode='poke',
@@ -32,10 +37,9 @@ if env == Env.QA:
             timeout=60 * 60 * 16 # 16 hours, based on the schedule, DAG will run every day for 16h
         )
 
-        slack = EmptyOperator(
-            task_id="slack",
+        slack_end = EmptyOperator(
+            task_id="slack_end",
             on_success_callback=Slack.notify_dag_completion
         )
         
-
-    sensor >> slack
+    slack_start >> sensor >> slack_end
