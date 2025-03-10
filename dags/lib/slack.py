@@ -1,7 +1,7 @@
 import json
 import urllib.parse
-from lib import config
-from lib import utils
+
+from lib import config, utils
 from lib.config import env
 
 
@@ -46,6 +46,12 @@ class Slack:
         dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
         dag_params = Slack._dag_params(context['params'])
         Slack.notify(f'DAG {dag_link} completed.{dag_params}', Slack.SUCCESS)
+    
+    def notify_dag_message(context, message):
+        dag_id = context['dag'].dag_id
+        dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
+        dag_message = Slack._dag_message(message)
+        Slack.notify(f'DAG {dag_link} message.{dag_message}', Slack.INFO)
 
     def _dag_link(text: str, dag_id: str, run_id: str = '', task_id: str = ''):
         if config.base_url:
@@ -55,6 +61,11 @@ class Slack:
             })
             return f'<{config.base_url}/dags/{dag_id}/grid?{params}|{text}>'
         return text
+    
+    def _dag_message(message: str):
+        if message:
+            return f'```{message}```'
+        return ''
 
     def _dag_params(params: dict):
         if params:
