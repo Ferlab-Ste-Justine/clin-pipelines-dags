@@ -1,6 +1,6 @@
 from airflow.models import Variable
 
-from lib.config import k8s_in_cluster, k8s_cluster_context, K8sContext, env, clin_scratch_bucket, clin_datalake_bucket
+from lib.config import k8s_in_cluster, k8s_cluster_context, K8sContext, env, clin_scratch_bucket, clin_datalake_bucket, svclustering_batch_size
 from lib.operators.base_kubernetes import KubeConfig
 from lib.operators.nextflow import NextflowOperatorConfig
 
@@ -32,5 +32,6 @@ nextflow_svclustering_base_config = nextflow_base_config \
     .append_args(
         '--fasta', f's3://{clin_datalake_bucket}/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta',
         '--fasta_fai', f's3://{clin_datalake_bucket}/public/refgenomes/hg38/Homo_sapiens_assembly38.fasta.fai',
-        '--fasta_dict', f's3://{clin_datalake_bucket}/public/refgenomes/hg38/Homo_sapiens_assembly38.dict'
+        '--fasta_dict', f's3://{clin_datalake_bucket}/public/refgenomes/hg38/Homo_sapiens_assembly38.dict',
+        '--filter_batch_size', f'{svclustering_batch_size}'
     )

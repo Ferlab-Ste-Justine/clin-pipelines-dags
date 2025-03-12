@@ -58,6 +58,12 @@ no_dup_gnomad = '''
 - Objectif : Les variants doivent être unique dans la table gnomad_genomes_v3
 '''
 
+no_dup_clinical = '''
+### Documentation
+- Test : Non duplication - Table enriched_clinical
+- Objectif : L'information clinique doit être unique par analysis_service_request_id, service_request_id et bioinfo_analysis_code dans la table enriched_clinical
+'''
+
 no_dup_nor_snv = '''
 ### Documentation
 - Test : Non duplication - Table normalized_snv
