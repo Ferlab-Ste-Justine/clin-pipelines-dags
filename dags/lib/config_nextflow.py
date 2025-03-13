@@ -11,6 +11,7 @@ use a unique mount path for each config map.
 from lib import config
 from lib.operators.base_kubernetes import ConfigMap
 
+NEXTFLOW_MAIN_CLASS = 'bio.ferlab.clin.etl.nextflow.RunNextflow'
 
 ####################################
 # Define nextflow config maps here #
