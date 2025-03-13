@@ -4,11 +4,11 @@ import pendulum
 from airflow import DAG
 from airflow.decorators import task_group
 from airflow.models import Param
-from lib.config import Env, env
 from lib.doc import cnv_frequencies as doc
 from lib.slack import Slack
-from lib.tasks import (enrich, es, index, nextflow, params_validate,
+from lib.tasks import (enrich, es, index, params_validate,
                        prepare_index, publish_index, qa)
+from lib.tasks.nextflow import svclustering
 from lib.utils_etl import color, release_id, spark_jar
 
 with DAG(
@@ -28,9 +28,9 @@ with DAG(
         max_active_runs=1
 ) as dag:
     params_validate_task = params_validate.validate_color(color=color())
-    prepare_svclustering_task = nextflow.prepare_svclustering(spark_jar())
-    run_svclustering_task = nextflow.svclustering()
-    normalize_svclustering_task = nextflow.normalize_svclustering(spark_jar())
+    prepare_svclustering_task = svclustering.prepare(spark_jar())
+    run_svclustering_task = svclustering.run()
+    normalize_svclustering_task = svclustering.normalize(spark_jar())
     enrich_cnv_task = enrich.cnv_all(spark_jar=spark_jar(), steps='initial', task_id='enrich_cnv')
     prepare_cnv_centric_task = prepare_index.cnv_centric(spark_jar(), task_id='prepare_cnv_centric')
 
