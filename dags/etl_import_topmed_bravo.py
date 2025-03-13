@@ -14,7 +14,7 @@ from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import http_get, http_get_file
-from lib.utils_import import get_s3_file_version
+from lib.utils_s3 import get_s3_file_version
 
 with DAG(
     dag_id='etl_import_topmed_bravo',
