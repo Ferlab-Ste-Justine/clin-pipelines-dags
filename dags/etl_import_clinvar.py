@@ -11,7 +11,7 @@ from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import file_md5, http_get, http_get_file
-from lib.utils_import import get_s3_file_version, load_to_s3_with_version
+from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 
 with DAG(
     dag_id='etl_import_clinvar',

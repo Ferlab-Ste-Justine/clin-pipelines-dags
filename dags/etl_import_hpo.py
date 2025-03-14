@@ -21,7 +21,7 @@ from lib.tasks.params_validate import validate_color
 from lib.utils import http_get, http_get_file
 from lib.utils_etl import (batch_id, color, obo_parser_spark_jar, skip_import,
                            spark_jar)
-from lib.utils_import import get_s3_file_version, load_to_s3_with_version
+from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 
 with DAG(
     dag_id='etl_import_hpo',

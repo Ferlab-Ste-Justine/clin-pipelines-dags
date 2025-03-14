@@ -33,7 +33,7 @@ if config.show_test_dags and env == Env.QA:
             },
             render_template_as_native_obj=True
     ) as dag:
-        variant_annotation(
+        variant_annotation.run(
             input="{{ params.input }}",
             outdir="{{ params.outdir }}",
             on_execute_callback=Slack.notify_dag_start,

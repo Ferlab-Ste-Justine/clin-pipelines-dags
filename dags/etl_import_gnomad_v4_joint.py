@@ -11,7 +11,7 @@ from lib import config
 from lib.config import clin_datalake_bucket, K8sContext, config_file
 from lib.slack import Slack
 from lib.operators.spark import SparkOperator
-from lib.utils_import import stream_upload_to_s3, get_s3_file_version
+from lib.utils_s3 import stream_upload_to_s3, get_s3_file_version
 
 
 LATEST_VERSION = "4.1"

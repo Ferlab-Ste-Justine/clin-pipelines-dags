@@ -11,6 +11,7 @@ use a unique mount path for each config map.
 from lib import config
 from lib.operators.base_kubernetes import ConfigMap
 
+NEXTFLOW_MAIN_CLASS = 'bio.ferlab.clin.etl.nextflow.RunNextflow'
 
 ####################################
 # Define nextflow config maps here #
@@ -48,5 +49,6 @@ nextflow_variant_annotation_pipeline = 'Ferlab-Ste-Justine/Post-processing-Pipel
 # Define nextflow input files here #
 ####################################
 nextflow_bucket = config.clin_datalake_bucket
+nextflow_exomiser_input_key = lambda analysis_id: f'nextflow/exomiser_input/{analysis_id}.pheno.json'
 nextflow_svclustering_parental_origin_input_key = lambda batch_id: \
     f'nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv'
