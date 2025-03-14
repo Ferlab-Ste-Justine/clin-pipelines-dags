@@ -11,7 +11,7 @@ from pandas import DataFrame
 
 from lib.datasets import enriched_clinical
 from lib.slack import Slack
-from lib.tasks import nextflow
+from lib.tasks.nextflow import exomiser
 
 with DAG(
         dag_id='etl_run',
@@ -106,9 +106,11 @@ with DAG(
         logging.info(f'Run ETLs for total: {len(sequencing_ids)} sequencing_ids: {sequencing_ids}')
 
 
+    prepare_nextflow_exomiser = exomiser.prepare(sequencing_ids=all_sequencing_ids)
+
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion
     )
 
-    start >> all_sequencing_ids >> run(all_sequencing_ids) >> slack
+    start >> all_sequencing_ids >> run(all_sequencing_ids) >> prepare_nextflow_exomiser >> slack
