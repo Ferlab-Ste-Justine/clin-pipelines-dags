@@ -102,13 +102,14 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
 
         # Upload phenopacket json file to S3
         json_data = MessageToJson(family)
-        file_path = f"s3://{nextflow_bucket}/{nextflow_exomiser_input_key(analysis_id)}"
+        s3_key = nextflow_exomiser_input_key(analysis_id)
         s3.load_string(
             string_data=json_data,
-            key=nextflow_exomiser_input_key(analysis_id),
+            key=s3_key,
             bucket_name=nextflow_bucket,
             replace=True
         )
+        file_path = f"s3://{nextflow_bucket}/{s3_key}"
         logging.info(f"Phenopacket file for analysis {analysis_id} uploaded to S3 path: {file_path}")
 
         family_sequencing_ids = family_df['service_request_id'].tolist()
