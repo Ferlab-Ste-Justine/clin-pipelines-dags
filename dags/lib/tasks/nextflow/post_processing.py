@@ -20,13 +20,16 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
       - `sample`: aliquot ID
       - `sequencingType`: sequencing strategy (only WES is supported at the moment)
       - `gvcf`: S3 URL of the gvcf file
-      - `phenoFamily`: S3 URL of the phenopacket file
+      - `familyPheno`: S3 URL of the phenopacket file
 
     :param seq_id_pheno_file_mapping: Mapping of sequencing IDs to the S3 path of the corresponding phenopacket file
     :return: S3 path of the samplesheet file
     """
+    import base64
     import io
+    import json
     import logging
+    from hashlib import sha256
     from pandas import DataFrame
     from airflow.exceptions import AirflowFailException
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
@@ -35,6 +38,7 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
     from lib.config import s3_conn_id
     from lib.config_nextflow import nextflow_bucket, nextflow_post_processing_input_key
     from lib.datasets import enriched_clinical
+    from lib.utils import urlsafe_hash
     from lib.utils_s3 import get_s3_storage_options
 
     s3 = S3Hook(s3_conn_id)
@@ -67,13 +71,19 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
     # snv_vcf_urls (gvcf) is a list of URLs, we only need the first one
     # Nextflow only supports s3:// URLs
     samples['gvcf'] = samples['gvcf'].str[0].str.replace('s3a://', 's3://', 1)
-    samples['phenoFamily'] = samples['sequencingId'].map(seq_id_pheno_file_mapping)
+    samples['familyPheno'] = samples['sequencingId'].map(seq_id_pheno_file_mapping)
     samples.drop(columns=['sequencingId'], inplace=True)
 
-    # Upload samplesheet csv file to S3
+    # Sort the analysis IDs to ensure the hash is consistent
     all_analysis_ids = samples['familyId'].unique().tolist()
-    all_analysis_ids_concat = '-'.join(all_analysis_ids)
-    s3_key = nextflow_post_processing_input_key(all_analysis_ids_concat)
+    all_analysis_ids.sort()
+
+    # Generate a unique hash for the samplesheet file
+    short_hash = urlsafe_hash(all_analysis_ids, length=14)  # 14 is safe for up to 1B hashes
+    s3_key = nextflow_post_processing_input_key(short_hash)
+    file_path = f"s3://{nextflow_bucket}/{s3_key}"
+
+    # Upload samplesheet CSV file to S3
     with io.StringIO() as sio:
         samples.to_csv(sio, index=False)
         s3.load_string(
@@ -82,7 +92,7 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
             bucket_name=nextflow_bucket,
             replace=True
         )
-    file_path = f"s3://{nextflow_bucket}/{s3_key}"
+
     logging.info(f"Samplesheet file for analyses {all_analysis_ids} uploaded to S3 path: {file_path}")
 
     return file_path

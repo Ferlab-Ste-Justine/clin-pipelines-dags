@@ -1,4 +1,7 @@
+import base64
 import hashlib
+import json
+
 import requests
 from typing import Any, List
 
@@ -33,3 +36,10 @@ def file_md5(path: str, chunk_size: int = 8192) -> str:
         for chunk in iter(lambda: file.read(chunk_size), b''):
             md5.update(chunk)
         return md5.hexdigest()
+
+
+def urlsafe_hash(obj: Any, length: int) -> str:
+    utf8_str = json.dumps(obj, default=str).encode('utf-8')  # Ensure consistent encoding
+    hash_obj = hashlib.sha256(utf8_str).digest()
+    base64_str = base64.urlsafe_b64encode(hash_obj).decode('utf-8').rstrip('=')  # Encoding to base64 allows for more compact representation (more bits per character)
+    return base64_str[:length]

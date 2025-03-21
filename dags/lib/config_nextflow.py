@@ -50,4 +50,4 @@ nextflow_bucket = config.clin_datalake_bucket
 nextflow_exomiser_input_key = lambda analysis_id: f'nextflow/exomiser_input/{analysis_id}.pheno.json'
 nextflow_svclustering_parental_origin_input_key = lambda batch_id: \
     f'nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv'
-nextflow_post_processing_input_key = lambda analysis_ids: f'nextflow/post_processing_input/{analysis_ids}.samplesheet.csv'
+nextflow_post_processing_input_key = lambda _hash: f'nextflow/post_processing_input/{_hash}.samplesheet.csv'
