@@ -2,15 +2,20 @@ from typing import Dict
 
 from airflow.decorators import task
 
-from lib.config_nextflow import nextflow_post_processing_revision, nextflow_post_processing_pipeline, \
-    nextflow_post_processing_config_file, nextflow_post_processing_config_map, nextflow_post_processing_params_file
+from lib.config_nextflow import (
+    nextflow_bucket,
+    nextflow_post_processing_pipeline, nextflow_post_processing_revision,
+    nextflow_post_processing_config_file, nextflow_post_processing_config_map,
+    nextflow_post_processing_params_file,
+    nextflow_post_processing_output_key
+)
 from lib.config_operators import nextflow_base_config
 from lib.datasets import enriched_clinical
 from lib.operators.nextflow import NextflowOperator
 
 
 @task.virtualenv(task_id='prepare_post_processing', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
-def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
+def prepare(seq_id_pheno_file_mapping: Dict[str, str], job_hash: str) -> str:
     """
     Prepare a samplesheet file for nextflow post-processing pipeline.
 
@@ -23,29 +28,22 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
       - `familyPheno`: S3 URL of the phenopacket file
 
     :param seq_id_pheno_file_mapping: Mapping of sequencing IDs to the S3 path of the corresponding phenopacket file
+    :param job_hash: Unique hash for the job
     :return: S3 path of the samplesheet file
     """
-    import base64
     import io
-    import json
     import logging
-    from hashlib import sha256
     from pandas import DataFrame
     from airflow.exceptions import AirflowFailException
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-    from deltalake import DeltaTable
 
     from lib.config import s3_conn_id
     from lib.config_nextflow import nextflow_bucket, nextflow_post_processing_input_key
     from lib.datasets import enriched_clinical
-    from lib.utils import urlsafe_hash
-    from lib.utils_s3 import get_s3_storage_options
+    from lib.utils_etl_tables import to_pandas
 
     s3 = S3Hook(s3_conn_id)
-    storage_options = get_s3_storage_options(s3_conn_id)
-
-    dt: DeltaTable = DeltaTable(enriched_clinical.uri, storage_options=storage_options)
-    df: DataFrame = dt.to_pandas()
+    df: DataFrame = to_pandas(enriched_clinical.uri)
 
     column_map = {
         'analysis_service_request_id': 'familyId',
@@ -65,7 +63,6 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
         else:
             raise AirflowFailException(f"Unsupported sequencing strategy: {x}. Only WES (WXS) is supported at the moment.")
 
-
     samples['sequencingType'] = samples['sequencingType'].apply(set_sequencing_type)
 
     # snv_vcf_urls (gvcf) is a list of URLs, we only need the first one
@@ -74,13 +71,7 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
     samples['familyPheno'] = samples['sequencingId'].map(seq_id_pheno_file_mapping)
     samples.drop(columns=['sequencingId'], inplace=True)
 
-    # Sort the analysis IDs to ensure the hash is consistent
-    all_analysis_ids = samples['familyId'].unique().tolist()
-    all_analysis_ids.sort()
-
-    # Generate a unique hash for the samplesheet file
-    short_hash = urlsafe_hash(all_analysis_ids, length=14)  # 14 is safe for up to 1B hashes
-    s3_key = nextflow_post_processing_input_key(short_hash)
+    s3_key = nextflow_post_processing_input_key(job_hash)
     file_path = f"s3://{nextflow_bucket}/{s3_key}"
 
     # Upload samplesheet CSV file to S3
@@ -93,26 +84,36 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str]) -> str:
             replace=True
         )
 
+    all_analysis_ids = samples['familyId'].unique().sort()
     logging.info(f"Samplesheet file for analyses {all_analysis_ids} uploaded to S3 path: {file_path}")
-
     return file_path
 
 
-def run(input: str, outdir: str, skip: str = '', **kwargs):
-    nextflow_base_config \
+def run(input: str, job_hash: str, skip: str = '', **kwargs):
+    """
+    Executes the Nextflow post-processing pipeline.
+
+    :param input: S3 path of the samplesheet file
+    :param job_hash: Unique hash for the job
+    :param skip: Skip the task
+    """
+    output_s3_key = nextflow_post_processing_output_key(job_hash)
+    output_dir = f"s3://{nextflow_bucket}/{output_s3_key}"
+
+    return nextflow_base_config \
         .with_pipeline(nextflow_post_processing_pipeline) \
         .with_revision(nextflow_post_processing_revision) \
         .append_config_maps(nextflow_post_processing_config_map) \
         .append_config_files(nextflow_post_processing_config_file) \
         .with_params_file(nextflow_post_processing_params_file) \
         .append_args(
-        '--input', input,
-        '--outdir', outdir
-    ) \
+            '--input', input,
+            '--outdir', output_dir
+        ) \
         .operator(
-        NextflowOperator,
-        task_id='post_processing',
-        name='post_processing',
-        skip=skip,
-        **kwargs
-    )
+            NextflowOperator,
+            task_id='post_processing',
+            name='post_processing',
+            skip=skip,
+            **kwargs
+        )
