@@ -3,3 +3,4 @@ apache-airflow-providers-amazon
 apache-airflow-providers-cncf-kubernetes
 kubernetes
 deltalake===0.24.0
+phenopackets===2.0.2.post4
