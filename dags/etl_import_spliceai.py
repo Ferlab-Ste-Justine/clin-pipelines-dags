@@ -13,7 +13,7 @@ from lib.config import env, s3_conn_id, basespace_illumina_credentials, K8sConte
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.utils import http_get
-from lib.utils_import import stream_upload_to_s3, get_s3_file_version
+from lib.utils_s3 import stream_upload_to_s3, get_s3_file_version
 
 with DAG(
         dag_id='etl_import_spliceai',

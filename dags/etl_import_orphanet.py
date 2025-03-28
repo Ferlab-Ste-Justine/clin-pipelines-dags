@@ -10,7 +10,7 @@ from lib import config
 from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.utils_import import get_s3_file_md5, download_and_check_md5, load_to_s3_with_md5
+from lib.utils_s3 import get_s3_file_md5, download_and_check_md5, load_to_s3_with_md5
 
 with DAG(
     dag_id='etl_import_orphanet',
