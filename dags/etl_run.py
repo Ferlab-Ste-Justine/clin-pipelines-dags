@@ -9,8 +9,11 @@ from airflow.utils.trigger_rule import TriggerRule
 from pandas import DataFrame
 
 from lib.datasets import enriched_clinical
+from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.slack import Slack
 from lib.tasks.nextflow import exomiser, post_processing
+from lib.tasks.params_validate import validate_color
+from lib.utils_etl import color, spark_jar
 
 with DAG(
         dag_id='etl_run',
@@ -19,6 +22,8 @@ with DAG(
         catchup=False,
         params={
             'sequencing_ids': Param([], type=['null', 'array']),
+            'color': Param('', type=['null', 'string']),
+            'spark_jar': Param('', type=['null', 'string']),
         },
         render_template_as_native_obj=True,
         default_args={
@@ -34,6 +39,17 @@ with DAG(
     start = EmptyOperator(
         task_id="start",
         on_success_callback=Slack.notify_dag_start
+    )
+
+    params_validate = validate_color(color=color())
+
+    ingest_fhir_group = ingest_fhir(
+        batch_id='',  # No associated "batch"
+        color=color(),
+        skip_all=False,
+        skip_import=True,  # Skipping because the data is already imported via the prescription API
+        skip_batch=False,
+        spark_jar=spark_jar()
     )
 
     @task.virtualenv(task_id='get_all_sequencing_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
@@ -123,8 +139,10 @@ with DAG(
     )
 
     (
-        start >> get_all_sequencing_ids_task >> get_job_hash_task >>
-        [prepare_nextflow_exomiser_task, prepare_nextflow_post_processing_task] >> nextflow_post_processing_task >>
+        start >> params_validate >>
+        ingest_fhir_group >>
+        get_all_sequencing_ids_task >> get_job_hash_task >>
+        [prepare_nextflow_exomiser_task, prepare_nextflow_post_processing_task] >>
+        nextflow_post_processing_task >>
         slack
     )
-
