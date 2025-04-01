@@ -244,7 +244,7 @@ elif env == Env.PROD:
         '250228_A00516_0656_BHLJJKDRX5_somatic',
     ]
 else:
-    raise AirflowConfigException(f'Unexpected environment '{env}'')
+    raise AirflowConfigException(f'Unexpected environment "{env}"')
 
 
 def env_url(prefix: str = '') -> str:
