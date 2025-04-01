@@ -29,7 +29,7 @@ class SparkETLOperator(SparkOperator):
          **kwargs: Additional arguments for `SparkOperator`.
      """
 
-    template_fields = SparkOperator.template_fields + ('batch_id', 'chromosome',)
+    template_fields = SparkOperator.template_fields + ('batch_id',)
 
     def __init__(self,
                  steps: str,
@@ -63,7 +63,7 @@ class SparkETLOperator(SparkOperator):
         if batch_id:
             arguments = arguments + ['--batchId', batch_id]
         if chromosome:
-            arguments = arguments + ['--chromosome', f'{chromosome}']
+            arguments = arguments + ['--chromosome', str(chromosome)]
 
         self.arguments = arguments
         self.batch_id = batch_id

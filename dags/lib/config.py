@@ -47,7 +47,7 @@ postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d8411
 spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
 batch_ids = []
-chromosomes = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y"]
+chromosomes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y']
 
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
@@ -164,10 +164,10 @@ elif env == Env.PROD:
         '240513_A00516_0554_BHTWGGDMXY_germinal',
         '240522_A00977_0744_BH5TY7DRX5_somatic',
         '231211_A00516_0490_BHNK22DRX3_somatic_normal',
-        "240522_A00977_0744_BH5TY7DRX5_somatic_normal",
-        "240320_A00516_0532_AHW7YHDRX3_somatic_normal",
-        "240513_A00516_0555_AH5J3VDRX5_somatic_normal",
-        "240603_A00516_0563_AHTWVYDMXY_germinal",
+        '240522_A00977_0744_BH5TY7DRX5_somatic_normal',
+        '240320_A00516_0532_AHW7YHDRX3_somatic_normal',
+        '240513_A00516_0555_AH5J3VDRX5_somatic_normal',
+        '240603_A00516_0563_AHTWVYDMXY_germinal',
         '240418_A00516_0546_AHTWCFDMXY_somatic_normal',
         '240613_A00516_0566_AH5WJVDRX5_somatic',
         '240613_A00516_0566_AH5WJVDRX5_somatic_normal',
@@ -244,7 +244,7 @@ elif env == Env.PROD:
         '250228_A00516_0656_BHLJJKDRX5_somatic',
     ]
 else:
-    raise AirflowConfigException(f'Unexpected environment "{env}"')
+    raise AirflowConfigException(f'Unexpected environment '{env}'')
 
 
 def env_url(prefix: str = '') -> str:
