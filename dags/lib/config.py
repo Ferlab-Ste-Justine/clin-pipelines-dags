@@ -47,14 +47,14 @@ postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d8411
 spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
 batch_ids = []
-
+chromosomes = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y"]
 
 if env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.8.5.jar'
+    spark_jar = 'clin-variant-etl-v3.8.7.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
