@@ -68,10 +68,10 @@ def variants(steps: str, spark_jar: str = '', task_id: str = 'variants', name: s
         steps=steps,
         app_name=app_name,
         spark_class=ENRICHED_MAIN_CLASS,
-        spark_config='config-etl-small',
+        spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        max_active_tis_per_dag=4,  # try with one for now with large config
+        max_active_tis_per_dag=1,  # try with one for now with large config
         **kwargs
     ).expand(chromosome=chromosomes)
 
