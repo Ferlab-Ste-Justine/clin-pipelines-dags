@@ -63,7 +63,7 @@ class SparkETLOperator(SparkOperator):
         if batch_id:
             arguments = arguments + ['--batchId', batch_id]
         if chromosome:
-            arguments = arguments + ['--chromosome', chromosome]
+            arguments = arguments + ['--chromosome', str(chromosome)]
 
         self.arguments = arguments
         self.batch_id = batch_id
