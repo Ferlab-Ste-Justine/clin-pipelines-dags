@@ -2,7 +2,6 @@ from typing import List
 
 from airflow.exceptions import AirflowSkipException
 from airflow.utils.context import Context
-
 from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.utils_etl import ClinAnalysis
@@ -39,6 +38,7 @@ class SparkETLOperator(SparkOperator):
                  spark_config: str,
                  entrypoint: str = '',
                  batch_id: str = '',
+                 chromosome: str = '',
                  target_batch_types: List[ClinAnalysis] = None,
                  detect_batch_type_task_id: str = 'detect_batch_type',
                  spark_jar: str = '',
@@ -62,9 +62,12 @@ class SparkETLOperator(SparkOperator):
             arguments = [entrypoint] + arguments
         if batch_id:
             arguments = arguments + ['--batchId', batch_id]
+        if chromosome:
+            arguments = arguments + ['--chromosome', chromosome]
 
         self.arguments = arguments
         self.batch_id = batch_id
+        self.chromosome = chromosome
         self.target_batch_types = [target.value for target in (target_batch_types or [])]
         self.detect_batch_type_task_id = detect_batch_type_task_id
 

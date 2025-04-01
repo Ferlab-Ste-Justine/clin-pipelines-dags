@@ -1,5 +1,6 @@
 from typing import List
 
+from lib.config import chromosomes
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
@@ -60,7 +61,7 @@ def snv_somatic(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: 
 
 def variants(steps: str, spark_jar: str = '', task_id: str = 'variants', name: str = 'etl-enrich-variants',
              app_name: str = 'etl_enrich_variants', skip: str = '', **kwargs) -> SparkETLOperator:
-    return SparkETLOperator(
+    return SparkETLOperator.partial(
         entrypoint='variants',
         task_id=task_id,
         name=name,
@@ -70,8 +71,9 @@ def variants(steps: str, spark_jar: str = '', task_id: str = 'variants', name: s
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
+        max_active_tis_per_dag=1,  # try with one for now with large config
         **kwargs
-    )
+    ).expand(chromosome=chromosomes)
 
 
 def consequences(steps: str, spark_jar: str = '', task_id: str = 'consequences',
