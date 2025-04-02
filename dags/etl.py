@@ -163,7 +163,7 @@ with DAG(
             run_cnv_task >> [cnv_all, cnv]
 
         # Always run variants, consequences and coverage by gene
-        variants = enrich.variants(spark_jar=spark_jar())
+        variants = enrich.variants(spark_jar=spark_jar(), steps='default')
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=steps)
         coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=steps)
 
