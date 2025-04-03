@@ -21,7 +21,6 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
     import pandas as pd
     from pandas import DataFrame
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-    from deltalake import DeltaTable
     from google.protobuf.json_format import MessageToJson
     from phenopackets.schema.v1 import base_pb2 as pp_base
     from phenopackets.schema.v1 import phenopackets_pb2 as pp
@@ -29,13 +28,11 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
     from lib.config import s3_conn_id
     from lib.config_nextflow import nextflow_bucket, nextflow_exomiser_input_key
     from lib.datasets import enriched_clinical
-    from lib.utils_s3 import get_s3_storage_options
+    from lib.utils_etl_tables import to_pandas
 
     s3 = S3Hook(s3_conn_id)
-    storage_options = get_s3_storage_options(s3_conn_id)
 
-    dt: DeltaTable = DeltaTable(enriched_clinical.uri, storage_options=storage_options)
-    df: DataFrame = dt.to_pandas()
+    df: DataFrame = to_pandas(enriched_clinical.uri)
 
     filtered_df = df[df['service_request_id'].isin(sequencing_ids)]
     clinical_df = filtered_df[['analysis_service_request_id', 'service_request_id', 'aliquot_id', 'gender',

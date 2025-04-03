@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from airflow import DAG
-
 from lib.slack import Slack
 from lib.tasks import enrich
 
@@ -14,7 +13,6 @@ with DAG(
         },
 ) as dag:
     enrich.variants(
-        steps='initial',
         task_id='reset_enrich_variants',
         name='etl-reset-enrich-variants',
         app_name='reset_enrich_variants',
