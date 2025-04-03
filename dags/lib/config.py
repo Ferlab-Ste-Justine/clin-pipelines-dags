@@ -94,10 +94,11 @@ elif env == Env.STAGING:
         'test_dragen_4_2_4_germline',
         '240613_A00516_0566_AH5WJVDRX5_CAP',
         '241213_A00516_0629_AHL7GJDRX5_somatic_CAP',
+        '250310_A00516_0657_AH2CWVDMX2_germinal_CAP',
     ]
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:db173cf'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:8666323'
+    fhir_image = 'ferlabcrsj/clin-fhir:0d0235b'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:3abf52e'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 'clin-variant-etl-v3.8.2.jar'
@@ -242,6 +243,10 @@ elif env == Env.PROD:
         '250214_A00516_0650_AHWHH2DSXC_somatic_normal',
         '250226_A00516_0654_BH2CYMDMX2_germinal',
         '250228_A00516_0656_BHLJJKDRX5_somatic',
+        '250310_A00516_0657_AH2CWVDMX2_germinal',
+        '250327_A00516_0661_BHJJYTDRX5_somatic',
+        '250228_A00516_0656_BHLJJKDRX5_somatic_normal',
+        '250317_A00516_0659_BHTFFKDRX5_somatic_normal',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
