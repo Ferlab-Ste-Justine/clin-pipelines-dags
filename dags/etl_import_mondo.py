@@ -103,7 +103,7 @@ with DAG(
             f'cqgc-{env}-app-datalake',
             'public/mondo_terms',
             'False',
-            '',
+            'MONDO:0700096',
         ],
     )
 

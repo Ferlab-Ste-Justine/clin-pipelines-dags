@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 from typing import List, Set
 
@@ -10,8 +9,11 @@ from airflow.utils.trigger_rule import TriggerRule
 from pandas import DataFrame
 
 from lib.datasets import enriched_clinical
+from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.slack import Slack
 from lib.tasks.nextflow import exomiser, post_processing
+from lib.tasks.params_validate import validate_color
+from lib.utils_etl import color, spark_jar
 
 with DAG(
         dag_id='etl_run',
@@ -20,6 +22,8 @@ with DAG(
         catchup=False,
         params={
             'sequencing_ids': Param([], type=['null', 'array']),
+            'color': Param('', type=['null', 'string']),
+            'spark_jar': Param('', type=['null', 'string']),
         },
         render_template_as_native_obj=True,
         default_args={
@@ -32,12 +36,21 @@ with DAG(
     def get_sequencing_ids():
         return '{{ params.sequencing_ids }}'
 
-
     start = EmptyOperator(
         task_id="start",
         on_success_callback=Slack.notify_dag_start
     )
 
+    params_validate = validate_color(color=color())
+
+    ingest_fhir_group = ingest_fhir(
+        batch_id='',  # No associated "batch"
+        color=color(),
+        skip_all=False,
+        skip_import=True,  # Skipping because the data is already imported via the prescription API
+        skip_batch=False,
+        spark_jar=spark_jar()
+    )
 
     @task.virtualenv(task_id='get_all_sequencing_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
     def get_all_sequencing_ids(sequencing_ids: List[str]) -> Set[str]:
@@ -53,27 +66,21 @@ with DAG(
         import logging
 
         from airflow.exceptions import AirflowFailException
-        from deltalake import DeltaTable
-        from lib.config import s3_conn_id
+
         from lib.datasets import enriched_clinical
-        from lib.utils_s3 import get_s3_storage_options
+        from lib.utils_etl_tables import to_pandas, get_analysis_ids
 
         distinct_sequencing_ids: Set[str] = set(sequencing_ids)
         logging.info(f"Distinct input sequencing IDs: {distinct_sequencing_ids}")
 
-        storage_options = get_s3_storage_options(s3_conn_id)
-        dt: DeltaTable = DeltaTable(enriched_clinical.uri, storage_options=storage_options)
-        df: DataFrame = dt.to_pandas()
-
+        df: DataFrame = to_pandas(enriched_clinical.uri)
         clinical_df = df[["service_request_id", "analysis_service_request_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
 
         # Get all sequencing IDs that share the same analysis ID as the given sequencing IDs
-        analysis_ids = set(clinical_df.loc[clinical_df["service_request_id"].isin(distinct_sequencing_ids), "analysis_service_request_id"])
+        analysis_ids = get_analysis_ids(clinical_df, distinct_sequencing_ids)
         _all_sequencing_ids = set(clinical_df.loc[clinical_df["analysis_service_request_id"].isin(analysis_ids), "service_request_id"])
-
         if not _all_sequencing_ids:
             raise AirflowFailException("No sequencing IDs found for the given input sequencing IDs")
-
         logging.info(f"Analysis IDs associated with input sequencing IDs: {analysis_ids}")
         logging.info(f"All sequencing IDs associated with input sequencing IDs: {_all_sequencing_ids}")
 
@@ -83,7 +90,6 @@ with DAG(
         # Ensure all sequencing IDs have at least one associated snv vcf url
         missing_snv_seq_ids = set(filtered_df.loc[filtered_df["snv_vcf_urls"].isna() |
                                                   (filtered_df["snv_vcf_urls"].str.len() == 0), "service_request_id"])
-
         if missing_snv_seq_ids:
             raise AirflowFailException(f"Some sequencing IDs don't have associated SNV VCF files: {missing_snv_seq_ids}")
 
@@ -91,23 +97,52 @@ with DAG(
         missing_clinical_signs_seq_ids = set(filtered_df.loc[(filtered_df["is_proband"]) &
                                                              ((filtered_df["clinical_signs"].isna()) |
                                                               (filtered_df["clinical_signs"].str.len() == 0)), "service_request_id"])
-
         if missing_clinical_signs_seq_ids:
             raise AirflowFailException(f"Some proband sequencing IDs don't have at least one associated clinical sign: {missing_clinical_signs_seq_ids}")
 
         return _all_sequencing_ids
 
 
-    get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
+    @task.virtualenv(task_id='get_job_hash', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
+    def get_job_hash(all_sequencing_ids: Set[str]) -> str:
+        """
+        Generate a unique hash for the job using the analysis IDs associated to the input sequencing IDs. The hash is used to name the input samplesheet file and the output directory in the nextflow post-processing pipeline.
+        """
+        from lib.datasets import enriched_clinical
+        from lib.utils import urlsafe_hash
+        from lib.utils_etl_tables import to_pandas, get_analysis_ids
 
+        df: DataFrame = to_pandas(enriched_clinical.uri)
+        clinical_df = df[["service_request_id", "analysis_service_request_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
+
+        # Sorting the analysis ids to ensure the hash is consistent
+        all_analysis_ids = sorted(get_analysis_ids(clinical_df, all_sequencing_ids))
+
+        return urlsafe_hash(all_analysis_ids, length=14)  # 14 is safe for up to 1B hashes
+
+    get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
+    get_job_hash_task = get_job_hash(get_all_sequencing_ids_task)
 
     prepare_nextflow_exomiser_task = exomiser.prepare(sequencing_ids=get_all_sequencing_ids_task)
-    prepare_nextlow_post_processing_task = post_processing.prepare(seq_id_pheno_file_mapping=prepare_nextflow_exomiser_task)
+    prepare_nextflow_post_processing_task = post_processing.prepare(
+        seq_id_pheno_file_mapping=prepare_nextflow_exomiser_task,
+        job_hash=get_job_hash_task
+    )
+    nextflow_post_processing_task = post_processing.run(
+        input=prepare_nextflow_post_processing_task,
+        job_hash=get_job_hash_task
+    )
 
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion
     )
 
-    (start >> get_all_sequencing_ids_task >>[prepare_nextflow_exomiser_task, prepare_nextlow_post_processing_task] >>
-     slack)
+    (
+        start >> params_validate >>
+        ingest_fhir_group >>
+        get_all_sequencing_ids_task >> get_job_hash_task >>
+        [prepare_nextflow_exomiser_task, prepare_nextflow_post_processing_task] >>
+        nextflow_post_processing_task >>
+        slack
+    )
