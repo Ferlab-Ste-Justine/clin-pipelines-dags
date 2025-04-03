@@ -41,7 +41,8 @@ with DAG(
         on_success_callback=Slack.notify_dag_start
     )
 
-    params_validate = validate_color(color=color())
+    # Disabling callback as the start task already perform the slack notification
+    params_validate = validate_color.override(on_success_callback=None)(color=color())
 
     ingest_fhir_group = ingest_fhir(
         batch_id='',  # No associated "batch"
