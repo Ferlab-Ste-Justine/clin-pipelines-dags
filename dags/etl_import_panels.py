@@ -1,15 +1,18 @@
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task_group
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import K8sContext, config_file
 from lib.operators.panels import PanelsOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
+from lib.tasks import (enrich, es, index, params_validate, prepare_index,
+                       publish_index)
+from lib.utils_etl import color, spark_jar
 
 with DAG(
     dag_id='etl_import_panels',
@@ -17,9 +20,12 @@ with DAG(
     schedule_interval=None,
         params={
         'panels': Param('', type='string'),
-        'import': Param('yes', enum=['yes', 'no']),
+        'color': Param('', type=['null', 'string']),
         'debug': Param('no', enum=['yes', 'no']),
         'dryrun': Param('no', enum=['yes', 'no']),
+        'import_and_normalize': Param('yes', enum=['yes', 'no']),
+        'enrich_and_index': Param('no', enum=['yes', 'no']),
+        'spark_jar': Param('', type=['null', 'string']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -40,52 +46,70 @@ with DAG(
         return '{% if params.dryrun == "yes" %}true{% else %}false{% endif %}'
 
     def skip_import() -> str:
-        return '{% if params.panels|length and params.import == "yes" %}{% else %}yes{% endif %}'
+        return '{% if params.panels|length and params.import_and_normalize == "yes" %}{% else %}yes{% endif %}'
 
     def skip_etl() -> str:
         return '{% if params.dryrun == "yes" %}yes{% else %}{% endif %}'
+    
+    def skip_enriched() -> str:
+        return '{% if params.dryrun == "yes" or params.enrich_and_index == "no" %}yes{% else %}{% endif %}'
+    
+    params_validate_color = params_validate.validate_color(color())
 
-    def _params_validate(panels, _import):
-        if panels == '' and _import == 'yes':
-            raise AirflowFailException(
-                'DAG param "panels" is required'
-            )
+    @task_group(group_id='import_normalize')
+    def import_and_normalize():
 
-    params_validate = PythonOperator(
-        task_id='params_validate',
-        op_args=[panels(), _import()],
-        python_callable=_params_validate,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+        def _params_validate_import(panels, _import):
+            if panels == '' and _import == 'yes':
+                raise AirflowFailException('DAG param "panels" is required')
 
-    s3 = PanelsOperator(
-        task_id='s3',
-        name='etl-s3-panels',
-        k8s_context=K8sContext.DEFAULT,
-        skip=skip_import(),
-        arguments=[
-            'org.clin.panels.command.Import', '--file=' + panels(), '--debug=' + debug(), '--dryrun=' + dryrun()
-        ],
-    )
+        params_validate_import = PythonOperator(
+            task_id='params_validate_import',
+            op_args=[panels(), _import()],
+            python_callable=_params_validate_import,
+        )
 
-    panels = SparkOperator(
-        task_id='panels',
-        name='etl-import-panels',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
-        spark_config='config-etl-large',
-        skip=skip_etl(),
-        arguments=[
-            'panels',
-            '--config', config_file,
-            '--steps', 'initial',
-            '--app-name', 'etl_import_panels',
-        ],
-    )
+        import_panels_s3 = PanelsOperator(
+            task_id='import_panels_s3',
+            name='etl-s3-panels',
+            k8s_context=K8sContext.DEFAULT,
+            skip=skip_import(),
+            arguments=[
+                'org.clin.panels.command.Import', '--file=' + panels(), '--debug=' + debug(), '--dryrun=' + dryrun()
+            ],
+        )
+
+        normalize_panels = SparkOperator(
+            task_id='normalize_panels',
+            name='etl-import-panels',
+            k8s_context=K8sContext.ETL,
+            spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
+            spark_config='config-etl-large',
+            skip=skip_etl(),
+            arguments=[
+                'panels',
+                '--config', config_file,
+                '--steps', 'initial',
+                '--app-name', 'etl_import_panels',
+            ],
+        )
+
+        params_validate_import >> import_panels_s3 >> normalize_panels
+
+    @task_group(group_id='enrich_and_index')
+    def enrich_and_index():
+        enrich_variants = enrich.variants(spark_jar=spark_jar(), skip=skip_enriched(), task_id='enrich_variants')
+        prepare_variants = prepare_index.variant_centric(spark_jar=spark_jar, skip=skip_enriched(), task_id='prepare_variants')
+        release_id = es.get_release_id(release_id=None, color=color('_'), index='variant_centric', skip=skip_enriched())
+        index_variants = index.variant_centric(release_id, color('_'), spark_jar(), task_id='index_variant_centric', skip=skip_enriched())
+        publish_variants = publish_index.variant_centric(release_id, color('_'), spark_jar(), task_id='publish_variant_centric', skip=skip_enriched())
+        delete_previous_release = es.delete_previous_release('variant_centric', release_id, color('_'), skip=skip_enriched())
+
+        enrich_variants >> prepare_variants >> release_id >> index_variants >> publish_variants >> delete_previous_release
 
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion
     )
 
-    s3 >> panels >> slack
+    params_validate_color >> import_and_normalize() >> enrich_and_index() >> slack
