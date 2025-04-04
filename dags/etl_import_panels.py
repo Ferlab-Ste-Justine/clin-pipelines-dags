@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.decorators import task_group
+from airflow.decorators import task, task_group
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
@@ -31,6 +31,8 @@ with DAG(
         'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
+    max_active_tasks=1,
+    max_active_runs=1
 ) as dag:
 
     def panels() -> str:
@@ -48,26 +50,22 @@ with DAG(
     def skip_import() -> str:
         return '{% if params.panels|length and params.import_and_normalize == "yes" %}{% else %}yes{% endif %}'
 
-    def skip_etl() -> str:
+    def skip_normalize() -> str:
         return '{% if params.dryrun == "yes" %}yes{% else %}{% endif %}'
     
-    def skip_enriched() -> str:
+    def skip_enrich() -> str:
         return '{% if params.dryrun == "yes" or params.enrich_and_index == "no" %}yes{% else %}{% endif %}'
     
     params_validate_color = params_validate.validate_color(color())
 
-    @task_group(group_id='import_normalize')
+    @task_group(group_id='import_and_normalize')
     def import_and_normalize():
 
-        def _params_validate_import(panels, _import):
+
+        @task(task_id='params_validate_import')
+        def params_validate_import(panels, _import):
             if panels == '' and _import == 'yes':
                 raise AirflowFailException('DAG param "panels" is required')
-
-        params_validate_import = PythonOperator(
-            task_id='params_validate_import',
-            op_args=[panels(), _import()],
-            python_callable=_params_validate_import,
-        )
 
         import_panels_s3 = PanelsOperator(
             task_id='import_panels_s3',
@@ -85,7 +83,7 @@ with DAG(
             k8s_context=K8sContext.ETL,
             spark_class='bio.ferlab.clin.etl.normalized.RunNormalized',
             spark_config='config-etl-large',
-            skip=skip_etl(),
+            skip=skip_normalize(),
             arguments=[
                 'panels',
                 '--config', config_file,
@@ -94,16 +92,16 @@ with DAG(
             ],
         )
 
-        params_validate_import >> import_panels_s3 >> normalize_panels
+        params_validate_import(panels(), _import()) >> import_panels_s3 >> normalize_panels
 
     @task_group(group_id='enrich_and_index')
     def enrich_and_index():
-        enrich_variants = enrich.variants(spark_jar=spark_jar(), skip=skip_enriched(), task_id='enrich_variants')
-        prepare_variants = prepare_index.variant_centric(spark_jar=spark_jar, skip=skip_enriched(), task_id='prepare_variants')
-        release_id = es.get_release_id(release_id=None, color=color('_'), index='variant_centric', skip=skip_enriched())
-        index_variants = index.variant_centric(release_id, color('_'), spark_jar(), task_id='index_variant_centric', skip=skip_enriched())
-        publish_variants = publish_index.variant_centric(release_id, color('_'), spark_jar(), task_id='publish_variant_centric', skip=skip_enriched())
-        delete_previous_release = es.delete_previous_release('variant_centric', release_id, color('_'), skip=skip_enriched())
+        enrich_variants = enrich.variants(spark_jar=spark_jar(), skip=skip_enrich(), task_id='enrich_variants')
+        prepare_variants = prepare_index.variant_centric(spark_jar=spark_jar, skip=skip_enrich(), task_id='prepare_variants')
+        release_id = es.get_release_id(release_id=None, color=color('_'), index='variant_centric', skip=skip_enrich())
+        index_variants = index.variant_centric(release_id, color('_'), spark_jar(), task_id='index_variant_centric', skip=skip_enrich())
+        publish_variants = publish_index.variant_centric(release_id, color('_'), spark_jar(), task_id='publish_variant_centric', skip=skip_enrich())
+        delete_previous_release = es.delete_previous_release('variant_centric', release_id, color('_'), skip=skip_enrich())
 
         enrich_variants >> prepare_variants >> release_id >> index_variants >> publish_variants >> delete_previous_release
 
