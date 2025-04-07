@@ -31,7 +31,7 @@ with DAG(
             'trigger_rule': TriggerRule.NONE_FAILED,
             'on_failure_callback': Slack.notify_task_failure,
         },
-        max_active_tasks=1,
+        max_active_tasks=10,
         max_active_runs=1
 ) as dag:
     def get_sequencing_ids():
@@ -122,7 +122,7 @@ with DAG(
         return urlsafe_hash(all_analysis_ids, length=14)  # 14 is safe for up to 1B hashes
     
     @task
-    def prepare_exomiser_files_arguments(sequencing_ids: Set[str]):
+    def prepare_exomiser_files_arguments(sequencing_ids: Set[str]) -> List[List[str]]:
         arguments = []
         for sequencing_id in sequencing_ids:
             arguments.append([
@@ -149,6 +149,7 @@ with DAG(
         name='add_exomiser_files',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
+        max_active_tis_per_dag=10,
     ).expand(arguments=prepare_exomiser_files_arguments(get_all_sequencing_ids_task))
 
     slack = EmptyOperator(
