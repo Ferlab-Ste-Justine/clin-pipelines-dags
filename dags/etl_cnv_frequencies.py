@@ -4,10 +4,12 @@ import pendulum
 from airflow import DAG
 from airflow.decorators import task_group
 from airflow.models import Param
+from lib.config import Env, env
 from lib.doc import cnv_frequencies as doc
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import (enrich, es, index, params_validate,
-                       prepare_index, publish_index, qa)
+from lib.tasks import (enrich, es, index, params_validate, prepare_index,
+                       publish_index, qa)
 from lib.tasks.nextflow import svclustering
 from lib.utils_etl import color, release_id, spark_jar
 
@@ -27,6 +29,7 @@ with DAG(
         catchup=False,
         max_active_runs=1
 ) as dag:
+        
     params_validate_task = params_validate.validate_color(color=color())
     prepare_svclustering_task = svclustering.prepare(spark_jar())
     run_svclustering_task = svclustering.run()
@@ -50,5 +53,15 @@ with DAG(
                                                          on_success_callback=Slack.notify_dag_completion)
     delete_previous_release_task = es.delete_previous_release('cnv_centric', release_id, color('_'))
 
+    trigger_rolling_dag = TriggerDagRunOperator(
+        task_id='rolling',
+        trigger_dag_id='etl_rolling',
+        wait_for_completion=True,
+        skip='yes' if env != Env.QA else '',
+        conf={
+            'color': color()
+        }
+    )
+
     (params_validate_task >> prepare_svclustering_task >> run_svclustering_task >> normalize_svclustering_task >>
-     enrich_cnv_task >> prepare_cnv_centric_task >> qa_group() >> index_cnv_centric_task >> publish_cnv_centric_task >> delete_previous_release_task)
+     enrich_cnv_task >> prepare_cnv_centric_task >> qa_group() >> index_cnv_centric_task >> publish_cnv_centric_task >> trigger_rolling_dag >> delete_previous_release_task)

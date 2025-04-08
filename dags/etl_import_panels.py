@@ -6,9 +6,10 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import K8sContext, config_file
+from lib.config import Env, K8sContext, config_file, env
 from lib.operators.panels import PanelsOperator
 from lib.operators.spark import SparkOperator
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import (enrich, es, index, params_validate, prepare_index,
                        publish_index)
@@ -90,7 +91,17 @@ with DAG(
         publish_variants = publish_index.variant_centric(release_id, color('_'), spark_jar(), task_id='publish_variant_centric', skip=skip_enrich())
         delete_previous_release = es.delete_previous_release('variant_centric', release_id, color('_'), skip=skip_enrich())
 
-        enrich_variants >> prepare_variants >> release_id >> index_variants >> publish_variants >> delete_previous_release
+        trigger_rolling_dag = TriggerDagRunOperator(
+            task_id='rolling',
+            trigger_dag_id='etl_rolling',
+            wait_for_completion=True,
+            skip='yes' if env != Env.QA else '',
+            conf={
+                'color': color()
+            }
+        )
+
+        enrich_variants >> prepare_variants >> release_id >> index_variants >> publish_variants >> trigger_rolling_dag >> delete_previous_release
 
     slack = EmptyOperator(
         task_id="slack",
