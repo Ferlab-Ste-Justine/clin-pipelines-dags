@@ -1,6 +1,6 @@
 from typing import List
 
-from lib.config import chromosomes
+from lib.config import Env, chromosomes, env
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
@@ -59,21 +59,36 @@ def snv_somatic(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: 
     ).expand(batch_id=batch_ids)
 
 
-def variants(spark_jar: str = '', task_id: str = 'variants', name: str = 'etl-enrich-variants',
+def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'variants', name: str = 'etl-enrich-variants',
              app_name: str = 'etl_enrich_variants', skip: str = '', **kwargs) -> SparkETLOperator:
-    return SparkETLOperator.partial(
-        entrypoint='variants',
-        task_id=task_id,
-        name=name,
-        steps='default',
-        app_name=app_name,
-        spark_class=ENRICHED_MAIN_CLASS,
-        spark_config='config-etl-large',
-        spark_jar=spark_jar,
-        skip=skip,
-        max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
-        **kwargs
-    ).expand(chromosome=chromosomes)
+    # we dont have the resources in PROD to enrich all chromosomes at once, we have to split
+    if env == Env.PROD:
+        return SparkETLOperator.partial(
+            entrypoint='variants',
+            task_id=task_id,
+            name=name,
+            steps='default',
+            app_name=app_name,
+            spark_class=ENRICHED_MAIN_CLASS,
+            spark_config='config-etl-large',
+            spark_jar=spark_jar,
+            skip=skip,
+            max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
+            **kwargs
+        ).expand(chromosome=chromosomes)
+    else :
+        return SparkETLOperator(
+            entrypoint='variants',
+            task_id=task_id + '_all',
+            name=name,
+            steps=steps,
+            app_name=app_name,
+            spark_class=ENRICHED_MAIN_CLASS,
+            spark_config='config-etl-large',
+            spark_jar=spark_jar,
+            skip=skip,
+            **kwargs
+        )
 
 
 def consequences(steps: str, spark_jar: str = '', task_id: str = 'consequences',
