@@ -38,9 +38,6 @@ with DAG(
     def panels() -> str:
         return '{{ params.panels }}'
 
-    def _import() -> str:
-        return '{{ params.import }}'
-
     def debug() -> str:
         return '{% if params.debug == "yes" %}true{% else %}false{% endif %}'
 
@@ -60,12 +57,6 @@ with DAG(
 
     @task_group(group_id='import_and_normalize')
     def import_and_normalize():
-
-
-        @task(task_id='params_validate_import')
-        def params_validate_import(panels, _import):
-            if panels == '' and _import == 'yes':
-                raise AirflowFailException('DAG param "panels" is required')
 
         import_panels_s3 = PanelsOperator(
             task_id='import_panels_s3',
@@ -92,7 +83,7 @@ with DAG(
             ],
         )
 
-        params_validate_import(panels(), _import()) >> import_panels_s3 >> normalize_panels
+        import_panels_s3 >> normalize_panels
 
     @task_group(group_id='enrich_and_index')
     def enrich_and_index():
