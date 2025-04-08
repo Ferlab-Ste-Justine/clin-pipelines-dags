@@ -84,7 +84,7 @@ with DAG(
     @task_group(group_id='enrich_and_index')
     def enrich_and_index():
         enrich_variants = enrich.variants(spark_jar=spark_jar(), skip=skip_enrich(), task_id='enrich_variants')
-        prepare_variants = prepare_index.variant_centric(spark_jar=spark_jar, skip=skip_enrich(), task_id='prepare_variants')
+        prepare_variants = prepare_index.variant_centric(spark_jar=spark_jar(), skip=skip_enrich(), task_id='prepare_variants')
         release_id = es.get_release_id(release_id=None, color=color('_'), index='variant_centric', skip=skip_enrich())
         index_variants = index.variant_centric(release_id, color('_'), spark_jar(), task_id='index_variant_centric', skip=skip_enrich())
         publish_variants = publish_index.variant_centric(release_id, color('_'), spark_jar(), task_id='publish_variant_centric', skip=skip_enrich())
