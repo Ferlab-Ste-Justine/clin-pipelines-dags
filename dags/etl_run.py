@@ -7,6 +7,8 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
 from lib.config import K8sContext
+from lib.config_nextflow import (nextflow_bucket,
+                                 nextflow_post_processing_exomiser_output_key)
 from lib.datasets import enriched_clinical
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.operators.pipeline import PipelineOperator
@@ -122,14 +124,15 @@ with DAG(
         return urlsafe_hash(all_analysis_ids, length=14)  # 14 is safe for up to 1B hashes
     
     @task
-    def prepare_exomiser_files_arguments(sequencing_ids: Set[str]) -> List[List[str]]:
-        arguments = []
-        for sequencing_id in sequencing_ids:
-            arguments.append([
-                'bio.ferlab.clin.etl.AddNextflowDocuments',
-                sequencing_id,
-            ])
-        return arguments
+    def prepare_exomiser_references_analysis_ids(all_sequencing_ids: Set[str]) -> List[str]:
+        from lib.datasets import enriched_clinical
+        from lib.utils_etl_tables import get_analysis_ids, to_pandas
+
+        df: DataFrame = to_pandas(enriched_clinical.uri)
+        clinical_df = df[["service_request_id", "analysis_service_request_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
+
+        # Sorting the analysis ids to ensure the hash is consistent
+        return ','.join(sorted(get_analysis_ids(clinical_df, all_sequencing_ids)))
 
     get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
     get_job_hash_task = get_job_hash(get_all_sequencing_ids_task)
@@ -144,13 +147,18 @@ with DAG(
         job_hash=get_job_hash_task
     )
     
-    add_exomiser_files = PipelineOperator.partial(
-        task_id='add_exomiser_files',
-        name='add_exomiser_files',
+    add_exomiser_references_task = PipelineOperator(
+        task_id='add_exomiser_references_task',
+        name='add_exomiser_references_task',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         max_active_tis_per_dag=10,
-    ).expand(arguments=prepare_exomiser_files_arguments(get_all_sequencing_ids_task))
+        arguments=[
+            'bio.ferlab.clin.etl.AddNextflowDocuments',
+            prepare_exomiser_references_analysis_ids(get_all_sequencing_ids_task),
+            f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
+        ]
+    )
 
     slack = EmptyOperator(
         task_id="slack",
@@ -162,6 +170,6 @@ with DAG(
         ingest_fhir_group >>
         get_all_sequencing_ids_task >> get_job_hash_task >>
         [prepare_nextflow_exomiser_task, prepare_nextflow_post_processing_task] >>
-        nextflow_post_processing_task >> add_exomiser_files >>
+        nextflow_post_processing_task >> add_exomiser_references_task >>
         slack
     )
