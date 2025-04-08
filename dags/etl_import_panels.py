@@ -44,11 +44,8 @@ with DAG(
     def dryrun() -> str:
         return '{% if params.dryrun == "yes" %}true{% else %}false{% endif %}'
 
-    def skip_import() -> str:
-        return '{% if params.panels|length and params.import_and_normalize == "yes" %}{% else %}yes{% endif %}'
-
     def skip_normalize() -> str:
-        return '{% if params.dryrun == "yes" %}yes{% else %}{% endif %}'
+        return '{% if params.dryrun == "yes" or params.import_and_normalize == "no" %}yes{% else %}{% endif %}'
     
     def skip_enrich() -> str:
         return '{% if params.dryrun == "yes" or params.enrich_and_index == "no" %}yes{% else %}{% endif %}'
@@ -62,7 +59,6 @@ with DAG(
             task_id='import_panels_s3',
             name='etl-s3-panels',
             k8s_context=K8sContext.DEFAULT,
-            skip=skip_import(),
             arguments=[
                 'org.clin.panels.command.Import', '--file=' + panels(), '--debug=' + debug(), '--dryrun=' + dryrun()
             ],
