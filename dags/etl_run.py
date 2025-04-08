@@ -33,7 +33,7 @@ with DAG(
             'trigger_rule': TriggerRule.NONE_FAILED,
             'on_failure_callback': Slack.notify_task_failure,
         },
-        max_active_tasks=10,
+        max_active_tasks=1,
         max_active_runs=1
 ) as dag:
     def get_sequencing_ids():
