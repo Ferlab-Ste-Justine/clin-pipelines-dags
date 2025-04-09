@@ -105,37 +105,35 @@ with DAG(
 
         return _all_sequencing_ids
 
-
-    @task.virtualenv(task_id='get_job_hash', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
-    def get_job_hash(all_sequencing_ids: Set[str]) -> str:
+    @task.virtualenv(task_id='get_all_analysis_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
+    def get_all_analysis_ids(all_sequencing_ids: Set[str]) -> str:
         """
-        Generate a unique hash for the job using the analysis IDs associated to the input sequencing IDs. The hash is used to name the input samplesheet file and the output directory in the nextflow post-processing pipeline.
+        Retrieves all analysis IDs for every sequencing IDs
         """
         from lib.datasets import enriched_clinical
-        from lib.utils import urlsafe_hash
         from lib.utils_etl_tables import get_analysis_ids, to_pandas
 
         df: DataFrame = to_pandas(enriched_clinical.uri)
         clinical_df = df[["service_request_id", "analysis_service_request_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
 
-        # Sorting the analysis ids to ensure the hash is consistent
-        all_analysis_ids = sorted(get_analysis_ids(clinical_df, all_sequencing_ids))
+        return sorted(get_analysis_ids(clinical_df, all_sequencing_ids))
+
+    @task.virtualenv(task_id='get_job_hash', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
+    def get_job_hash(all_analysis_ids: Set[str]) -> str:
+        """
+        Generate a unique hash for the job using the analysis IDs associated to the input sequencing IDs. The hash is used to name the input samplesheet file and the output directory in the nextflow post-processing pipeline.
+        """
+        from lib.utils import urlsafe_hash
 
         return urlsafe_hash(all_analysis_ids, length=14)  # 14 is safe for up to 1B hashes
     
     @task
-    def prepare_exomiser_references_analysis_ids(all_sequencing_ids: Set[str]) -> List[str]:
-        from lib.datasets import enriched_clinical
-        from lib.utils_etl_tables import get_analysis_ids, to_pandas
-
-        df: DataFrame = to_pandas(enriched_clinical.uri)
-        clinical_df = df[["service_request_id", "analysis_service_request_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
-
-        # Sorting the analysis ids to ensure the hash is consistent
-        return ','.join(sorted(get_analysis_ids(clinical_df, all_sequencing_ids)))
+    def prepare_exomiser_references_analysis_ids(all_analysis_ids: Set[str]) -> List[str]:
+        return ','.join(all_analysis_ids)
 
     get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
-    get_job_hash_task = get_job_hash(get_all_sequencing_ids_task)
+    get_all_analysis_ids_task = get_all_analysis_ids(get_sequencing_ids())
+    get_job_hash_task = get_job_hash(get_all_analysis_ids_task)
 
     prepare_nextflow_exomiser_task = exomiser.prepare(sequencing_ids=get_all_sequencing_ids_task)
     prepare_nextflow_post_processing_task = post_processing.prepare(
@@ -155,7 +153,7 @@ with DAG(
         max_active_tis_per_dag=10,
         arguments=[
             'bio.ferlab.clin.etl.AddNextflowDocuments',
-            prepare_exomiser_references_analysis_ids(get_all_sequencing_ids_task),
+            prepare_exomiser_references_analysis_ids(get_all_analysis_ids_task),
             f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
         ]
     )
