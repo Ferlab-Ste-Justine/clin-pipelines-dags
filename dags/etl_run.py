@@ -129,7 +129,7 @@ with DAG(
     
     @task
     def prepare_exomiser_references_analysis_ids(all_analysis_ids: Set[str]) -> List[str]:
-        return ','.join(all_analysis_ids)
+        return '--analysis-ids=' + ','.join(all_analysis_ids)
 
     get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
     get_all_analysis_ids_task = get_all_analysis_ids(get_sequencing_ids())
@@ -154,7 +154,7 @@ with DAG(
         arguments=[
             'bio.ferlab.clin.etl.AddNextflowDocuments',
             prepare_exomiser_references_analysis_ids(get_all_analysis_ids_task),
-            f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
+            '--nextflow-output-folder=' + f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
         ]
     )
 
