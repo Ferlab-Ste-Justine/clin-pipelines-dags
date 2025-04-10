@@ -34,7 +34,7 @@ nextflow_post_processing_params_file = f"{nextflow_post_processing_config_map.mo
 ##################################
 nextflow_svclustering_revision = 'v1.3.0-clin'
 nextflow_svclustering_parental_origin_revision = 'v1.1.1-clin'
-nextflow_post_processing_revision = 'v2.7.0'
+nextflow_post_processing_revision = 'v2.8.0'
 
 #######################################
 # Define nextflow pipeline names here #
@@ -47,8 +47,10 @@ nextflow_post_processing_pipeline = 'Ferlab-Ste-Justine/Post-processing-Pipeline
 # Define nextflow input and output file configurations here #
 #############################################################
 nextflow_bucket = config.clin_datalake_bucket
-nextflow_exomiser_input_key = lambda analysis_id: f'nextflow/exomiser_input/{analysis_id}.pheno.json'
+nextflow_exomiser_input_key = lambda analysis_id: f'nextflow/exomiser/input/{analysis_id}.pheno.json'
 nextflow_svclustering_parental_origin_input_key = lambda batch_id: \
     f'nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv'
-nextflow_post_processing_input_key = lambda _hash: f'nextflow/post_processing_input/{_hash}.samplesheet.csv'
-nextflow_post_processing_output_key = lambda _hash: f'nextflow/post_processing_output/{_hash}'  # _hash here can be a template
+nextflow_post_processing_input_key = lambda _hash: f'nextflow/post_processing/input/{_hash}.samplesheet.csv'
+nextflow_post_processing_info_output_key = lambda _hash: f'nextflow/post_processing/output/runs/{_hash}'  # _hash here can be a template
+nextflow_post_processing_vep_output_key = 'nextflow/post_processing/output/ensemblvep'
+nextflow_post_processing_exomiser_output_key = 'nextflow/post_processing/output/exomiser'
