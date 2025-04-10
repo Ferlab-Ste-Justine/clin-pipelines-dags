@@ -70,7 +70,7 @@ if env == Env.QA:
     ]
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:d701565'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:3abf52e'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:9320014'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'clin-variant-etl-v3.8.9.jar'
@@ -98,7 +98,7 @@ elif env == Env.STAGING:
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:d701565'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:3abf52e'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:9320014'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 'clin-variant-etl-v3.8.9.jar'
