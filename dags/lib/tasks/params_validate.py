@@ -43,9 +43,9 @@ def validate_release(release_id: str):
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)
 def validate_color(color: str):
     if env == Env.QA:
-        if not color or color == '':
+        if not color or color == '' or not (color == 'green' or color == 'blue'):
             raise AirflowFailException(
-                f'DAG param "color" is required in {env} environment'
+                f'DAG param "color" blue or green is required in {env} environment'
             )
     elif color and color != '':
         raise AirflowFailException(
