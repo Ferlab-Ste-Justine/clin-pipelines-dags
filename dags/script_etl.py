@@ -5,10 +5,10 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from lib.config import EtlConfig, K8sContext, config_file
+from lib.config import EtlConfig, K8sContext
 from lib.operators.spark_etl import SparkOperator
 from lib.slack import Slack
-from lib.utils_etl import spark_jar
+from lib.utils_etl import spark_jar, build_etl_job_arguments
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +47,10 @@ with DAG(
 
     @task(task_id="get_args")
     def get_args(extra_args, entrypoint):
-        arguments = [
-                '--config', config_file,
-                '--steps', 'default',
-                '--app-name', 'script_etl'
-        ]
-        if entrypoint:
-            arguments = [entrypoint] + arguments
+        arguments = build_etl_job_arguments(
+            app_name='script_etl',
+            entrypoint=entrypoint
+        )
         if extra_args:
             arguments += extra_args
         return arguments
