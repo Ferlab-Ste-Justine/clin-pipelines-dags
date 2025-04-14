@@ -1,3 +1,5 @@
+from enum import Enum
+
 import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
@@ -12,6 +14,16 @@ class Env:
 class K8sContext:
     DEFAULT = 'default'
     ETL = 'etl'
+
+
+# Hardcoded config names are currently tolerated in the code since the enum
+# was introduced later. However, please use the enum for any new code.
+class EtlConfig(Enum):
+    SINGLETON = 'config-etl-singleton'
+    SMALL = 'config-etl-small'
+    MEDIUM = 'config-etl-medium'
+    LARGE = 'config-etl-large'
+    X_LARGE = 'config-etl-xlarge'
 
 
 env = Variable.get('environment')

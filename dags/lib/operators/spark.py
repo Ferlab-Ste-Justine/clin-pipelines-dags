@@ -11,11 +11,14 @@ from lib.config import env
 
 logger = logging.getLogger(__name__)
 
+
 class SparkOperator(KubernetesPodOperator):
 
     template_fields = KubernetesPodOperator.template_fields + (
         'skip',
-        'spark_jar'
+        'spark_jar',
+        'spark_class',
+        'spark_config'
     )
 
     def __init__(
@@ -56,7 +59,7 @@ class SparkOperator(KubernetesPodOperator):
 
         if self.skip:
             raise AirflowSkipException()
-        
+
         if not self.spark_jar or self.spark_jar == '':
             self.spark_jar = config.spark_jar
 

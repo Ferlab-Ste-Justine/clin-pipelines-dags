@@ -10,7 +10,7 @@ from lib.slack import Slack
 from lib.utils_etl import color
 
 with DAG(
-    dag_id='scripts',
+    dag_id='script_pipeline',
     start_date=datetime(2022, 1, 1),
     schedule_interval=None,
     params={
@@ -56,8 +56,8 @@ with DAG(
     )
 
     script = PipelineOperator(
-        task_id='script',
-        name='script',
+        task_id='script_pipeline',
+        name='script_pipeline',
         k8s_context=K8sContext.DEFAULT,
         color=color(),
         on_success_callback=Slack.notify_dag_completion,
