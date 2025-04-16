@@ -2,9 +2,9 @@ from typing import List
 
 from airflow.exceptions import AirflowSkipException
 from airflow.utils.context import Context
-from lib.config import K8sContext, config_file
+from lib.config import K8sContext
 from lib.operators.spark import SparkOperator
-from lib.utils_etl import ClinAnalysis
+from lib.utils_etl import ClinAnalysis, build_etl_job_arguments
 
 
 class SparkETLOperator(SparkOperator):
@@ -53,17 +53,13 @@ class SparkETLOperator(SparkOperator):
             skip=skip,
             **kwargs)
 
-        arguments = [
-            '--config', config_file,
-            '--steps', steps,
-            '--app-name', app_name,
-        ]
-        if entrypoint:
-            arguments = [entrypoint] + arguments
-        if batch_id:
-            arguments = arguments + ['--batchId', batch_id]
-        if chromosome:
-            arguments = arguments + ['--chromosome', f'chr{chromosome}']
+        arguments = build_etl_job_arguments(
+            app_name=app_name,
+            entrypoint=entrypoint,
+            steps=steps,
+            batch_id=batch_id,
+            chromosome=chromosome
+        )
 
         self.arguments = arguments
         self.batch_id = batch_id
