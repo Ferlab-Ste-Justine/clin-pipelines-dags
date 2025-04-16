@@ -27,6 +27,20 @@ class ClinSchema(Enum):
     SOMATIC_TUMOR_ONLY = 'CQGC_Exome_Tumeur_Seul'
 
 
+class BioinfoAnalysisCode(Enum):
+    GEBA = 'GEBA'
+    TEBA = 'TEBA'
+    TNEBA = 'TNEBA'
+
+    def to_analysis_type(self) -> str:
+        mapping = {
+            BioinfoAnalysisCode.GEBA: ClinAnalysis.GERMLINE.value,
+            BioinfoAnalysisCode.TEBA: ClinAnalysis.SOMATIC_TUMOR_ONLY.value,
+            BioinfoAnalysisCode.TNEBA: ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
+        }
+        return mapping[self]
+
+
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
 
