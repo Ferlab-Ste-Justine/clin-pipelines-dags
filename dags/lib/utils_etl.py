@@ -27,6 +27,12 @@ class ClinSchema(Enum):
     SOMATIC_TUMOR_ONLY = 'CQGC_Exome_Tumeur_Seul'
 
 
+class BioinfoAnalysisCode(Enum):
+    GEBA = 'GEBA'
+    TEBA = 'TEBA'
+    TNEBA = 'TNEBA'
+
+
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
 
