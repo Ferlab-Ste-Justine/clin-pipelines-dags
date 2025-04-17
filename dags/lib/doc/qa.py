@@ -19,7 +19,6 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 - Vérifier qu'aucune entité n'est dupliquée
 
 ### Différents tests
-- Table gnomad_genomes_v4
 - Table gnomad_joint_v4
 - Table normalized_snv
 - Table normalized_consequences
@@ -51,12 +50,6 @@ non_empty_tables = '''
 ### Documentation
 - Test : Tables non vides
 - Objectif : Les tables ne doivent pas être vide
-'''
-
-no_dup_gnomad = '''
-### Documentation
-- Test : Non duplication - Table gnomad_genomes_v4
-- Objectif : Les variants doivent être uniques dans la table gnomad_genomes_v4
 '''
 
 no_dup_gnomad_joint = '''
