@@ -23,7 +23,7 @@ def no_dup_gnomad(spark_jar: str) -> SparkOperator:
         doc_md=doc.no_dup_gnomad,
         name='etl-qc-no-dup-gnomad',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationGnomad',
+        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationGnomadGenomes',
         spark_config='config-etl-medium',
         spark_jar=spark_jar,
         arguments=['clin' + env_url('_')],
