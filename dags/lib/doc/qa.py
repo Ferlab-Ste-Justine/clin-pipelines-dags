@@ -19,7 +19,7 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 - Vérifier qu'aucune entité n'est dupliquée
 
 ### Différents tests
-- Table gnomad_genomes_v3
+- Table gnomad_joint_v4
 - Table normalized_snv
 - Table normalized_consequences
 - Table normalized_variants
@@ -52,10 +52,10 @@ non_empty_tables = '''
 - Objectif : Les tables ne doivent pas être vide
 '''
 
-no_dup_gnomad = '''
+no_dup_gnomad_joint = '''
 ### Documentation
-- Test : Non duplication - Table gnomad_genomes_v3
-- Objectif : Les variants doivent être unique dans la table gnomad_genomes_v3
+- Test : Non duplication - Table gnomad_joint_v4
+- Objectif : Les variants doivent être uniques dans la table gnomad_joint_v4
 '''
 
 no_dup_clinical = '''
@@ -67,67 +67,67 @@ no_dup_clinical = '''
 no_dup_nor_snv = '''
 ### Documentation
 - Test : Non duplication - Table normalized_snv
-- Objectif : Les variants doivent être unique par service_request_id dans la table normalized_snv
+- Objectif : Les variants doivent être uniques par service_request_id dans la table normalized_snv
 '''
 
 no_dup_nor_snv_somatic = '''
 ### Documentation
 - Test : Non duplication - Table normalized_snv_somatic
-- Objectif : Les variants doivent être unique par service_request_id dans la table normalized_snv_somatic
+- Objectif : Les variants doivent être uniques par service_request_id dans la table normalized_snv_somatic
 '''
 
 no_dup_nor_consequences = '''
 ### Documentation
 - Test : Non duplication - Table normalized_consequences
-- Objectif : Les conséquences doivent être unique dans la table normalized_consequences
+- Objectif : Les conséquences doivent être uniques dans la table normalized_consequences
 '''
 
 no_dup_nor_variants = '''
 ### Documentation
 - Test : Non duplication - Table normalized_variants
-- Objectif : Les variants doivent être unique par batch_id dans la table normalized_variants
+- Objectif : Les variants doivent être uniques par batch_id dans la table normalized_variants
 '''
 
 no_dup_snv = '''
 ### Documentation
 - Test : Non duplication - Table snv
-- Objectif : Les variants doivent être unique par service_request_id dans la table snv
+- Objectif : Les variants doivent être uniques par service_request_id dans la table snv
 '''
 
 no_dup_snv_somatic = '''
 ### Documentation
 - Test : Non duplication - Table snv_somatic
-- Objectif : Les variants doivent être unique par service_request_id dans la table snv_somatic
+- Objectif : Les variants doivent être uniques par service_request_id dans la table snv_somatic
 '''
 
 no_dup_consequences = '''
 ### Documentation
 - Test : Non duplication - Table consequences
-- Objectif : Les conséquences doivent être unique dans la table consequences
+- Objectif : Les conséquences doivent être uniques dans la table consequences
 '''
 
 no_dup_variants = '''
 ### Documentation
 - Test : Non duplication - Table variants
-- Objectif : Les variants doivent être unique dans la table variants
+- Objectif : Les variants doivent être uniques dans la table variants
 '''
 
 no_dup_variant_centric = '''
 ### Documentation
 - Test : Non duplication - Table variant_centric
-- Objectif : Les variants doivent être unique dans la table variant_centric
+- Objectif : Les variants doivent être uniques dans la table variant_centric
 '''
 
 no_dup_cnv_centric = '''
 ### Documentation
 - Test : Non duplication - Table cnv_centric
-- Objectif : Les CNVs doivent être unique dans la table cnv_centric
+- Objectif : Les CNVs doivent être uniques dans la table cnv_centric
 '''
 
 no_dup_coverage_by_gene = '''
 ### Documentation
 - Test : Non duplication - Table coverage_by_gene
-- Objectif : Les coverages doivent être unique dans la table coverage_by_gene
+- Objectif : Les coverages doivent être uniques dans la table coverage_by_gene
 '''
 
 no_dup_nextflow_svclustering = '''
