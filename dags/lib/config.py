@@ -70,7 +70,7 @@ if env == Env.QA:
     ]
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:d701565'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:7839a30'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'clin-variant-etl-v3.8.10.jar'
@@ -98,7 +98,7 @@ elif env == Env.STAGING:
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:d701565'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:7839a30'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 'clin-variant-etl-v3.8.10.jar'
@@ -252,6 +252,7 @@ elif env == Env.PROD:
         '250404_A00516_0666_BH3KWFDSXF_germinal_part3',
         '230828_A00516_0454_BHLM57DMXY_somatic_normal',
         '250327_A00516_0661_BHJJYTDRX5_somatic_normal',
+        '250411_A00516_0667_BH3YF2DMX2_germinal',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
