@@ -31,6 +31,20 @@ def no_dup_gnomad(spark_jar: str) -> SparkOperator:
     )
 
 
+def no_dup_gnomad_joint(spark_jar: str) -> SparkOperator:
+    return SparkOperator(
+        task_id='no_dup_gnomad_joint',
+        doc_md=doc.no_dup_gnomad_joint,
+        name='etl-qc-no-dup-gnomad-joint',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationGnomadJoint',
+        spark_config='config-etl-medium',
+        spark_jar=spark_jar,
+        arguments=['clin' + env_url('_')],
+        skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+    )
+
+
 def no_dup_clinical(spark_jar: str) -> SparkOperator:
     return SparkOperator(
         task_id='no_dup_clinical',
