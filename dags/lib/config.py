@@ -33,7 +33,7 @@ show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 cosmic_credentials = Variable.get('cosmic_credentials', None)
 topmed_bravo_credentials = Variable.get('topmed_bravo_credentials', None)
 basespace_illumina_credentials = Variable.get('basespace_illumina_credentials', None)
-svclustering_batch_size = Variable.get('svclustering_batch_size', 10)
+svclustering_batch_size = Variable.get('svclustering_batch_size', 100)
 
 clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'
@@ -54,7 +54,7 @@ if env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.8.9.jar'
+    spark_jar = 'clin-variant-etl-v3.8.10.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -70,7 +70,7 @@ if env == Env.QA:
     ]
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:d701565'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:7839a30'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'clin-variant-etl-v3.8.10.jar'
@@ -98,7 +98,7 @@ elif env == Env.STAGING:
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:d701565'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:7839a30'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 'clin-variant-etl-v3.8.10.jar'
@@ -252,6 +252,8 @@ elif env == Env.PROD:
         '250404_A00516_0666_BH3KWFDSXF_germinal_part3',
         '230828_A00516_0454_BHLM57DMXY_somatic_normal',
         '250327_A00516_0661_BHJJYTDRX5_somatic_normal',
+        '250411_A00516_0667_BH3YF2DMX2_germinal',
+        '250415_A00516_0669_BHTKKHDRX5_somatic',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')
