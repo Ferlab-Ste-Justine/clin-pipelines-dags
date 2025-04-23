@@ -32,7 +32,7 @@ nextflow_post_processing_params_file = f"{nextflow_post_processing_config_map.mo
 ##################################
 # Define nextflow revisions here #
 ##################################
-nextflow_svclustering_revision = 'v1.3.0-clin'
+nextflow_svclustering_revision = 'v1.3.1-clin'
 nextflow_svclustering_parental_origin_revision = 'v1.1.1-clin'
 nextflow_post_processing_revision = 'v2.8.0'
 
