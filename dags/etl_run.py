@@ -15,7 +15,7 @@ from lib.operators.pipeline import PipelineOperator
 from lib.slack import Slack
 from lib.tasks.nextflow import exomiser, post_processing
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import color, spark_jar
+from lib.utils_etl import color, get_sequencing_ids, spark_jar
 from pandas import DataFrame
 
 with DAG(
@@ -36,8 +36,6 @@ with DAG(
         max_active_tasks=1,
         max_active_runs=1
 ) as dag:
-    def get_sequencing_ids():
-        return '{{ params.sequencing_ids }}'
 
     start = EmptyOperator(
         task_id="start",

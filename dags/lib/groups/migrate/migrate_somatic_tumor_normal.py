@@ -1,6 +1,6 @@
 from airflow.decorators import task_group
-
-from lib.groups.normalize.normalize_somatic_tumor_normal import normalize_somatic_tumor_normal
+from lib.groups.normalize.normalize_somatic_tumor_normal import \
+    normalize_somatic_tumor_normal
 from lib.tasks import batch_type
 from lib.utils_etl import ClinAnalysis, get_group_id
 
@@ -23,12 +23,14 @@ def migrate_somatic_tumor_normal(
 
     validate_somatic_tumor_normal_task = batch_type.validate(
         batch_id=batch_id,
+        sequencing_ids=[],
         batch_type=ClinAnalysis.SOMATIC_TUMOR_NORMAL,
         skip=skip_all
     )
 
     normalize_somatic_tumor_normal_group = normalize_somatic_tumor_normal(
         batch_id=batch_id,
+        sequencing_ids=[],
         skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_variants=skip_variants,
