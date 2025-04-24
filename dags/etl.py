@@ -72,8 +72,8 @@ with DAG(
     def get_batch_ids(ti=None) -> List[str]:
         dag_run: DagRun = ti.dag_run
         ids = dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
-        sorted_ids = sorted(ids, key=lambda x: x.endswith("somatic_normal"))
-        return list(set(sorted_ids))
+        # try to keep the somatic_normal imported last
+        return sorted(list(set(ids)), key=lambda x: x.endswith("somatic_normal"))
 
 
     @task(task_id='get_ingest_dag_configs')
