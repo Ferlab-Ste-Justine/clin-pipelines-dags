@@ -20,8 +20,9 @@ from lib.slack import Slack
 from lib.tasks import batch_type, enrich
 from lib.tasks.batch_type import skip_if_no_batch_in
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
-                           skip_notify, spark_jar)
+from lib.utils_etl import (ClinAnalysis, color, default_or_initial, get_import,
+                           get_sequencing_ids, release_id,
+                           skip_ingest_sequencing_ids, skip_notify, spark_jar)
 
 with DAG(
         dag_id='etl',
@@ -30,6 +31,7 @@ with DAG(
         params={
             'batch_ids': Param([], type=['null', 'array'],
                                description='Put a single batch id per line. Leave empty to skip ingest.'),
+            'sequencing_ids': Param([], type=['null', 'array']),
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
@@ -49,6 +51,7 @@ with DAG(
         render_template_as_native_obj=True,
         user_defined_macros={'any_in': batch_type.any_in}
 ) as dag:
+
     def skip_qc() -> str:
         return '{% if params.qc == "yes" %}{% else %}yes{% endif %}'
 
@@ -74,7 +77,6 @@ with DAG(
         ids = dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
         return list(set(ids))
 
-
     @task(task_id='get_ingest_dag_configs')
     def get_ingest_dag_config(batch_id: str, ti=None) -> dict:
         dag_run: DagRun = ti.dag_run
@@ -85,7 +87,6 @@ with DAG(
             'spark_jar': dag_run.conf['spark_jar']
         }
 
-
     get_batch_ids_task = get_batch_ids()
     detect_batch_types_task = batch_type.detect.expand(batch_id=get_batch_ids_task)
     get_ingest_dag_configs_task = get_ingest_dag_config.expand(batch_id=get_batch_ids_task)
@@ -95,6 +96,19 @@ with DAG(
         trigger_dag_id='etl_ingest',
         wait_for_completion=True
     ).expand(conf=get_ingest_dag_configs_task)
+
+    trigger_ingest_dag_with_sequencing_ids = TriggerDagRunOperator(
+        task_id='ingest_sequencing_ids',
+        trigger_dag_id='etl_ingest',
+        wait_for_completion=True,
+        skip=skip_ingest_sequencing_ids(),
+        conf={
+            'sequencing_ids': get_sequencing_ids(),
+            'import': get_import(),
+            'color': color(),
+            'spark_jar': spark_jar(),
+        }
+    )
 
     steps = default_or_initial(batch_param_name='batch_ids')
 
@@ -274,5 +288,5 @@ with DAG(
     )
 
     (params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >>
-     trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
+     trigger_ingest_dags >> trigger_ingest_dag_with_sequencing_ids >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
      publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_delete_previous_releases >> trigger_qc_es_dag >> trigger_cnv_frequencies >> trigger_qc_dag)

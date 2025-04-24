@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Optional
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 from lib import config
 from lib.config import clin_import_bucket
 
@@ -30,7 +29,12 @@ class ClinSchema(Enum):
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
 
+def get_sequencing_ids():
+    return '{{ params.sequencing_ids or []}}'
 
+def get_import() -> str:
+    return '{{ params.import or "" }}'
+    
 def release_id(index: Optional[str] = None) -> str:
     if not index:
         return '{{ params.release_id or "" }}'
@@ -51,11 +55,15 @@ def color(prefix: str = '') -> str:
 
 
 def skip_import() -> str:
-    return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
+    return '{% if not (params.sequencing_ids and params.sequencing_ids|length) and (params.batch_id and params.batch_id|length) and params.import == "yes" %}{% else %}yes{% endif %}'
 
 
 def skip_batch() -> str:
     return '{% if params.batch_id and params.batch_id|length %}{% else %}yes{% endif %}'
+
+
+def skip_ingest_sequencing_ids() -> str:
+    return '{% if params.sequencing_ids and params.sequencing_ids|length %}{% else %}yes{% endif %}'
 
 
 def default_or_initial(batch_param_name: str = 'batch_id') -> str:

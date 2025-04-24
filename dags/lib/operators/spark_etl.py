@@ -29,7 +29,7 @@ class SparkETLOperator(SparkOperator):
          **kwargs: Additional arguments for `SparkOperator`.
      """
 
-    template_fields = SparkOperator.template_fields + ('batch_id',)
+    template_fields = SparkOperator.template_fields + ('batch_id', 'sequencing_ids')
 
     def __init__(self,
                  steps: str,
@@ -38,6 +38,7 @@ class SparkETLOperator(SparkOperator):
                  spark_config: str,
                  entrypoint: str = '',
                  batch_id: str = '',
+                 sequencing_ids: List[str] = None,
                  chromosome: str = '',
                  target_batch_types: List[ClinAnalysis] = None,
                  detect_batch_type_task_id: str = 'detect_batch_type',
@@ -62,11 +63,14 @@ class SparkETLOperator(SparkOperator):
             arguments = [entrypoint] + arguments
         if batch_id:
             arguments = arguments + ['--batchId', batch_id]
+        if sequencing_ids:
+            arguments = arguments + ['--sequencing_ids', sequencing_ids]
         if chromosome:
             arguments = arguments + ['--chromosome', f'chr{chromosome}']
 
         self.arguments = arguments
         self.batch_id = batch_id
+        self.sequencing_ids = sequencing_ids
         self.chromosome = chromosome
         self.target_batch_types = [target.value for target in (target_batch_types or [])]
         self.detect_batch_type_task_id = detect_batch_type_task_id
@@ -74,10 +78,11 @@ class SparkETLOperator(SparkOperator):
     def execute(self, context: Context):
         # Check if batch type is in target batch types if batch_id and target_batch_types is defined
         # Useful for dynamically mapped task for that should only be run for specific batch types
-        if self.batch_id and self.target_batch_types:
-            batch_type = context['ti'].xcom_pull(task_ids=self.detect_batch_type_task_id, key=self.batch_id)[0]
+        if self.target_batch_types:
+            key = self.batch_id if self.batch_id else self.sequencing_ids
+            batch_type = context['ti'].xcom_pull(task_ids=self.detect_batch_type_task_id, key=key)[0]
             if batch_type not in self.target_batch_types:
-                raise AirflowSkipException(f'Batch id \'{self.batch_id}\' of batch type \'{batch_type}\' is not in '
+                raise AirflowSkipException(f'Batch or Sequencing ids \'{key}\' of batch type \'{batch_type}\' is not in '
                                            f'target batch types: {self.target_batch_types}')
 
         super().execute(context)

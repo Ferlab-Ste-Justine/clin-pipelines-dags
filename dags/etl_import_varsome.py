@@ -7,6 +7,7 @@ from airflow.operators.python import PythonOperator
 from lib.config import Env, K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
+from lib.utils_etl import batch_id
 
 if env in [Env.PROD]:
 
@@ -21,9 +22,6 @@ if env in [Env.PROD]:
             'on_failure_callback': Slack.notify_task_failure,
         },
     ) as dag:
-
-        def batch_id() -> str:
-            return '{{ params.batch_id or "" }}'
 
         def _params_validate(batch_id):
             if batch_id == '':

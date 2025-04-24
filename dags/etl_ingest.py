@@ -12,7 +12,8 @@ from lib.groups.ingest.ingest_somatic_tumor_only import \
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params_validate import validate_batch_color
-from lib.utils_etl import batch_id, color, skip_import, spark_jar
+from lib.utils_etl import (ClinAnalysis, batch_id, color, get_sequencing_ids,
+                           skip_import, spark_jar)
 
 with DAG(
         dag_id='etl_ingest',
@@ -20,6 +21,7 @@ with DAG(
         schedule_interval=None,
         params={
             'batch_id': Param('', type='string'),
+            'sequencing_ids': Param([], type=['null', 'array']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
@@ -36,10 +38,12 @@ with DAG(
         color=color()
     )
 
-    detect_batch_type_task = batch_type.detect(batch_id())
+    detect_batch_type_task = batch_type.detect(batch_id=batch_id(), sequencing_ids=get_sequencing_ids())
+    group_sequencing_ids_by_analysis_type_task = batch_type.group_sequencing_ids_by_analysis_type(sequencing_ids=get_sequencing_ids(), detect_batch_type=detect_batch_type_task)
 
     ingest_germline_group = ingest_germline(
         batch_id=batch_id(),
+        sequencing_ids=group_sequencing_ids_by_analysis_type_task[ClinAnalysis.GERMLINE.value],
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
@@ -57,6 +61,7 @@ with DAG(
 
     ingest_somatic_tumor_only_group = ingest_somatic_tumor_only(
         batch_id=batch_id(),
+        sequencing_ids=group_sequencing_ids_by_analysis_type_task[ClinAnalysis.SOMATIC_TUMOR_ONLY.value],
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
@@ -71,6 +76,7 @@ with DAG(
 
     ingest_somatic_tumor_normal_group = ingest_somatic_tumor_normal(
         batch_id=batch_id(),
+        sequencing_ids=group_sequencing_ids_by_analysis_type_task[ClinAnalysis.SOMATIC_TUMOR_NORMAL.value],
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
@@ -87,6 +93,6 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> detect_batch_type_task >> [ingest_germline_group,
+    params_validate >> detect_batch_type_task >> group_sequencing_ids_by_analysis_type_task >> [ingest_germline_group,
                                                   ingest_somatic_tumor_only_group,
                                                   ingest_somatic_tumor_normal_group] >> slack

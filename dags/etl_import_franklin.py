@@ -10,6 +10,7 @@ from lib.doc import franklin as doc
 from lib.groups.franklin.franklin_create import FranklinCreate
 from lib.groups.franklin.franklin_update import FranklinUpdate
 from lib.slack import Slack
+from lib.utils_etl import batch_id
 
 with DAG(
         dag_id='etl_import_franklin',
@@ -25,9 +26,6 @@ with DAG(
             'batch_id': Param('', type='string'),
         },
 ) as dag:
-
-    def batch_id() -> str:
-        return '{{ params.batch_id or "" }}'
 
     def validate_params(batch_id):
         if batch_id == '':

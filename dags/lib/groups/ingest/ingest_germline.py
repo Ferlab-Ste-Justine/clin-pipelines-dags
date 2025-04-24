@@ -1,14 +1,16 @@
-from airflow.decorators import task_group, task
+from typing import List
 
+from airflow.decorators import task, task_group
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.normalize.normalize_germline import normalize_germline
-from lib.tasks import (batch_type)
+from lib.tasks import batch_type
 from lib.utils_etl import ClinAnalysis
 
 
 @task_group(group_id='ingest_germline')
 def ingest_germline(
         batch_id: str,
+        sequencing_ids: List[str],
         batch_type_detected: bool,
         color: str,
         skip_import: str,
@@ -27,6 +29,7 @@ def ingest_germline(
 
     validate_batch_type_task = batch_type.validate(
         batch_id=batch_id,
+        sequencing_ids=sequencing_ids,
         batch_type=ClinAnalysis.GERMLINE,
         skip=skip_all
     )
@@ -42,6 +45,7 @@ def ingest_germline(
 
     normalize_germline_group = normalize_germline(
         batch_id=batch_id,
+        sequencing_ids=sequencing_ids,
         skip_all=skip_all,
         skip_snv=skip_snv,
         skip_cnv=skip_cnv,

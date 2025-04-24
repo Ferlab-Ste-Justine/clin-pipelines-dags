@@ -1,12 +1,13 @@
 import logging
+from collections import defaultdict
 from typing import Dict, List
 
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
-from lib.config import s3_conn_id, clin_import_bucket
-from lib.utils_etl import metadata_exists, get_metadata_content, ClinSchema, ClinAnalysis, ClinVCFSuffix
+from lib.config import clin_import_bucket, s3_conn_id
+from lib.utils_etl import (ClinAnalysis, ClinSchema, ClinVCFSuffix,
+                           get_metadata_content, metadata_exists)
 
 
 def _validate_snv_vcf_files(s3: S3Hook, batch_id: str, snv_suffix: str):
@@ -47,7 +48,7 @@ def _validate_cnv_vcf_files(metadata: dict, cnv_suffix: str):
 
 
 @task(task_id='detect_batch_type')
-def detect(batch_id: str) -> Dict[str, str]:
+def detect(batch_id: str, sequencing_ids: List[str]) -> Dict[str, str]:
     """
     Returns a dict where the key is the batch id and the value is the batch type.
     """
@@ -68,6 +69,25 @@ def detect(batch_id: str) -> Dict[str, str]:
         batch_type = ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
 
     return {batch_id: batch_type}
+
+@task(task_id='group_sequencing_ids_by_batch_type')
+def group_sequencing_ids_by_analysis_type(sequencing_ids: List[str], detect_batch_type: Dict[str, str]) -> Dict[str, List[str]]:
+    """
+    Groups sequencing ids by batch type. The analysis type is detected by the detect_batch_type task.
+    """
+    sequencing_ids_by_analysis_type = defaultdict(list)
+
+    for analysis_type in ClinAnalysis:  # Iterate over all possible analysis types
+        sequencing_ids_by_analysis_type[analysis_type.value] = []
+
+    for sequencing_id in sequencing_ids:
+        # Get the batch type for the sequencing id
+        batch_type = detect_batch_type.get(sequencing_id, None)
+        if batch_type:
+            sequencing_ids_by_analysis_type[batch_type].append(sequencing_id)
+        else:
+            logging.warning(f'No analysis type found for sequencing id: {sequencing_id}')
+    return sequencing_ids_by_analysis_type
 
 
 def skip(batch_type: ClinAnalysis, batch_type_detected: bool,
@@ -109,13 +129,12 @@ def skip_if_no_batch_in(target_batch_types: List[ClinAnalysis]) -> str:
 
 
 @task(task_id='validate_batch_type')
-def validate(batch_id: str, batch_type: ClinAnalysis, skip: str = ''):
+def validate(batch_id: str, sequencing_ids: List[str], batch_type: ClinAnalysis, skip: str = ''):
     if skip:
         raise AirflowSkipException()
 
-    clin_s3 = S3Hook(s3_conn_id)
-    metadata = get_metadata_content(clin_s3, batch_id) if metadata_exists(clin_s3, batch_id) else {}
-    submission_schema = metadata.get('submissionSchema', '')
+    # TODO use the Lysianne code
+    detected_batch_type = detect(batch_id, sequencing_ids)
 
     if batch_type == ClinAnalysis.GERMLINE:
         if submission_schema != ClinSchema.GERMLINE.value:
