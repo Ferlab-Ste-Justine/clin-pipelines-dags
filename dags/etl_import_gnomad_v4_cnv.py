@@ -2,9 +2,10 @@ import logging
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
+from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
@@ -29,7 +30,9 @@ with DAG(
     max_active_tasks=1,
     max_active_runs=1
 ) as dag:
-    def _file():
+
+    @task(task_id="file")
+    def file_task():
         # Get latest version
         latest_ver = '4.1'
         logging.info(f'gnomAD CNV latest version: {latest_ver}')
@@ -47,6 +50,7 @@ with DAG(
 
         # Skip task if up to date
         if imported_ver == latest_ver:
+            logging.info(f'Skipping import of file {file}. Imported version is up to date.')
             raise AirflowSkipException()
 
         # Download file
@@ -56,19 +60,17 @@ with DAG(
         load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
         logging.info(f'New gnomAD CNV imported version: {latest_ver}')
 
+    slack = EmptyOperator(task_id="slack", on_success_callback=Slack.notify_dag_start)
 
-    file = PythonOperator(
-        task_id='file',
-        python_callable=_file,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+    file = file_task()
 
     table = SparkOperator(
         task_id='table',
         name='etl_import_gnomad_v4_cnv',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='config-etl-large',
+        spark_config='config-etl-small',
+        spark_jar=spark_jar(),
         arguments=[
             'gnomadv4cnv',
             '--config',
@@ -81,4 +83,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    file >> table
+    slack >> file >> table
