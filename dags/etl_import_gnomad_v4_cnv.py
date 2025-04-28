@@ -42,7 +42,7 @@ with DAG(
 
         s3 = S3Hook(config.s3_conn_id)
         s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key = f'/raw/landing/gnomad_v{latest_ver}/exome_cnv/{file}'
+        s3_key = f'/raw/landing/gnomad_v4/release/{latest_ver}/exome_cnv/{file}'
 
         # Get imported version
         imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
