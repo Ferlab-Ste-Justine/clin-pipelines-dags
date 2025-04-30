@@ -1,11 +1,11 @@
 import json
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from lib import config
-from lib.config import clin_import_bucket
+from lib.config import clin_import_bucket, config_file
 
 
 class ClinAnalysis(Enum):
@@ -95,3 +95,24 @@ def get_metadata_content(clin_s3, batch_id) -> dict:
 
 def get_group_id(prefix: str, batch_id: str) -> str:
     return prefix + '_' + batch_id.replace('.', '')  # '.' not allowed
+
+
+# Constructs arguments using the standard mainargs-based ETL interface
+def build_etl_job_arguments(
+        app_name: str,
+        entrypoint: Optional[str] = None,
+        steps: str = "default",
+        batch_id: Optional[str] = None,
+        chromosome: Optional[str] = None) -> List[str]:
+    arguments = [
+            '--config', config_file,
+            '--steps', steps,
+            '--app-name', app_name,
+    ]
+    if entrypoint:
+        arguments = [entrypoint] + arguments
+    if batch_id:
+        arguments = arguments + ['--batchId', batch_id]
+    if chromosome:
+        arguments = arguments + ['--chromosome', f'chr{chromosome}']
+    return arguments

@@ -17,13 +17,13 @@ def non_empty_tables(spark_jar: str) -> SparkOperator:
     )
 
 
-def no_dup_gnomad(spark_jar: str) -> SparkOperator:
+def no_dup_gnomad_joint(spark_jar: str) -> SparkOperator:
     return SparkOperator(
-        task_id='no_dup_gnomad',
-        doc_md=doc.no_dup_gnomad,
-        name='etl-qc-no-dup-gnomad',
+        task_id='no_dup_gnomad_joint',
+        doc_md=doc.no_dup_gnomad_joint,
+        name='etl-qc-no-dup-gnomad-joint',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationGnomad',
+        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationGnomadJoint',
         spark_config='config-etl-medium',
         spark_jar=spark_jar,
         arguments=['clin' + env_url('_')],

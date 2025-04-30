@@ -1,3 +1,5 @@
+from enum import Enum
+
 import kubernetes
 from airflow.exceptions import AirflowConfigException
 from airflow.models import Variable
@@ -12,6 +14,16 @@ class Env:
 class K8sContext:
     DEFAULT = 'default'
     ETL = 'etl'
+
+
+# Hardcoded config names are currently tolerated in the code since the enum
+# was introduced later. However, please use the enum for any new code.
+class EtlConfig(Enum):
+    SINGLETON = 'config-etl-singleton'
+    SMALL = 'config-etl-small'
+    MEDIUM = 'config-etl-medium'
+    LARGE = 'config-etl-large'
+    X_LARGE = 'config-etl-xlarge'
 
 
 env = Variable.get('environment')
@@ -54,7 +66,7 @@ if env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.8.10.jar'
+    spark_jar = 'clin-variant-etl-v3.9.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -73,7 +85,7 @@ elif env == Env.STAGING:
     pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.8.10.jar'
+    spark_jar = 'clin-variant-etl-v3.9.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -101,7 +113,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.8.10.jar'
+    spark_jar = 'clin-variant-etl-v3.9.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
