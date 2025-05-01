@@ -83,6 +83,18 @@ Create Airflow connection (Airflow UI => Admin => Connections) :
 }
 ```
 
+- Connection Id : `gnomad`
+- Connection Type : `Amazon S3`
+- Extra :
+
+```
+{
+    "config_kwargs": {
+      "signature_version": "unsigned"
+    }
+}
+```
+
 ## Slack
 
 Create Airflow variable (Airflow UI => Admin => Variables) :
