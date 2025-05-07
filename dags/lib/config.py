@@ -66,7 +66,7 @@ if env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.9.1.jar'
+    spark_jar = 'clin-variant-etl-v3.10.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -81,11 +81,11 @@ if env == Env.QA:
         '4_data_to_import_somatic_normal',
     ]
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:5caba97'
+    fhir_image = 'ferlabcrsj/clin-fhir:d536672'
     pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.9.1.jar'
+    spark_jar = 'clin-variant-etl-v3.10.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -109,11 +109,11 @@ elif env == Env.STAGING:
         '250310_A00516_0657_AH2CWVDMX2_germinal_CAP',
     ]
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:5caba97'
+    fhir_image = 'ferlabcrsj/clin-fhir:d536672'
     pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.9.1.jar'
+    spark_jar = 'clin-variant-etl-v3.10.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
@@ -269,6 +269,7 @@ elif env == Env.PROD:
         '250417_A00516_0670_BH3YCVDMX2_germinal',
         '250415_A00516_0669_BHTKKHDRX5_somatic_normal',
         '250425_A00516_0672_AH3WLJDMX2_germinal',
+        '250502_A00516_0675_BHTKVFDRX5_somatic',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')

@@ -8,6 +8,7 @@
   "base_url": "http://localhost:50080",
   "show_test_dags": "yes",
   "s3_conn_id": "minio",
+  "s3_gnomad": "gnomad",
   "s3_franklin": "minio",
   "s3_franklin_bucket": "genoox-upload-chu-st-justine",
   "franklin_url": "https://mocks.qa.cqgc.hsj.rtss.qc.ca/api/franklin",
