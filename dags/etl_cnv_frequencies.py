@@ -4,6 +4,7 @@ import pendulum
 from airflow import DAG
 from airflow.decorators import task_group
 from airflow.models import Param
+from airflow.utils.trigger_rule import TriggerRule
 from lib.config import Env, env
 from lib.doc import cnv_frequencies as doc
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
@@ -24,6 +25,7 @@ with DAG(
             'spark_jar': Param('', type=['null', 'string']),
         },
         default_args={
+            'trigger_rule': TriggerRule.NONE_FAILED,
             'on_failure_callback': Slack.notify_task_failure
         },
         catchup=False,
