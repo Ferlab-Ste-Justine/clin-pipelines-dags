@@ -28,7 +28,7 @@ def run(batch_id: str, skip: str = '', **kwargs):
         .with_revision(nextflow_svclustering_parental_origin_revision) \
         .append_args(
             '--input', f's3://{nextflow_bucket}/{nextflow_svclustering_parental_origin_input_key(batch_id)}',
-            '--outdir', f's3://{nextflow_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}') \
+            '--outdir', f's3://{nextflow_bucket}/svclustering_parental_origin/output/{batch_id}') \
         .operator(
             NextflowOperator,
             task_id='svclustering_parental_origin',

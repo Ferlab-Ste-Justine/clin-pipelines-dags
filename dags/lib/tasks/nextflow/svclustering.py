@@ -25,8 +25,8 @@ def run(skip: str = '', **kwargs):
         .with_pipeline(nextflow_svclustering_pipeline) \
         .with_revision(nextflow_svclustering_revision) \
         .append_args(
-            '--input', f's3://{nextflow_bucket}/nextflow/svclustering_input/svclustering_input.csv',
-            '--outdir', f's3://{nextflow_bucket}/nextflow/svclustering_output') \
+            '--input', f's3://{nextflow_bucket}/svclustering/input/svclustering_input.csv',
+            '--outdir', f's3://{nextflow_bucket}/svclustering/output') \
         .operator(
             NextflowOperator,
             task_id='svclustering',
