@@ -49,6 +49,7 @@ svclustering_batch_size = Variable.get('svclustering_batch_size', 100)
 
 clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'
+clin_nextflow_bucket = f'cqgc-{env}-app-nextflow'
 clin_scratch_bucket = f'cqgc-{env}-app-files-scratch'
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'

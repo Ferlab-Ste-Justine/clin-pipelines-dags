@@ -57,17 +57,22 @@ nextflow_cnv_post_processing_pipeline = 'Ferlab-Ste-Justine/cnv-post-processing'
 #############################################################
 # Define nextflow input and output file configurations here #
 #############################################################
-nextflow_bucket = config.clin_datalake_bucket
-nextflow_exomiser_input_key = lambda analysis_id: f'nextflow/exomiser/input/{analysis_id}.pheno.json'
+nextflow_bucket = config.clin_nextflow_bucket
+nextflow_exomiser_input_key = lambda analysis_id: f'exomiser/input/{analysis_id}.pheno.json'
+
+nextflow_svclustering_input_key = 'svclustering/input/input.csv'
+nextflow_svclustering_output_key = 'svclustering/output'
 
 nextflow_svclustering_parental_origin_input_key = lambda batch_id: \
-    f'nextflow/svclustering_parental_origin_input/{batch_id}/{batch_id}.csv'
+    f'svclustering_parental_origin/input/{batch_id}/{batch_id}.csv'
+nextflow_svclustering_parental_origin_output_key = lambda batch_id: \
+    f'svclustering_parental_origin/output/{batch_id}'
 
-nextflow_post_processing_input_key = lambda _hash: f'nextflow/post_processing/input/{_hash}.samplesheet.csv'
-nextflow_post_processing_info_output_key = lambda _hash: f'nextflow/post_processing/output/runs/{_hash}'  # _hash here can be a template
-nextflow_post_processing_vep_output_key = 'nextflow/post_processing/output/ensemblvep'
-nextflow_post_processing_exomiser_output_key = 'nextflow/post_processing/output/exomiser'
+nextflow_post_processing_input_key = lambda _hash: f'post_processing/input/{_hash}.samplesheet.csv'
+nextflow_post_processing_info_output_key = lambda _hash: f'post_processing/output/runs/{_hash}'  # _hash here can be a template
+nextflow_post_processing_vep_output_key = 'post_processing/output/ensemblvep'
+nextflow_post_processing_exomiser_output_key = 'post_processing/output/exomiser'
 
-nextflow_cnv_post_processing_input_key = lambda _hash: f'nextflow/cnv_post_processing/input/{_hash}.samplesheet.csv'
-nextflow_cnv_post_processing_info_output_key = lambda _hash: f'nextflow/cnv_post_processing/output/runs/{_hash}'  # _hash here can be a template
-nextflow_cnv_post_processing_exomiser_output_key = 'nextflow/cnv_post_processing/output/exomiser'
+nextflow_cnv_post_processing_input_key = lambda _hash: f'cnv_post_processing/input/{_hash}.samplesheet.csv'
+nextflow_cnv_post_processing_info_output_key = lambda _hash: f'cnv_post_processing/output/runs/{_hash}'  # _hash here can be a template
+nextflow_cnv_post_processing_exomiser_output_key = 'cnv_post_processing/output/exomiser'
