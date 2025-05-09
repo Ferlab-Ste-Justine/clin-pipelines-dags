@@ -55,7 +55,8 @@ def _validate_cnv_vcf_files(metadata: dict, cnv_suffix: str):
 
 # Preserving the old function name and task ID for backward compatibility.
 # In the future, we may consider renaming this to remove references to the batch concept.
-@task.virtualenv(task_id='detect_batch_type', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
+# Note that we restrict amount of activate mapped tasks per DAG to avoid memory issues and delta lake connection problems.
+@task.virtualenv(task_id='detect_batch_type', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical], max_active_tis_per_dag=1)
 def detect(batch_id: Optional[str] = None, sequencing_ids: Optional[List[str]] = None) -> Dict[str, str]:
     """
     Returns a dict where the key is the batch id or the sequencing id and the value is the analysis type.
