@@ -37,7 +37,7 @@ with DAG(
             'delete_previous_releases': Param('yes', enum=['yes', 'no']),
             'notify': Param('no', enum=['yes', 'no']),
             'qc': Param('yes', enum=['yes', 'no']),
-            'rolling': Param('no', enum=['yes', 'no']),
+            'rolling': Param('yes' if env == Env.QA else 'no', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         default_args={
