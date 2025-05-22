@@ -155,6 +155,7 @@ with DAG(
             'bio.ferlab.clin.etl.AddNextflowDocuments',
             prepare_exomiser_references_analysis_ids(get_all_analysis_ids_task),
             '--nextflow-output-folder=' + f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
+            '--exomiser-type=snv',
         ]
     )
 
