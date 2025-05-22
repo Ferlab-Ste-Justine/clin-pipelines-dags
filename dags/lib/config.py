@@ -49,6 +49,7 @@ svclustering_batch_size = Variable.get('svclustering_batch_size', 100)
 
 clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'
+clin_nextflow_bucket = f'cqgc-{env}-app-nextflow'
 clin_scratch_bucket = f'cqgc-{env}-app-files-scratch'
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
@@ -113,7 +114,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.10.2.jar'
+    spark_jar = 'clin-variant-etl-v3.11.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'

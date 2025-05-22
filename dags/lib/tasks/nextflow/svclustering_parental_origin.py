@@ -1,6 +1,11 @@
-from lib.config_nextflow import nextflow_svclustering_parental_origin_revision, \
-    nextflow_svclustering_parental_origin_pipeline, nextflow_bucket, nextflow_svclustering_parental_origin_input_key, \
+from lib.config_nextflow import (
+    nextflow_svclustering_parental_origin_revision,
+    nextflow_svclustering_parental_origin_pipeline,
+    nextflow_bucket,
+    nextflow_svclustering_parental_origin_input_key,
+    nextflow_svclustering_parental_origin_output_key,
     NEXTFLOW_MAIN_CLASS
+)
 from lib.config_operators import nextflow_svclustering_base_config
 from lib.operators.nextflow import NextflowOperator
 from lib.operators.spark_etl import SparkETLOperator
@@ -28,7 +33,7 @@ def run(batch_id: str, skip: str = '', **kwargs):
         .with_revision(nextflow_svclustering_parental_origin_revision) \
         .append_args(
             '--input', f's3://{nextflow_bucket}/{nextflow_svclustering_parental_origin_input_key(batch_id)}',
-            '--outdir', f's3://{nextflow_bucket}/nextflow/svclustering_parental_origin_output/{batch_id}') \
+            '--outdir', f's3://{nextflow_bucket}/{nextflow_svclustering_parental_origin_output_key(batch_id)}') \
         .operator(
             NextflowOperator,
             task_id='svclustering_parental_origin',
