@@ -34,8 +34,8 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
 
     df: DataFrame = to_pandas(enriched_clinical.uri)
 
-    filtered_df = df[df['service_request_id'].isin(sequencing_ids)]
-    clinical_df = filtered_df[['analysis_service_request_id', 'service_request_id', 'aliquot_id', 'gender',
+    filtered_df = df[df['sequencing_id'].isin(sequencing_ids)]
+    clinical_df = filtered_df[['analysis_id', 'sequencing_id', 'aliquot_id', 'gender',
                                'clinical_signs', 'is_proband', 'family_id', 'father_aliquot_id', 'mother_aliquot_id',
                                'affected_status_code']]
     probands_df = clinical_df[clinical_df['is_proband']]
@@ -71,8 +71,8 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
         ) for sign in clinical_signs if sign["affected_status"]]
 
         # Construct pedigree.persons field
-        analysis_id = proband_row['analysis_service_request_id']
-        family_df = clinical_df[clinical_df['analysis_service_request_id'] == analysis_id]
+        analysis_id = proband_row['analysis_id']
+        family_df = clinical_df[clinical_df['analysis_id'] == analysis_id]
         persons = [pp_base.Pedigree.Person(
             family_id=analysis_id,
             individual_id=person['aliquot_id'],
@@ -109,7 +109,7 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
         file_path = f"s3://{nextflow_bucket}/{s3_key}"
         logging.info(f"Phenopacket file for analysis {analysis_id} uploaded to S3 path: {file_path}")
 
-        family_sequencing_ids = family_df['service_request_id'].tolist()
+        family_sequencing_ids = family_df['sequencing_id'].tolist()
         for sequencing_id in family_sequencing_ids:
             seq_file_mapping[sequencing_id] = file_path
 

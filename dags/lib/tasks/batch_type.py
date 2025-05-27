@@ -85,7 +85,7 @@ def detect(batch_id: Optional[str] = None, sequencing_ids: Optional[List[str]] =
         raise AirflowFailException("Either batch_id or sequencing_ids must be provided")
 
     identifier_to_type = _detect_type_from_enrich_clinical(
-        identifier_column="batch_id" if batch_id else "service_request_id",
+        identifier_column="batch_id" if batch_id else "sequencing_id",
         identifiers=[batch_id] if batch_id else sequencing_ids,
         must_exist=bool(sequencing_ids)
     )

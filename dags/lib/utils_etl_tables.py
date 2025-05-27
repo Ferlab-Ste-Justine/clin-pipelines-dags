@@ -21,7 +21,7 @@ def get_analysis_ids(clinical_df: DataFrame, sequencing_ids: Collection[str]) ->
     """
     return set(
         clinical_df.loc[
-            clinical_df["service_request_id"].isin(sequencing_ids),
-            "analysis_service_request_id"
+            clinical_df["sequencing_id"].isin(sequencing_ids),
+            "analysis_id"
         ]
     )
