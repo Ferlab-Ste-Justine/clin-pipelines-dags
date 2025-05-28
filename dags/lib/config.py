@@ -82,8 +82,8 @@ if env == Env.QA:
         '4_data_to_import_somatic_normal',
     ]
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:d536672'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
+    fhir_image = 'ferlabcrsj/clin-fhir:5515dcb'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:95e9af1'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'clin-variant-etl-v3.11.0.jar'
@@ -110,8 +110,8 @@ elif env == Env.STAGING:
         '250310_A00516_0657_AH2CWVDMX2_germinal_CAP',
     ]
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:d536672'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:bb6aad0'
+    fhir_image = 'ferlabcrsj/clin-fhir:5515dcb'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:95e9af1'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 'clin-variant-etl-v3.11.0.jar'
