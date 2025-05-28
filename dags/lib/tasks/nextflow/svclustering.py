@@ -1,5 +1,11 @@
-from lib.config_nextflow import nextflow_svclustering_revision, nextflow_svclustering_pipeline, nextflow_bucket, \
+from lib.config_nextflow import (
+    nextflow_svclustering_input_key,
+    nextflow_svclustering_output_key,
+    nextflow_svclustering_revision,
+    nextflow_svclustering_pipeline,
+    nextflow_bucket,
     NEXTFLOW_MAIN_CLASS
+)
 from lib.config_operators import nextflow_svclustering_base_config
 from lib.operators.nextflow import NextflowOperator
 from lib.operators.spark_etl import SparkETLOperator
@@ -25,8 +31,8 @@ def run(skip: str = '', **kwargs):
         .with_pipeline(nextflow_svclustering_pipeline) \
         .with_revision(nextflow_svclustering_revision) \
         .append_args(
-            '--input', f's3://{nextflow_bucket}/nextflow/svclustering_input/svclustering_input.csv',
-            '--outdir', f's3://{nextflow_bucket}/nextflow/svclustering_output') \
+            '--input', f's3://{nextflow_bucket}/{nextflow_svclustering_input_key}',
+            '--outdir', f's3://{nextflow_bucket}/{nextflow_svclustering_output_key}') \
         .operator(
             NextflowOperator,
             task_id='svclustering',
