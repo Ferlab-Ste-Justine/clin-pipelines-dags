@@ -62,10 +62,6 @@ with DAG(
         Retrieves all sequencing IDs that share the same analysis ID as the given sequencing IDs from the
         `enriched_clinical` Delta table. Validates that all sequencing IDs have at least one associated SNV VCF file and
         that all proband sequencing IDs have at least one associated clinical sign.
-
-        TODO:
-            - Rename service_request_id to sequencing_id when enriched_clinical table is refactored
-            - Rename analysis_service_request_id to analysis_id when enriched_clinical table is refactored
         """
         import logging
 
@@ -77,29 +73,29 @@ with DAG(
         logging.info(f"Distinct input sequencing IDs: {distinct_sequencing_ids}")
 
         df: DataFrame = to_pandas(enriched_clinical.uri)
-        clinical_df = df[["service_request_id", "analysis_service_request_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
+        clinical_df = df[["sequencing_id", "analysis_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
 
         # Get all sequencing IDs that share the same analysis ID as the given sequencing IDs
         analysis_ids = get_analysis_ids(clinical_df, distinct_sequencing_ids)
-        _all_sequencing_ids = set(clinical_df.loc[clinical_df["analysis_service_request_id"].isin(analysis_ids), "service_request_id"])
+        _all_sequencing_ids = set(clinical_df.loc[clinical_df["analysis_id"].isin(analysis_ids), "sequencing_id"])
         if not _all_sequencing_ids:
             raise AirflowFailException("No sequencing IDs found for the given input sequencing IDs")
         logging.info(f"Analysis IDs associated with input sequencing IDs: {analysis_ids}")
         logging.info(f"All sequencing IDs associated with input sequencing IDs: {_all_sequencing_ids}")
 
         # Filter clinical_df for sequencing IDs
-        filtered_df = clinical_df[clinical_df["service_request_id"].isin(_all_sequencing_ids)]
+        filtered_df = clinical_df[clinical_df["sequencing_id"].isin(_all_sequencing_ids)]
 
         # Ensure all sequencing IDs have at least one associated snv vcf url
         missing_snv_seq_ids = set(filtered_df.loc[filtered_df["snv_vcf_urls"].isna() |
-                                                  (filtered_df["snv_vcf_urls"].str.len() == 0), "service_request_id"])
+                                                  (filtered_df["snv_vcf_urls"].str.len() == 0), "sequencing_id"])
         if missing_snv_seq_ids:
             raise AirflowFailException(f"Some sequencing IDs don't have associated SNV VCF files: {missing_snv_seq_ids}")
 
         # Ensure all proband sequencing IDs have at least one associated clinical sign
         missing_clinical_signs_seq_ids = set(filtered_df.loc[(filtered_df["is_proband"]) &
                                                              ((filtered_df["clinical_signs"].isna()) |
-                                                              (filtered_df["clinical_signs"].str.len() == 0)), "service_request_id"])
+                                                              (filtered_df["clinical_signs"].str.len() == 0)), "sequencing_id"])
         if missing_clinical_signs_seq_ids:
             raise AirflowFailException(f"Some proband sequencing IDs don't have at least one associated clinical sign: {missing_clinical_signs_seq_ids}")
 
@@ -114,7 +110,7 @@ with DAG(
         from lib.utils_etl_tables import get_analysis_ids, to_pandas
 
         df: DataFrame = to_pandas(enriched_clinical.uri)
-        clinical_df = df[["service_request_id", "analysis_service_request_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
+        clinical_df = df[["sequencing_id", "analysis_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
 
         return sorted(get_analysis_ids(clinical_df, all_sequencing_ids))
 
