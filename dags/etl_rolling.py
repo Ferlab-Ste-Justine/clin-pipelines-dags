@@ -17,7 +17,7 @@ if env == Env.QA:
     with DAG(
             dag_id='etl_rolling',
             start_date=datetime(2022, 1, 1),
-            schedule_interval=None,
+            schedule=None,
             doc_md=doc.rolling,
             params={
                 'release_id': Param('', type=['null', 'string']),

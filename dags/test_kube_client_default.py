@@ -12,7 +12,7 @@ if (config.show_test_dags):
     with DAG(
         dag_id='test_kube_client_default',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
     ) as dag:
 
         def _test_kube_client_default():

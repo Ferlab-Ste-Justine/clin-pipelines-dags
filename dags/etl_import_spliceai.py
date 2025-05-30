@@ -18,7 +18,7 @@ from lib.utils_s3 import stream_upload_to_s3, get_s3_file_version
 with DAG(
         dag_id='etl_import_spliceai',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         max_active_tasks=1,  # Only one task can be scheduled at a time
         default_args={
             'on_failure_callback': Slack.notify_task_failure,

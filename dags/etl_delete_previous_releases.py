@@ -1,25 +1,20 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import task
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import K8sContext, env, es_url
+
 from lib.groups.index.delete_previous_releases import delete_previous_releases
 from lib.groups.index.get_release_ids import get_release_ids
-from lib.operators.curl import CurlOperator
 from lib.slack import Slack
-from lib.tasks import es
 from lib.tasks.params_validate import validate_color
-from lib.utils_es import format_es_url
-from lib.utils_etl import color, release_id, skip_if_param_not
+from lib.utils_etl import color, release_id
 
 with DAG(
         dag_id='etl_delete_previous_releases',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         params={
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
