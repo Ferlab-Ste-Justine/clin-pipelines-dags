@@ -26,7 +26,7 @@ from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 with DAG(
     dag_id='etl_import_hpo',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     params={
         'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),
@@ -85,16 +85,14 @@ with DAG(
     download_hpo_genes = PythonOperator(
         task_id='download_hpo_genes',
         python_callable=download,
-        op_args=['genes_to_phenotype.txt'],
-        provide_context=True,
+        op_args=['genes_to_phenotype.txt']
     )
 
     # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
     download_hpo_terms = PythonOperator(
         task_id='download_hpo_terms',
         python_callable=download,
-        op_args=['hp-fr.obo', 'hp.obo'],
-        provide_context=True,
+        op_args=['hp-fr.obo', 'hp.obo']
     )
 
     normalized_hpo_genes = SparkOperator(

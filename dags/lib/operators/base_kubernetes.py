@@ -3,7 +3,7 @@ from dataclasses import dataclass, field, fields, asdict
 from typing import Optional, List, Type, TypeVar
 from typing_extensions import Self
 
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.utils.context import Context
 from kubernetes.client import models as k8s
 
@@ -97,12 +97,12 @@ class BaseConfig:
     """
     BaseConfig is a dataclass that contains the configuration for a BaseKubernetesOperator
     :param kube_config: KubeConfig
-    :param is_delete_operator_pod: bool
+    :param on_finish_action: str
     :param image: Optional[str]
     :param service_account_name: Optional[str] - @see KubernetesPodOperator.service_account_name
     """
     kube_config: KubeConfig
-    is_delete_operator_pod: bool = False
+    on_finish_action: str = 'keep_pod'
     image: Optional[str] = None
     arguments: List[str] = field(default_factory=list)
     service_account_name: Optional[str] = None

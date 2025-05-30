@@ -18,7 +18,7 @@ from lib.utils_etl import color, spark_jar
 with DAG(
     dag_id='etl_import_panels',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
         params={
         'panels': Param('', type='string'),
         'color': Param('', type=['null', 'string']),

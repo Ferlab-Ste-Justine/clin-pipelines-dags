@@ -19,7 +19,7 @@ from lib.utils_s3 import get_s3_file_version
 with DAG(
     dag_id='etl_import_topmed_bravo',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },

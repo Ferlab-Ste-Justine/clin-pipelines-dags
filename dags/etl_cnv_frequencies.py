@@ -18,7 +18,7 @@ with DAG(
         dag_id='etl_cnv_frequencies',
         doc_md=doc.cnv_frequencies,
         start_date=datetime(2024, 10, 20, 2, tzinfo=pendulum.timezone("America/Montreal")),
-        schedule_interval=None,
+        schedule=None,
         params={
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),

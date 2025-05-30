@@ -26,7 +26,7 @@ from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
 with DAG(
         dag_id='etl',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         params={
             'batch_ids': Param([], type=['null', 'array'],
                                description='Put a single batch id per line. Leave empty to skip ingest.'),

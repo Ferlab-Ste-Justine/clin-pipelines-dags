@@ -12,7 +12,7 @@ if env == Env.QA:
     with DAG(
             dag_id='etl_rolling_auto',
             start_date=datetime(2022, 1, 1),
-            schedule_interval="0 6 * * *" if env == Env.QA else None, # 6am UTC / 2am Montreal
+            schedule="0 6 * * *" if env == Env.QA else None, # 6am UTC / 2am Montreal
             catchup=False,
             params={
 

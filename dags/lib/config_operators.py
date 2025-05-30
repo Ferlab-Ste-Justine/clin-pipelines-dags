@@ -16,7 +16,7 @@ kube_config_etl = KubeConfig(
 # This is meant to be used in DAGS depending on the NextflowOperator.
 nextflow_base_config = NextflowOperatorConfig(
     kube_config=kube_config_etl,
-    is_delete_operator_pod=True,
+    on_finish_action='delete_pod',
     image='nextflow/nextflow:23.10.1',
     service_account_name='nextflow',
     minio_credentials_secret_name=f'cqgc-{env}-minio-app-nextflow',

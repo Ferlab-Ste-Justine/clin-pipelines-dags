@@ -1,11 +1,12 @@
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import task
 from airflow.utils.trigger_rule import TriggerRule
+
 from lib.config import K8sContext, env, es_url
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack
@@ -17,7 +18,7 @@ from lib.utils_etl import color, release_id, skip_if_param_not
 with DAG(
         dag_id='etl_es_utils',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         params={
             'delete_release': Param('no', enum=['yes', 'no']),
             'test_duplicated_variants': Param('no', enum=['yes', 'no']),

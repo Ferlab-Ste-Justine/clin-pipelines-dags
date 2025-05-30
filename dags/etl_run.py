@@ -21,7 +21,7 @@ from pandas import DataFrame
 with DAG(
         dag_id='etl_run',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         catchup=False,
         params={
             'sequencing_ids': Param([], type=['null', 'array']),

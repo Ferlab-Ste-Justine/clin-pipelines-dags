@@ -8,7 +8,7 @@ from lib.tasks import enrich
 with DAG(
         dag_id='etl_reset_enrich_consequences',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         default_args={
             'on_failure_callback': Slack.notify_task_failure,
         },

@@ -12,7 +12,7 @@ from lib.utils_etl import color
 with DAG(
     dag_id='script_pipeline',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     params={
         'script': Param('', type='string'),
         'args': Param('', type=['null', 'string']),

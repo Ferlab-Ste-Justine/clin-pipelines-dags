@@ -18,7 +18,7 @@ with DAG(
     dag_id='script_etl',
     start_date=datetime(2022, 1, 1),
     catchup=False,
-    schedule_interval=None,
+    schedule=None,
     description="Run an ad-hoc Spark script.",
     params={
         'spark_class': Param(SCRIPT_MAIN_CLASS, type='string'),

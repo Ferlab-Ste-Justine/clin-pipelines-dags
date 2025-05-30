@@ -13,7 +13,7 @@ with DAG(
     dag_id='etl_qa',
     doc_md=doc.etl_qa,
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     params={
         'spark_jar': Param('', type=['null', 'string']),
     },

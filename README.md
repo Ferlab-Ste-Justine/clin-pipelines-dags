@@ -5,19 +5,19 @@
 Create venv :
 
 ```
-python -m venv venv
+python -m venv .venv
 ```
 
 Activate venv :
 
 ```
-source venv/bin/activate
+source .venv/bin/activate
 ```
 
 Install requirements :
 
 ```
-pip install -r requirements
+pip install -r requirements.txt
 ```
 
 ## Airflow dev stack

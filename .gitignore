@@ -3,5 +3,6 @@ __pycache__
 logs
 plugins
 venv
+.venv
 .idea
 doc/test/.minikube-setup

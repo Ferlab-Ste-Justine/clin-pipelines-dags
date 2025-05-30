@@ -19,7 +19,7 @@ from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 with DAG(
     dag_id='etl_import_gnomad_v4_cnv',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     params={
         'spark_jar': Param('', type=['null', 'string']),
         },
