@@ -11,7 +11,7 @@ from lib.slack import Slack
 with DAG(
         dag_id='etl_import_rare_variant',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         max_active_tasks=1,  # Only one task can be scheduled at a time
         default_args={
             'trigger_rule': TriggerRule.NONE_FAILED,

@@ -13,7 +13,7 @@ if env in [Env.PROD]:
     with DAG(
         dag_id='etl_import_varsome',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         params={
             'batch_id':  Param('', type='string'),
         },

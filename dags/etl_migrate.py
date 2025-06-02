@@ -20,7 +20,7 @@ from lib.utils_etl import color, get_group_id, spark_jar
 with DAG(
         dag_id='etl_migrate',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         params={
             'color': Param('', type=['null', 'string']),
             'snv': Param('no', enum=['yes', 'no']),
