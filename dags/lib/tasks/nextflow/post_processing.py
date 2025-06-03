@@ -48,14 +48,14 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str], job_hash: str) -> str:
     df: DataFrame = to_pandas(enriched_clinical.uri)
 
     column_map = {
-        'analysis_service_request_id': 'familyId',
-        'service_request_id': 'sequencingId',
+        'analysis_id': 'familyId',
+        'sequencing_id': 'sequencingId',
         'aliquot_id': 'sample',
         'sequencing_strategy': 'sequencingType',
         'snv_vcf_urls': 'gvcf'
     }
 
-    samples = df[df['service_request_id'].isin(seq_id_pheno_file_mapping.keys())] \
+    samples = df[df['sequencing_id'].isin(seq_id_pheno_file_mapping.keys())] \
         .rename(columns=column_map)[[*column_map.values()]]
 
     # Replace sequencing strategy with 'WES' because Nextflow expects 'WES' instead of 'WXS'
