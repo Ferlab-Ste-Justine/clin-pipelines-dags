@@ -15,7 +15,7 @@ with DAG(
         dag_id='etl_import_franklin',
         doc_md=doc.franklin,
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         render_template_as_native_obj=True,
         default_args={
             'trigger_rule': TriggerRule.NONE_FAILED,

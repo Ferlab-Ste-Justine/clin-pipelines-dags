@@ -15,7 +15,7 @@ from lib.utils_s3 import get_s3_file_md5, download_and_check_md5, load_to_s3_wit
 with DAG(
     dag_id='etl_import_human_genes',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },

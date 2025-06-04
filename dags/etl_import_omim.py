@@ -10,7 +10,7 @@ from lib.slack import Slack
 with DAG(
     dag_id='etl_import_omim',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },

@@ -61,19 +61,19 @@ no_dup_gnomad_joint = '''
 no_dup_clinical = '''
 ### Documentation
 - Test : Non duplication - Table enriched_clinical
-- Objectif : L'information clinique doit être unique par analysis_service_request_id, service_request_id et bioinfo_analysis_code dans la table enriched_clinical
+- Objectif : L'information clinique doit être unique par analysis_id, sequencing_id et bioinfo_analysis_code dans la table enriched_clinical
 '''
 
 no_dup_nor_snv = '''
 ### Documentation
 - Test : Non duplication - Table normalized_snv
-- Objectif : Les variants doivent être uniques par service_request_id dans la table normalized_snv
+- Objectif : Les variants doivent être uniques par sequencing_id dans la table normalized_snv
 '''
 
 no_dup_nor_snv_somatic = '''
 ### Documentation
 - Test : Non duplication - Table normalized_snv_somatic
-- Objectif : Les variants doivent être uniques par service_request_id dans la table normalized_snv_somatic
+- Objectif : Les variants doivent être uniques par sequencing_id dans la table normalized_snv_somatic
 '''
 
 no_dup_nor_consequences = '''
@@ -91,13 +91,13 @@ no_dup_nor_variants = '''
 no_dup_snv = '''
 ### Documentation
 - Test : Non duplication - Table snv
-- Objectif : Les variants doivent être uniques par service_request_id dans la table snv
+- Objectif : Les variants doivent être uniques par sequencing_id dans la table snv
 '''
 
 no_dup_snv_somatic = '''
 ### Documentation
 - Test : Non duplication - Table snv_somatic
-- Objectif : Les variants doivent être uniques par service_request_id dans la table snv_somatic
+- Objectif : Les variants doivent être uniques par sequencing_id dans la table snv_somatic
 '''
 
 no_dup_consequences = '''
@@ -139,7 +139,7 @@ no_dup_nextflow_svclustering = '''
 no_dup_nextflow_svclustering_parental_origin = '''
 ### Documentation
 - Test : Non duplication - Table nextflow_svclustering_parental_origin
-- Objectif : Les clusters doivent être uniques par service_request_id dans la table nextflow_svclustering_parental_origin
+- Objectif : Les clusters doivent être uniques par sequencing_id dans la table nextflow_svclustering_parental_origin
 '''
 
 same_list_nor_snv_nor_variants = '''

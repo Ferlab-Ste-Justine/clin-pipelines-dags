@@ -17,7 +17,7 @@ from lib.utils_etl import color, skip_if_param_not
 with DAG(
     dag_id='etl_import_fhir',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     params={
         'fhir': Param('no', enum=['yes', 'no']),
         'csv': Param('no', enum=['yes', 'no']),

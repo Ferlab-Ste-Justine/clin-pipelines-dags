@@ -17,7 +17,7 @@ from lib.utils_etl import batch_id, color, skip_import, spark_jar
 with DAG(
         dag_id='etl_ingest',
         start_date=datetime(2022, 1, 1),
-        schedule_interval=None,
+        schedule=None,
         params={
             'batch_id': Param('', type='string'),
             'color': Param('', type=['null', 'string']),

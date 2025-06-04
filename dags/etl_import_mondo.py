@@ -27,7 +27,7 @@ from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 with DAG(
     dag_id='etl_import_mondo',
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     params={
         'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),
@@ -87,8 +87,7 @@ with DAG(
     download_mondo_terms = PythonOperator(
         task_id='download_mondo_terms',
         python_callable=download,
-        op_args=['mondo-base.obo', 'mondo.obo'],
-        provide_context=True,
+        op_args=['mondo-base.obo', 'mondo.obo']
     )
 
     normalized_mondo_terms = SparkOperator(

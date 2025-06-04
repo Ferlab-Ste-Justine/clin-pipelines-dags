@@ -21,7 +21,7 @@ GNOMAD_S3_BUCKET = "gnomad-public-us-east-1"
 @dag(
     dag_id="etl_import_gnomad_v4_joint",
     start_date=datetime(2022, 1, 1),
-    schedule_interval=None,
+    schedule=None,
     max_active_tasks=1,
     default_args={
         "on_failure_callback": Slack.notify_task_failure,
