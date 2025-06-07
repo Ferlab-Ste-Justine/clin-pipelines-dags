@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import Dict, List
 
 from airflow import DAG
 from airflow.decorators import task, task_group
@@ -19,7 +19,7 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, enrich
 from lib.tasks.batch_type import skip_if_no_batch_in
-from lib.tasks.params_validate import validate_color
+from lib.tasks.params_validate import get_sequencing_ids, validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
                            skip_notify, spark_jar)
 
@@ -30,6 +30,8 @@ with DAG(
         params={
             'batch_ids': Param([], type=['null', 'array'],
                                description='Put a single batch id per line. Leave empty to skip ingest.'),
+            'sequencing_ids': Param([], type=['null', 'array'],
+                               description='Put a single id id per line. Leave empty to skip ingest.'),
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
@@ -76,11 +78,34 @@ with DAG(
         return sorted(list(set(ids)), key=lambda x: x.endswith("somatic_normal"))
 
 
-    @task(task_id='get_ingest_dag_configs')
-    def get_ingest_dag_config(batch_id: str, ti=None) -> dict:
+    @task(task_id='get_ingest_dag_configs_by_batch_id')
+    def get_ingest_dag_configs_by_batch_id(batch_id: str, ti=None) -> dict:
         dag_run: DagRun = ti.dag_run
         return {
             'batch_id': batch_id,
+            'sequencing_ids': None,
+            'color': dag_run.conf['color'],
+            'import': dag_run.conf['import'],
+            'spark_jar': dag_run.conf['spark_jar']
+        }
+    
+    @task(task_id='get_ingest_dag_configs_by_sequencing_ids')
+    def get_ingest_dag_configs_by_sequencing_ids(all_batch_types: Dict[str, str], sequencing_ids: List[str], analysisType: str, ti=None) -> dict:
+        dag_run: DagRun = ti.dag_run
+
+        # try regroup sequencing ids and generate a config of etl_ingest for each analysis type
+
+        sequencing_ids_compatible_with_type = []
+        for identifier, type in all_batch_types.items():
+            if analysisType == type and identifier in sequencing_ids:
+                sequencing_ids_compatible_with_type.append(identifier)
+
+        if len(sequencing_ids_compatible_with_type) == 0:
+            return None # No sequencing ids found for that analysis type
+
+        return {
+            'batch_id': None,
+            'sequencing_ids': sequencing_ids_compatible_with_type,
             'color': dag_run.conf['color'],
             'import': dag_run.conf['import'],
             'spark_jar': dag_run.conf['spark_jar']
@@ -88,17 +113,26 @@ with DAG(
 
 
     get_batch_ids_task = get_batch_ids()
-    detect_batch_types_task = batch_type.detect.expand(batch_id=get_batch_ids_task)
-    get_ingest_dag_configs_task = get_ingest_dag_config.expand(batch_id=get_batch_ids_task)
+    get_sequencing_ids_task = get_sequencing_ids()
 
-    trigger_ingest_dags = TriggerDagRunOperator.partial(
+    detect_batch_types_task = batch_type.detect(batch_ids=get_batch_ids_task, sequencing_ids=get_sequencing_ids_task, allowMultipleIdentifierTypes=True)
+
+    get_ingest_dag_configs_by_batch_id_task = get_ingest_dag_configs_by_batch_id.expand(batch_id=get_batch_ids_task)
+    get_ingest_dag_configs_by_sequencing_ids_task = get_ingest_dag_configs_by_sequencing_ids.partial(all_batch_types=detect_batch_types_task, sequencing_ids=get_sequencing_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
+
+    trigger_ingest_by_batch_id_dags = TriggerDagRunOperator.partial(
         task_id='ingest_batches',
         trigger_dag_id='etl_ingest',
         wait_for_completion=True
-    ).expand(conf=get_ingest_dag_configs_task)
+    ).expand(conf=get_ingest_dag_configs_by_batch_id_task)
+
+    trigger_ingest_by_sequencing_ids_dags = TriggerDagRunOperator.partial(
+        task_id='ingest_sequencing_ids',
+        trigger_dag_id='etl_ingest',
+        wait_for_completion=True,
+    ).expand(conf=get_ingest_dag_configs_by_sequencing_ids_task)
 
     steps = default_or_initial(batch_param_name='batch_ids')
-
 
     @task_group(group_id='enrich')
     def enrich_group():
@@ -274,6 +308,7 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    (params_validate_task >> get_batch_ids_task >> detect_batch_types_task >> get_ingest_dag_configs_task >>
-     trigger_ingest_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
+    (params_validate_task >> get_batch_ids_task >> get_sequencing_ids_task >> detect_batch_types_task >> 
+     get_ingest_dag_configs_by_batch_id_task >> get_ingest_dag_configs_by_sequencing_ids_task >>
+     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_sequencing_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
      publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_delete_previous_releases >> trigger_qc_es_dag >> trigger_cnv_frequencies >> trigger_qc_dag)
