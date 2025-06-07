@@ -1,9 +1,9 @@
 import base64
 import hashlib
 import json
+from typing import Any, List
 
 import requests
-from typing import Any, List
 
 
 def join(string: str, parts: List[str]) -> str:
@@ -43,3 +43,10 @@ def urlsafe_hash(obj: Any, length: int) -> str:
     hash_obj = hashlib.sha256(utf8_str).digest()
     base64_str = base64.urlsafe_b64encode(hash_obj).decode('utf-8').rstrip('=')  # Encoding to base64 allows for more compact representation (more bits per character)
     return base64_str[:length]
+
+def sanitize_list_param(lst: Any) -> list[str]:
+    if type(lst) is str:
+        lst = [lst]
+    if lst and len(lst) > 0 and all(s != "" for s in lst):
+        return lst
+    return []

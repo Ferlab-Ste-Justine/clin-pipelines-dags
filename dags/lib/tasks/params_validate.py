@@ -1,5 +1,6 @@
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
+from airflow.models import DagRun
 from lib.config import Env, env
 from lib.slack import Slack
 
@@ -20,9 +21,9 @@ def validate_release_color(release_id: str, color: str):
 
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)
-def validate_batch_color(batch_id: str, color: str):
-    if batch_id == '':
-        raise AirflowFailException('DAG param "batch_id" is required')
+def validate_batch_sequencing_ids_color(batch_id: str, sequencing_ids: str, color: str):
+    if batch_id == '' and sequencing_ids == '':
+        raise AirflowFailException('DAG param "batch_id" or "sequencing_ids" is required')
     if env == Env.QA:
         if not color or color == '':
             raise AirflowFailException(
@@ -51,3 +52,8 @@ def validate_color(color: str):
         raise AirflowFailException(
             f'DAG param "color" is forbidden in {env} environment'
         )
+
+@task(task_id='get_sequencing_ids')
+def get_sequencing_ids(ti=None) -> list:
+    dag_run: DagRun = ti.dag_run
+    return dag_run.conf['sequencing_ids'] if dag_run.conf['sequencing_ids'] is not None else []
