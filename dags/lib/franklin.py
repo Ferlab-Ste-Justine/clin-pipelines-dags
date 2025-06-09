@@ -92,6 +92,8 @@ def extract_vcf_prefix(vcf_key):
         raise AirflowFailException(f'Invalid VCF prefix: {vcf_key}') 
     return name
 
+
+# TODO: Remove (unused)
 # took a lot of efforts to have something working, feel free to improve it in the future for fun
 def extract_aliquot_ids_from_vcf(vcf_content):
     aliquot_ids = []
@@ -188,6 +190,7 @@ def write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, status, ids
 
 def write_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id, status, ids = None, id = None):
     clin_s3.load_string(status.name, build_s3_analyses_status_key(batch_id, family_id, aliquot_id), clin_datalake_bucket, replace=True)
+    # TODO: fix (file is overwritten for each aliquot_id when called by write_s3_analyses_status, it should only be created once for the family)
     if ids is not None: # save TRIO, DUO ... analyses IDs
         clin_s3.load_string(','.join(map(str, ids)), build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), clin_datalake_bucket, replace=True)
     if id is not None:  # after status we can attached an ID to a specific family + aliquot id whatever it's SOLO or TRIO, DUO ...
