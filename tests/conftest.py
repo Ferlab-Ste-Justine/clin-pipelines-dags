@@ -1,4 +1,5 @@
 import http.client
+import logging
 import ssl
 from pathlib import Path
 from unittest.mock import patch
@@ -55,14 +56,14 @@ def start_minio_container():
     client = docker.from_env()
 
     def _start_minio_container(name):
-        print(f"Starting MinIO container with name: {name}")
+        logging.info(f"Starting MinIO container with name: {name}")
         if name in containers:
-            print(f"Using existing MinIO instance for {name}")
+            logging.info(f"Using existing MinIO instance for {name}")
             return containers[name]
 
         for container in client.containers.list():
             if name in container.name:
-                print(f"Found existing container with name: {name}")
+                logging.info(f"Found existing container with name: {name}")
                 ports = container.attrs["NetworkSettings"]["Ports"]
                 api_port = ports[f"{MINIO_API_PORT}/tcp"][0]["HostPort"]
                 console_port = ports[f"{MINIO_CONSOLE_PORT}/tcp"][0]["HostPort"]
@@ -70,7 +71,7 @@ def start_minio_container():
                 containers[name] = instance
                 return instance  # No tear down, just return existing instance
 
-        print(f"Creating new MinIO container with name: {name}")
+        logging.info(f"Creating new MinIO container with name: {name}")
         container = (
             DockerContainer(MINIO_IMAGE)
             .with_name(name)
@@ -92,7 +93,7 @@ def start_minio_container():
     yield _start_minio_container
 
     for name in containers:
-        print(f"Tearing down MinIO container with name: {name}")
+        logging.info(f"Tearing down MinIO container with name: {name}")
         container = client.containers.get(name)
         container.stop()
 
@@ -103,7 +104,7 @@ def create_airflow_s3_connection(conn_id, minio_instance: MinioInstance):
     # Overwrite existing connection if it exists
     existing_conn = session.query(Connection).filter(Connection.conn_id == conn_id).first()
     if existing_conn:
-        print(f"Overwriting existing connection: {conn_id}")
+        logging.info(f"Overwriting existing connection: {conn_id}")
         session.delete(existing_conn)
         session.commit()
 
@@ -139,7 +140,7 @@ def clin_minio(get_s3_hook):
 
     for bucket in all_qlin_buckets:
         if not s3_hook.check_for_bucket(bucket):
-            print(f"Creating bucket: {bucket}")
+            logging.info(f"Creating bucket: {bucket}")
             s3_hook.create_bucket(bucket_name=bucket)
 
     yield s3_hook
@@ -151,7 +152,7 @@ def franklin_s3(get_s3_hook):
     s3_hook = get_s3_hook(s3_franklin)
 
     if not s3_hook.check_for_bucket(s3_franklin_bucket):
-        print(f"Creating Franklin bucket: {s3_franklin_bucket}")
+        logging.info(f"Creating Franklin bucket: {s3_franklin_bucket}")
         s3_hook.create_bucket(bucket_name=s3_franklin_bucket)
 
     yield s3_hook
