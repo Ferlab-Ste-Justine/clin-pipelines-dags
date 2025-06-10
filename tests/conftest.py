@@ -13,6 +13,8 @@ from testcontainers.core.container import DockerContainer
 from testcontainers.core.waiting_utils import wait_for_logs
 
 DAGS_DIR = Path(__file__).parent.parent / 'dags'
+RESOURCES_DIR = Path(__file__).parent / 'resources'
+
 MOCK_VARIABLES = {
     'environment': 'test',
     's3_conn_id': 'clin_minio',
