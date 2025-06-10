@@ -31,7 +31,7 @@ with DAG(
             'batch_ids': Param([], type=['null', 'array'],
                                description='Put a single batch id per line. Leave empty to skip ingest.'),
             'sequencing_ids': Param([], type=['null', 'array'],
-                               description='Put a single id id per line. Leave empty to skip ingest.'),
+                               description='Put a single id per line. Leave empty to skip ingest.'),
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),

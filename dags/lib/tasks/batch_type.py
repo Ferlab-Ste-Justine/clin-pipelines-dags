@@ -45,7 +45,7 @@ def _validate_cnv_vcf_files(metadata: dict, cnv_suffix: str):
                 all_cnv_vcf_valid = False
 
     if not all_cnv_vcf_valid:
-        raise AirflowFailException(f'Not all valid CNV VCF(s) found')@task
+        raise AirflowFailException(f'Not all valid CNV VCF(s) found')
 
 # Preserving the old function name and task ID for backward compatibility.
 # In the future, we may consider renaming this to remove references to the batch concept.
@@ -55,7 +55,7 @@ def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowM
     """
     Returns a dict where the key is the batch id or the sequencing id and the value are the analysis types.
 
-    If a `batch_ids` is provided and the analysis type cannot be determined from the `enriched_clinical` table,
+    If `batch_ids` is provided and the analysis type cannot be determined from the `enriched_clinical` table,
     the function will attempt to infer the analysis type from the metadata file. If the metadata file does
     not exist, the analysis type will default to `SOMATIC_TUMOR_NORMAL`.
 
@@ -68,8 +68,8 @@ def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowM
     from collections import defaultdict
 
     from airflow.exceptions import AirflowFailException
-    from lib.tasks.batch_type import (_detect_type_from_enrich_clinical,
-                                      _detect_type_from_metadata_file)
+    from lib.tasks.batch_type import (_detect_types_from_enrich_clinical,
+                                      _detect_types_from_metadata_file)
     from lib.utils import sanitize_list_param
     from lib.utils_etl import ClinAnalysis
 
@@ -84,10 +84,10 @@ def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowM
 
     if len(batch_ids) == 0 and len(sequencing_ids) == 0:
         # we can't raise an airflow skip exception here from a virtual task
-        logger.info("Neither batch_id or sequencing_ids have been provided")
-        return defaultdict(list)
+        logger.warning("Neither batch_id or sequencing_ids have been provided")
+        return defaultdict(str)
 
-    batch_ids_to_type = _detect_type_from_enrich_clinical(
+    batch_ids_to_type = _detect_types_from_enrich_clinical(
         identifier_column="batch_id",
         identifiers=batch_ids,
         must_exist=False
@@ -96,9 +96,9 @@ def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowM
     missing_batch_ids = set(batch_ids) - set(batch_ids_to_type.keys())
     if missing_batch_ids:
         logger.info(f"Unable to infer batch type for batch ID {missing_batch_ids} from the enriched clinical table. Falling back to metadata file.")
-        batch_ids_to_type |= _detect_type_from_metadata_file(missing_batch_ids)
+        batch_ids_to_type.update(_detect_types_from_metadata_file(missing_batch_ids))
 
-    sequencing_ids_to_type = _detect_type_from_enrich_clinical(
+    sequencing_ids_to_type = _detect_types_from_enrich_clinical(
         identifier_column="sequencing_id",
         identifiers=sequencing_ids,
         must_exist=True
@@ -113,8 +113,8 @@ def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowM
     for sequencing_id, types in sequencing_ids_to_type.items():
         if sequencing_id in identifier_to_type: # for some reason a batch_id and sequencing_id have the same value
             raise AirflowFailException(f"Duplicated identifier between batch_id and sequencing_id: {sequencing_id}")
-        # remove SOMATIC_TUMOR_NORMAL if part of the types
-        types = list(filter(lambda type: type != ClinAnalysis.SOMATIC_TUMOR_NORMAL.value, types))
+        # remove SOMATIC_TUMOR_NORMAL if part of the types, somatic normal can only be imported via batch_id
+        types = [t for t in types if t != ClinAnalysis.SOMATIC_TUMOR_NORMAL.value]
         if len(types) > 1: # should never happen unless in the future we add new analysis types
             raise AirflowFailException(f"Sequencing: {sequencing_id} has multiple analysis types: {types}")
         identifier_to_type[sequencing_id] = types[0]
@@ -127,7 +127,7 @@ def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowM
     return identifier_to_type
    
 
-def _detect_type_from_enrich_clinical(identifier_column: str, identifiers: List[str], must_exist=True) -> Dict[str, List[str]]:
+def _detect_types_from_enrich_clinical(identifier_column: str, identifiers: List[str], must_exist=True) -> Dict[str, List[str]]:
     """
     Returns a dictionary mapping each identifier to its corresponding analysis type.
 
@@ -181,9 +181,9 @@ def _detect_type_from_enrich_clinical(identifier_column: str, identifiers: List[
     return identifier_to_types
 
 
-def _detect_type_from_metadata_file(batch_ids: List[str]) -> Dict[str, List[str]]:
+def _detect_types_from_metadata_file(batch_ids: List[str]) -> Dict[str, List[str]]:
     """
-    Returns a dict where the key is the batch ids and the value is the analysis type.
+    Returns a dict where the key is the batch id and the value is the analysis type.
 
     The possible analysis types (formerly referred to as batch type) are:
      - GERMLINE
