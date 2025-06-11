@@ -1,14 +1,12 @@
-import gzip
 import http.client
 import json
 import logging
-import shutil
-import tempfile
 import urllib.parse
 from datetime import datetime
 from enum import Enum
 
 from airflow.exceptions import AirflowFailException
+
 from lib import config
 from lib.config import (clin_datalake_bucket, clin_import_bucket, env,
                         franklin_assay_id)
@@ -93,31 +91,6 @@ def extract_vcf_prefix(vcf_key):
     return name
 
 
-# TODO: Remove (unused)
-# took a lot of efforts to have something working, feel free to improve it in the future for fun
-def extract_aliquot_ids_from_vcf(vcf_content):
-    aliquot_ids = []
-    with tempfile.NamedTemporaryFile(delete=True) as temp_zipped_file, tempfile.NamedTemporaryFile(delete=True) as temp_unzipped_file:
-        temp_zipped_file.write(vcf_content)
-        logging.info(f'VCF tmp location zipped: {temp_zipped_file.name} unzipped: {temp_unzipped_file.name}')
-        with gzip.open(temp_zipped_file.name, 'rb') as f_in, open(temp_unzipped_file.name, 'wb') as f_out:
-            shutil.copyfileobj(f_in, f_out, length=100*1024*1024)
-            with open(temp_unzipped_file.name, 'r') as file:
-                for line in file:
-                    if line.startswith('#CHROM'):
-                        formatFound = False
-                        cols = line.split('\t')
-                        for col in cols:
-                            if col == 'FORMAT':
-                                formatFound = True
-                                continue
-                            if formatFound:
-                                aliquot_ids.append(col.replace('\n',''))
-                        break # aliquots line found, stop here
-    if len(aliquot_ids) == 0:
-        raise AirflowFailException(f'VCF aliquot IDs not found')
-    return aliquot_ids
-
 def attach_vcf_to_analysis(analysis, vcfs, proband_aliquot_id):
     aliquot_id = analysis['labAliquotId']
     family_id = analysis.get('patient', {}).get('familyId') # solo dont have familyId
@@ -190,7 +163,6 @@ def write_s3_analyses_status(clin_s3, batch_id, family_id, analyses, status, ids
 
 def write_s3_analysis_status(clin_s3, batch_id, family_id, aliquot_id, status, ids = None, id = None):
     clin_s3.load_string(status.name, build_s3_analyses_status_key(batch_id, family_id, aliquot_id), clin_datalake_bucket, replace=True)
-    # TODO: fix (file is overwritten for each aliquot_id when called by write_s3_analyses_status, it should only be created once for the family)
     if ids is not None: # save TRIO, DUO ... analyses IDs
         clin_s3.load_string(','.join(map(str, ids)), build_s3_analyses_ids_key(batch_id, family_id, aliquot_id), clin_datalake_bucket, replace=True)
     if id is not None:  # after status we can attached an ID to a specific family + aliquot id whatever it's SOLO or TRIO, DUO ...
