@@ -103,7 +103,7 @@ with DAG(
 
     def migrate_batch_id(batch_id: str) -> TaskGroup:
         with TaskGroup(group_id=get_group_id('migrate', batch_id)) as group:
-            detect_batch_type_task = batch_type.detect(batch_id)
+            detect_batch_type_task = batch_type.detect(batch_ids=batch_id)
 
             migrate_germline_group = migrate_germline(
                 batch_id=batch_id,
