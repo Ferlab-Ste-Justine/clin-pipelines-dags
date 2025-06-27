@@ -1,9 +1,8 @@
 import json
 from enum import Enum
-from typing import Optional, List
+from typing import List, Optional
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 from lib import config
 from lib.config import clin_import_bucket, config_file
 
@@ -44,6 +43,8 @@ class BioinfoAnalysisCode(Enum):
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
 
+def sequencing_ids():
+    return '{{ params.sequencing_ids or "" }}'
 
 def release_id(index: Optional[str] = None) -> str:
     if not index:
