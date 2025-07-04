@@ -49,6 +49,7 @@ with DAG(
 
     ingest_germline_group = ingest_germline(
         batch_id=batch_id(),
+        sequencing_ids=get_sequencing_ids_task,
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
@@ -66,6 +67,7 @@ with DAG(
 
     ingest_somatic_tumor_only_group = ingest_somatic_tumor_only(
         batch_id=batch_id(),
+        sequencing_ids=get_sequencing_ids_task,
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
@@ -80,6 +82,7 @@ with DAG(
 
     ingest_somatic_tumor_normal_group = ingest_somatic_tumor_normal(
         batch_id=batch_id(),
+        sequencing_ids=get_sequencing_ids_task,
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed

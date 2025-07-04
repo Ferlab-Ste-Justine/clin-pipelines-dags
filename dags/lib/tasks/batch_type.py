@@ -7,6 +7,7 @@ from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib.config import clin_import_bucket, s3_conn_id
 from lib.datasets import enriched_clinical
+from lib.utils import sanitize_list_param
 from lib.utils_etl import (ClinAnalysis, ClinSchema, ClinVCFSuffix,
                            get_metadata_content, metadata_exists)
 
@@ -254,41 +255,51 @@ def skip_if_no_batch_in(target_batch_types: List[ClinAnalysis]) -> str:
 
 
 @task(task_id='validate_batch_type')
-def validate(batch_id: str, batch_type: ClinAnalysis, skip: str = ''):
+def validate(batch_id: str, sequencing_ids: list, batch_type: ClinAnalysis, skip: str = ''):
     if skip:
         raise AirflowSkipException()
+    
+    batch_ids = sanitize_list_param(batch_id)
+    sequencing_ids = sanitize_list_param(sequencing_ids)
+    
+    if len(batch_ids) == 0 and len(sequencing_ids) == 0:
+         raise AirflowFailException('Neither batch_id or sequencing_ids have been provided')
+    
+    if len(batch_ids) > 0:
+        clin_s3 = S3Hook(s3_conn_id)
+        metadata = get_metadata_content(clin_s3, batch_id) if metadata_exists(clin_s3, batch_id) else {}
+        submission_schema = metadata.get('submissionSchema', '')
 
-    clin_s3 = S3Hook(s3_conn_id)
-    metadata = get_metadata_content(clin_s3, batch_id) if metadata_exists(clin_s3, batch_id) else {}
-    submission_schema = metadata.get('submissionSchema', '')
+        if batch_type == ClinAnalysis.GERMLINE:
+            if submission_schema != ClinSchema.GERMLINE.value:
+                raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
 
-    if batch_type == ClinAnalysis.GERMLINE:
-        if submission_schema != ClinSchema.GERMLINE.value:
-            raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
+            logging.info(f'Schema: {submission_schema}')
 
-        logging.info(f'Schema: {submission_schema}')
+            snv_vcf_suffix = ClinVCFSuffix.SNV_GERMLINE.value
+            cnv_vcf_suffix = ClinVCFSuffix.CNV_GERMLINE.value
 
-        snv_vcf_suffix = ClinVCFSuffix.SNV_GERMLINE.value
-        cnv_vcf_suffix = ClinVCFSuffix.CNV_GERMLINE.value
+            _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
+            _validate_cnv_vcf_files(metadata, cnv_vcf_suffix)
 
-        _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
-        _validate_cnv_vcf_files(metadata, cnv_vcf_suffix)
+        elif batch_type == ClinAnalysis.SOMATIC_TUMOR_ONLY:
+            if submission_schema != ClinSchema.SOMATIC_TUMOR_ONLY.value:
+                raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
 
-    elif batch_type == ClinAnalysis.SOMATIC_TUMOR_ONLY:
-        if submission_schema != ClinSchema.SOMATIC_TUMOR_ONLY.value:
-            raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
+            logging.info(f'Schema: {submission_schema}')
 
-        logging.info(f'Schema: {submission_schema}')
+            snv_vcf_suffix = ClinVCFSuffix.SNV_SOMATIC_TUMOR_ONLY.value
+            cnv_vcf_suffix = ClinVCFSuffix.CNV_SOMATIC_TUMOR_ONLY.value
 
-        snv_vcf_suffix = ClinVCFSuffix.SNV_SOMATIC_TUMOR_ONLY.value
-        cnv_vcf_suffix = ClinVCFSuffix.CNV_SOMATIC_TUMOR_ONLY.value
+            _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
+            _validate_cnv_vcf_files(metadata, cnv_vcf_suffix)
 
-        _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
-        _validate_cnv_vcf_files(metadata, cnv_vcf_suffix)
+        elif batch_type == ClinAnalysis.SOMATIC_TUMOR_NORMAL:
+            if metadata:
+                raise AirflowFailException(f'Metadata file should not exist for Somatic Tumor Normal')
 
-    elif batch_type == ClinAnalysis.SOMATIC_TUMOR_NORMAL:
-        if metadata:
-            raise AirflowFailException(f'Metadata file should not exist for Somatic Tumor Normal')
+            snv_vcf_suffix = ClinVCFSuffix.SNV_SOMATIC_TUMOR_NORMAL.value
+            _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
 
-        snv_vcf_suffix = ClinVCFSuffix.SNV_SOMATIC_TUMOR_NORMAL.value
-        _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
+    if len(sequencing_ids) > 0:
+        raise AirflowSkipException('Validation for sequencing_ids is not implemented yet.')

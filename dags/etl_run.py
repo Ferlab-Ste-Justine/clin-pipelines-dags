@@ -127,7 +127,7 @@ with DAG(
         return urlsafe_hash(all_analysis_ids, length=14)  # 14 is safe for up to 1B hashes
     
     @task
-    def prepare_exomiser_references_analysis_ids(all_analysis_ids: Set[str]) -> List[str]:
+    def prepare_exomiser_references_analysis_ids(all_analysis_ids: Set[str]) -> str:
         return '--analysis-ids=' + ','.join(all_analysis_ids)
 
     get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
