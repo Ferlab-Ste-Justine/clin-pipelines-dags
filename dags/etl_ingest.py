@@ -36,7 +36,7 @@ with DAG(
         color=color()
     )
 
-    detect_batch_type_task = batch_type.detect(batch_id())
+    detect_batch_type_task = batch_type.detect(batch_ids=[batch_id()])
 
     ingest_germline_group = ingest_germline(
         batch_id=batch_id(),

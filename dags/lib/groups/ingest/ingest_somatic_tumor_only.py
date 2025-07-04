@@ -29,7 +29,7 @@ def ingest_somatic_tumor_only(
     )
 
     ingest_fhir_group = ingest_fhir(
-        batch_id=batch_id,
+        batch_ids=[batch_id],
         color=color,
         skip_all=skip_all,
         skip_import=skip_import,

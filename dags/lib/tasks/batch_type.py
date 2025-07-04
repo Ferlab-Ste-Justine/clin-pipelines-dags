@@ -56,14 +56,15 @@ def _validate_cnv_vcf_files(metadata: dict, cnv_suffix: str):
 # Preserving the old function name and task ID for backward compatibility.
 # In the future, we may consider renaming this to remove references to the batch concept.
 # Note that we restrict amount of activate mapped tasks per DAG to avoid memory issues and delta lake connection problems.
+# TODO: Use Yann's changes
 @task.virtualenv(task_id='detect_batch_type', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical], max_active_tis_per_dag=1)
-def detect(batch_id: Optional[str] = None, sequencing_ids: Optional[List[str]] = None) -> Dict[str, str]:
+def detect(batch_ids: Optional[List[str]] = None, sequencing_ids: Optional[List[str]] = None) -> Dict[str, str]:
     """
     Returns a dict where the key is the batch id or the sequencing id and the value is the analysis type.
 
     Here batch_id and sequencing_ids are mutually exclusive. If both are provided, an exception will be raised.
 
-    If a `batch_id` is provided and the analysis type cannot be determined from the `enriched_clinical` table,
+    If the analysis type of batch id cannot be determined from the `enriched_clinical` table,
     the function will attempt to infer the analysis type from the metadata file. If the metadata file does
     not exist, the analysis type will default to `SOMATIC_TUMOR_NORMAL`.
 
@@ -74,24 +75,25 @@ def detect(batch_id: Optional[str] = None, sequencing_ids: Optional[List[str]] =
     """
     import logging
     from airflow.exceptions import AirflowFailException
-    from lib.tasks.batch_type import _detect_type_from_enrich_clinical, _detect_type_from_metadata_file
+    from lib.tasks.batch_type import _detect_type_from_enrich_clinical, _detect_types_from_metadata_file
 
     logger = logging.getLogger(__name__)
 
-    if batch_id and sequencing_ids:
+    # TODO: Should this be checked here? We already have this check in `params_validate.validate_batch_ids_sequencing_ids_color`
+    if batch_ids and sequencing_ids:
         raise AirflowFailException("Only one of batch_id or sequencing_ids can be provided")
 
-    if not (batch_id or sequencing_ids):
+    if not (batch_ids or sequencing_ids):
         raise AirflowFailException("Either batch_id or sequencing_ids must be provided")
 
     identifier_to_type = _detect_type_from_enrich_clinical(
-        identifier_column="batch_id" if batch_id else "sequencing_id",
-        identifiers=[batch_id] if batch_id else sequencing_ids,
+        identifier_column="batch_id" if batch_ids else "sequencing_id",
+        identifiers=batch_ids if batch_ids else sequencing_ids,
         must_exist=bool(sequencing_ids)
     )
-    if not identifier_to_type and batch_id:
-        logger.info(f"Unable to infer batch type for batch ID {batch_id} from the enriched clinical table. Falling back to metadata file.")
-        return _detect_type_from_metadata_file(batch_id)
+    if not identifier_to_type and batch_ids:
+        logger.info(f"Unable to infer batch types for batch IDs {batch_ids} from the enriched clinical table. Falling back to metadata file.")
+        return _detect_types_from_metadata_file(batch_ids)
     else:
         return identifier_to_type
 
@@ -143,32 +145,38 @@ def _detect_type_from_enrich_clinical(identifier_column, identifiers, must_exist
     return identifier_to_type
 
 
-def _detect_type_from_metadata_file(batch_id: str) -> Dict[str, str]:
+# TODO : Use Yann's changes
+def _detect_types_from_metadata_file(batch_ids: List[str]) -> Dict[str, str]:
     """
     Returns a dict where the key is the batch id and the value is the analysis type.
 
-    The possible analysis types (formerly referred to as batch type) are:
+    The possible analysis types (formerly referred to as batch types) are:
      - GERMLINE
      - SOMATIC_TUMOR_ONLY
      - SOMATIC_TUMOR_NORMAL
     """
     clin_s3 = S3Hook(s3_conn_id)
+    identifier_to_types = {}
 
-    if metadata_exists(clin_s3, batch_id):
-        # If the metadata file exists, it's either a GERMLINE or SOMATIC_TUMOR_ONLY analysis
-        metadata = get_metadata_content(clin_s3, batch_id)
-        submission_schema = metadata.get('submissionSchema', '')
-        if submission_schema == ClinSchema.GERMLINE.value:
-            batch_type = ClinAnalysis.GERMLINE.value
-        elif submission_schema == ClinSchema.SOMATIC_TUMOR_ONLY.value:
-            batch_type = ClinAnalysis.SOMATIC_TUMOR_ONLY.value
+    for batch_id in batch_ids:
+        batch_type = None
+        if metadata_exists(clin_s3, batch_id):
+            # If the metadata file exists, it's either a GERMLINE or SOMATIC_TUMOR_ONLY analysis
+            metadata = get_metadata_content(clin_s3, batch_id)
+            submission_schema = metadata.get('submissionSchema', '')
+            if submission_schema == ClinSchema.GERMLINE.value:
+                batch_type = ClinAnalysis.GERMLINE.value
+            elif submission_schema == ClinSchema.SOMATIC_TUMOR_ONLY.value:
+                batch_type = ClinAnalysis.SOMATIC_TUMOR_ONLY.value
+            else:
+                raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
         else:
-            raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
-    else:
-        # If the metadata file doesn't exist, it's a SOMATIC_TUMOR_NORMAL analysis
-        batch_type = ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
+            # If the metadata file doesn't exist, it's a SOMATIC_TUMOR_NORMAL analysis
+            batch_type = ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
+        identifier_to_types[batch_id] = batch_type
 
-    return {batch_id: batch_type}
+    logging.info(f"Batch ID to analysis type: {identifier_to_types}")
+    return identifier_to_types
 
 
 def skip(batch_type: ClinAnalysis, batch_type_detected: bool,
