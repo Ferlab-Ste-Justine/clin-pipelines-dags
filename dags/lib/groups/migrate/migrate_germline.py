@@ -1,5 +1,4 @@
 from airflow.decorators import task_group
-
 from lib.groups.normalize.normalize_germline import normalize_germline
 from lib.tasks import batch_type
 from lib.utils_etl import ClinAnalysis, get_group_id
@@ -27,12 +26,14 @@ def migrate_germline(
 
     validate_germline_task = batch_type.validate(
         batch_id=batch_id,
+        sequencing_ids=[],
         batch_type=ClinAnalysis.GERMLINE,
         skip=skip_all
     )
 
     normalize_germline_group = normalize_germline(
         batch_id=batch_id,
+        sequencing_ids=[],
         skip_all=skip_all,
         skip_snv=skip_snv,
         skip_cnv=skip_cnv,

@@ -1,9 +1,10 @@
 import json
 from enum import Enum
-from typing import Optional, List
+from typing import Dict, List, Optional
 
+from airflow.decorators import task
+from airflow.models import DagRun
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 from lib import config
 from lib.config import clin_import_bucket, config_file
 
@@ -44,6 +45,8 @@ class BioinfoAnalysisCode(Enum):
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
 
+def sequencing_ids():
+    return '{{ params.sequencing_ids or "" }}'
 
 def release_id(index: Optional[str] = None) -> str:
     if not index:
@@ -117,6 +120,7 @@ def build_etl_job_arguments(
         entrypoint: Optional[str] = None,
         steps: str = "default",
         batch_id: Optional[str] = None,
+        sequencing_ids: Optional[str] = None,
         chromosome: Optional[str] = None) -> List[str]:
     arguments = [
             '--config', config_file,
@@ -127,6 +131,41 @@ def build_etl_job_arguments(
         arguments = [entrypoint] + arguments
     if batch_id:
         arguments = arguments + ['--batchId', batch_id]
+    if sequencing_ids:
+        arguments = arguments + ['--sequencing_ids', sequencing_ids] # probably wont work out of the box, cause sequencing_ids is a XCom param
     if chromosome:
         arguments = arguments + ['--chromosome', f'chr{chromosome}']
     return arguments
+
+@task(task_id='get_ingest_dag_configs_by_batch_id')
+def get_ingest_dag_configs_by_batch_id(batch_id: str, ti=None) -> dict:
+    dag_run: DagRun = ti.dag_run
+    return {
+        'batch_id': batch_id,
+        'sequencing_ids': None,
+        'color': dag_run.conf['color'],
+        'import': dag_run.conf['import'],
+        'spark_jar': dag_run.conf['spark_jar']
+    }
+    
+@task(task_id='get_ingest_dag_configs_by_sequencing_ids')
+def get_ingest_dag_configs_by_sequencing_ids(all_batch_types: Dict[str, str], sequencing_ids: List[str], analysisType: str, ti=None) -> dict:
+    dag_run: DagRun = ti.dag_run
+
+    # try regroup sequencing ids and generate a config of etl_ingest for each analysis type
+
+    sequencing_ids_compatible_with_type = []
+    for identifier, type in all_batch_types.items():
+        if analysisType == type and identifier in sequencing_ids:
+            sequencing_ids_compatible_with_type.append(identifier)
+
+    if len(sequencing_ids_compatible_with_type) == 0:
+        return None # No sequencing ids found for that analysis type
+
+    return {
+        'batch_id': None,
+        'sequencing_ids': sequencing_ids_compatible_with_type,
+        'color': dag_run.conf['color'],
+        'import': dag_run.conf['import'],
+        'spark_jar': dag_run.conf['spark_jar']
+    }
