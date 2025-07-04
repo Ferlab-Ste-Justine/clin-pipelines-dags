@@ -19,9 +19,12 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, enrich
 from lib.tasks.batch_type import skip_if_no_batch_in
-from lib.tasks.params_validate import get_sequencing_ids, validate_color
-from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
-                           skip_notify, spark_jar)
+from lib.tasks.params_validate import (get_batch_ids, get_sequencing_ids,
+                                       validate_color)
+from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
+                           get_ingest_dag_configs_by_batch_id,
+                           get_ingest_dag_configs_by_sequencing_ids,
+                           release_id, skip_notify, spark_jar)
 
 with DAG(
         dag_id='etl',
@@ -68,49 +71,6 @@ with DAG(
 
 
     params_validate_task = validate_color(color=color())
-
-
-    @task(task_id='get_batch_ids')
-    def get_batch_ids(ti=None) -> List[str]:
-        dag_run: DagRun = ti.dag_run
-        ids = dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
-        # try to keep the somatic_normal imported last
-        return sorted(list(set(ids)), key=lambda x: x.endswith("somatic_normal"))
-
-
-    @task(task_id='get_ingest_dag_configs_by_batch_id')
-    def get_ingest_dag_configs_by_batch_id(batch_id: str, ti=None) -> dict:
-        dag_run: DagRun = ti.dag_run
-        return {
-            'batch_id': batch_id,
-            'sequencing_ids': None,
-            'color': dag_run.conf['color'],
-            'import': dag_run.conf['import'],
-            'spark_jar': dag_run.conf['spark_jar']
-        }
-    
-    @task(task_id='get_ingest_dag_configs_by_sequencing_ids')
-    def get_ingest_dag_configs_by_sequencing_ids(all_batch_types: Dict[str, str], sequencing_ids: List[str], analysisType: str, ti=None) -> dict:
-        dag_run: DagRun = ti.dag_run
-
-        # try regroup sequencing ids and generate a config of etl_ingest for each analysis type
-
-        sequencing_ids_compatible_with_type = []
-        for identifier, type in all_batch_types.items():
-            if analysisType == type and identifier in sequencing_ids:
-                sequencing_ids_compatible_with_type.append(identifier)
-
-        if len(sequencing_ids_compatible_with_type) == 0:
-            return None # No sequencing ids found for that analysis type
-
-        return {
-            'batch_id': None,
-            'sequencing_ids': sequencing_ids_compatible_with_type,
-            'color': dag_run.conf['color'],
-            'import': dag_run.conf['import'],
-            'spark_jar': dag_run.conf['spark_jar']
-        }
-
 
     get_batch_ids_task = get_batch_ids()
     get_sequencing_ids_task = get_sequencing_ids()

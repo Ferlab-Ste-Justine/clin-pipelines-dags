@@ -75,7 +75,7 @@ def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowM
 
     logger = logging.getLogger(__name__)
 
-    # in case the parameters are from template renderisng
+    # in case the parameters are from template rendering
     batch_ids = sanitize_list_param(batch_ids)
     sequencing_ids = sanitize_list_param(sequencing_ids)
 

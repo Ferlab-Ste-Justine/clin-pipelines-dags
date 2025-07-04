@@ -53,6 +53,13 @@ def validate_color(color: str):
             f'DAG param "color" is forbidden in {env} environment'
         )
 
+@task(task_id='get_batch_ids')
+def get_batch_ids(ti=None) -> list:
+    dag_run: DagRun = ti.dag_run
+    ids = dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
+    # try to keep the somatic_normal imported last
+    return sorted(list(set(ids)), key=lambda x: x.endswith("somatic_normal"))
+
 @task(task_id='get_sequencing_ids')
 def get_sequencing_ids(ti=None) -> list:
     dag_run: DagRun = ti.dag_run

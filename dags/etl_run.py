@@ -12,10 +12,13 @@ from lib.config_nextflow import (nextflow_bucket,
 from lib.datasets import enriched_clinical
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.operators.pipeline import PipelineOperator
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
+from lib.tasks import batch_type
 from lib.tasks.nextflow import exomiser, post_processing
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import color, spark_jar
+from lib.utils_etl import (ClinAnalysis, color,
+                           get_ingest_dag_configs_by_sequencing_ids, spark_jar)
 from pandas import DataFrame
 
 with DAG(
@@ -154,6 +157,16 @@ with DAG(
             '--exomiser-type=snv',
         ]
     )
+    
+    detect_batch_types_task = batch_type.detect(sequencing_ids=get_all_sequencing_ids_task, allowMultipleIdentifierTypes=True)
+
+    get_ingest_dag_configs_by_sequencing_ids_task = get_ingest_dag_configs_by_sequencing_ids.partial(all_batch_types=detect_batch_types_task, sequencing_ids=get_all_sequencing_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
+
+    trigger_ingest_by_sequencing_ids_dags = TriggerDagRunOperator.partial(
+        task_id='ingest_sequencing_ids',
+        trigger_dag_id='etl_ingest',
+        wait_for_completion=True,
+    ).expand(conf=get_ingest_dag_configs_by_sequencing_ids_task)
 
     slack = EmptyOperator(
         task_id="slack",
@@ -166,5 +179,6 @@ with DAG(
         get_all_sequencing_ids_task >> get_job_hash_task >>
         [prepare_nextflow_exomiser_task, prepare_nextflow_post_processing_task] >>
         nextflow_post_processing_task >> add_exomiser_references_task >>
+        detect_batch_types_task >> get_ingest_dag_configs_by_sequencing_ids_task >> trigger_ingest_by_sequencing_ids_dags >>
         slack
     )
