@@ -120,7 +120,7 @@ def build_etl_job_arguments(
         entrypoint: Optional[str] = None,
         steps: str = "default",
         batch_id: Optional[str] = None,
-        sequencing_ids: Optional[str] = None,
+        sequencing_ids: Optional[list[str]] = None,
         chromosome: Optional[str] = None) -> List[str]:
     arguments = [
             '--config', config_file,
@@ -129,10 +129,10 @@ def build_etl_job_arguments(
     ]
     if entrypoint:
         arguments = [entrypoint] + arguments
-    if batch_id:
+    if batch_id and batch_id != '':
         arguments = arguments + ['--batchId', batch_id]
-    if sequencing_ids:
-        arguments = arguments + ['--sequencingId', sequencing_ids] # probably wont work out of the box, cause sequencing_ids is a XCom param
+    if sequencing_ids and len(sequencing_ids) > 0:
+        arguments = arguments + ['--sequencingId', ','.join(sequencing_ids)]
     if chromosome:
         arguments = arguments + ['--chromosome', f'chr{chromosome}']
     return arguments

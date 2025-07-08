@@ -39,7 +39,7 @@ class SparkETLOperator(SparkOperator):
                  spark_config: str,
                  entrypoint: str = '',
                  batch_id: str = '',
-                 sequencing_ids: list = '',
+                 sequencing_ids: str = '',
                  chromosome: str = '',
                  target_batch_types: List[ClinAnalysis] = None,
                  detect_batch_type_task_id: str = 'detect_batch_type',
@@ -55,18 +55,11 @@ class SparkETLOperator(SparkOperator):
             skip=skip,
             **kwargs)
 
-        arguments = build_etl_job_arguments(
-            app_name=app_name,
-            entrypoint=entrypoint,
-            steps=steps,
-            batch_id=batch_id,
-            sequencing_ids=sequencing_ids,
-            chromosome=chromosome
-        )
-
-        self.arguments = arguments
+        self.steps = steps
+        self.app_name = app_name
+        self.entrypoint = entrypoint
         self.batch_id = batch_id
-        self.sequencing_ids = sequencing_ids or []
+        self.sequencing_ids = sequencing_ids
         self.chromosome = chromosome
         self.target_batch_types = [target.value for target in (target_batch_types or [])]
         self.detect_batch_type_task_id = detect_batch_type_task_id
@@ -89,5 +82,18 @@ class SparkETLOperator(SparkOperator):
                 raise AirflowSkipException(target_batch_type_message)
             
             logging.info(target_batch_type_message)
+
+        arguments = build_etl_job_arguments(
+            app_name=self.app_name,
+            entrypoint=self.entrypoint,
+            steps=self.steps,
+            batch_id=self.batch_id,
+            sequencing_ids=self.sequencing_ids,
+            chromosome=self.chromosome
+        )
+
+        self.arguments = arguments
+
+        logging.info('Arguments for Spark job: %s', self.arguments)
 
         super().execute(context)
