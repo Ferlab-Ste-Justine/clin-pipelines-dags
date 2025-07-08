@@ -45,7 +45,7 @@ with DAG(
 
     get_sequencing_ids_task = get_sequencing_ids()
 
-    detect_batch_type_task = batch_type.detect(batch_ids=batch_id(), sequencing_ids=get_sequencing_ids_task)
+    detect_batch_type_task = batch_type.detect(batch_id=batch_id(), sequencing_ids=get_sequencing_ids_task)
 
     ingest_germline_group = ingest_germline(
         batch_id=batch_id(),

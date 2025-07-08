@@ -7,7 +7,6 @@ from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib.config import clin_import_bucket, s3_conn_id
 from lib.datasets import enriched_clinical
-from lib.utils import sanitize_list_param
 from lib.utils_etl import (ClinAnalysis, ClinSchema, ClinVCFSuffix,
                            get_metadata_content, metadata_exists)
 
@@ -52,7 +51,7 @@ def _validate_cnv_vcf_files(metadata: dict, cnv_suffix: str):
 # In the future, we may consider renaming this to remove references to the batch concept.
 # Note that we restrict amount of activate mapped tasks per DAG to avoid memory issues and delta lake connection problems.
 @task.virtualenv(task_id='detect_batch_type', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical], max_active_tis_per_dag=1)
-def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowMultipleIdentifierTypes: bool = False) -> Dict[str, str]:
+def detect(batch_id: str = None, batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowMultipleIdentifierTypes: bool = False) -> Dict[str, str]:
     """
     Returns a dict where the key is the batch id or the sequencing id and the value are the analysis types.
 
@@ -71,14 +70,12 @@ def detect(batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowM
     from airflow.exceptions import AirflowFailException
     from lib.tasks.batch_type import (_detect_types_from_enrich_clinical,
                                       _detect_types_from_metadata_file)
-    from lib.utils import sanitize_list_param
     from lib.utils_etl import ClinAnalysis
 
     logger = logging.getLogger(__name__)
 
-    # in case the parameters are from template rendering
-    batch_ids = sanitize_list_param(batch_ids)
-    sequencing_ids = sanitize_list_param(sequencing_ids)
+    batch_ids = batch_ids if batch_ids else [batch_id] if batch_id and batch_id != "" else []
+    sequencing_ids = sequencing_ids if sequencing_ids else []
 
     if len(batch_ids) > 0 and len(sequencing_ids) > 0 and not allowMultipleIdentifierTypes:
         raise AirflowFailException("Only one of batch_id or sequencing_ids can be provided")
@@ -258,14 +255,11 @@ def skip_if_no_batch_in(target_batch_types: List[ClinAnalysis]) -> str:
 def validate(batch_id: str, sequencing_ids: list, batch_type: ClinAnalysis, skip: str = ''):
     if skip:
         raise AirflowSkipException()
-    
-    batch_ids = sanitize_list_param(batch_id)
-    sequencing_ids = sanitize_list_param(sequencing_ids)
-    
-    if len(batch_ids) == 0 and len(sequencing_ids) == 0:
+           
+    if (not batch_id or batch_id == "") and len(sequencing_ids) == 0:
          raise AirflowFailException('Neither batch_id or sequencing_ids have been provided')
     
-    if len(batch_ids) > 0:
+    if batch_id:
         clin_s3 = S3Hook(s3_conn_id)
         metadata = get_metadata_content(clin_s3, batch_id) if metadata_exists(clin_s3, batch_id) else {}
         submission_schema = metadata.get('submissionSchema', '')

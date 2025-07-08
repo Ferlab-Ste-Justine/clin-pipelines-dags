@@ -15,7 +15,7 @@ def normalize_somatic_tumor_only(
         skip_coverage_by_gene: str,
         spark_jar: str,
 ):
-    target_batch_types = [ClinAnalysis.GERMLINE]
+    target_batch_types = [ClinAnalysis.SOMATIC_TUMOR_ONLY]
 
     snv_somatic = normalize.snv_somatic(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_snv_somatic))
     cnv_somatic_tumor_only = normalize.cnv_somatic_tumor_only(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_cnv_somatic_tumor_only))

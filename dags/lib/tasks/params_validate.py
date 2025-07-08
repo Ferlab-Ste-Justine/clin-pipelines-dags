@@ -58,7 +58,7 @@ def get_batch_ids(ti=None) -> list:
     dag_run: DagRun = ti.dag_run
     ids = dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
     # try to keep the somatic_normal imported last
-    return sorted(list(set(ids)), key=lambda x: x.endswith("somatic_normal"))
+    return sorted(set(ids), key=lambda x: (x.endswith("somatic_normal"), x)) 
 
 @task(task_id='get_sequencing_ids')
 def get_sequencing_ids(ti=None) -> list:

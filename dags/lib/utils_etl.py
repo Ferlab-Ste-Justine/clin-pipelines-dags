@@ -132,7 +132,7 @@ def build_etl_job_arguments(
     if batch_id:
         arguments = arguments + ['--batchId', batch_id]
     if sequencing_ids:
-        arguments = arguments + ['--sequencing_ids', sequencing_ids] # probably wont work out of the box, cause sequencing_ids is a XCom param
+        arguments = arguments + ['--sequencingId', sequencing_ids] # probably wont work out of the box, cause sequencing_ids is a XCom param
     if chromosome:
         arguments = arguments + ['--chromosome', f'chr{chromosome}']
     return arguments

@@ -43,10 +43,3 @@ def urlsafe_hash(obj: Any, length: int) -> str:
     hash_obj = hashlib.sha256(utf8_str).digest()
     base64_str = base64.urlsafe_b64encode(hash_obj).decode('utf-8').rstrip('=')  # Encoding to base64 allows for more compact representation (more bits per character)
     return base64_str[:length]
-
-def sanitize_list_param(lst: Any) -> list[str]:
-    if type(lst) is str and lst.strip() != "":
-        lst = [lst]
-    if lst and len(lst) > 0 and all(s.strip() != "" for s in lst):
-        return lst
-    return []
