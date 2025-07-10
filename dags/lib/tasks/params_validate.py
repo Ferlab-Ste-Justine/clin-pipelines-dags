@@ -21,9 +21,9 @@ def validate_release_color(release_id: str, color: str):
 
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)
-def validate_batch_sequencing_ids_color(batch_id: str, sequencing_ids: str, color: str):
-    if batch_id == '' and sequencing_ids == '':
-        raise AirflowFailException('DAG param "batch_id" or "sequencing_ids" is required')
+def validate_batch_analysis_ids_color(batch_id: str, analysis_ids: str, color: str):
+    if batch_id == '' and analysis_ids == '':
+        raise AirflowFailException('DAG param "batch_id" or "analysis_ids" is required')
     if env == Env.QA:
         if not color or color == '':
             raise AirflowFailException(
@@ -60,7 +60,7 @@ def get_batch_ids(ti=None) -> list:
     # try to keep the somatic_normal imported last
     return sorted(set(ids), key=lambda x: (x.endswith("somatic_normal"), x)) 
 
-@task(task_id='get_sequencing_ids')
-def get_sequencing_ids(ti=None) -> list:
+@task(task_id='get_analysis_ids')
+def get_analysis_ids(ti=None) -> list:
     dag_run: DagRun = ti.dag_run
-    return dag_run.conf['sequencing_ids'] if dag_run.conf['sequencing_ids'] is not None else []
+    return dag_run.conf['analysis_ids'] if dag_run.conf['analysis_ids'] is not None else []

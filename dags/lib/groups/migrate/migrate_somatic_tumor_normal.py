@@ -23,14 +23,14 @@ def migrate_somatic_tumor_normal(
 
     validate_somatic_tumor_normal_task = batch_type.validate(
         batch_id=batch_id,
-        sequencing_ids=[],
+        analysis_ids=[],
         batch_type=ClinAnalysis.SOMATIC_TUMOR_NORMAL,
         skip=skip_all
     )
 
     normalize_somatic_tumor_normal_group = normalize_somatic_tumor_normal(
         batch_id=batch_id,
-        sequencing_ids=[],
+        analysis_ids=[],
         skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_variants=skip_variants,

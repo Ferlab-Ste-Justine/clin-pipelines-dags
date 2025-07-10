@@ -19,12 +19,12 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, enrich
 from lib.tasks.batch_type import skip_if_no_batch_in
-from lib.tasks.params_validate import (get_batch_ids, get_sequencing_ids,
+from lib.tasks.params_validate import (get_analysis_ids, get_batch_ids,
                                        validate_color)
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
-                           get_ingest_dag_configs_by_batch_id,
-                           get_ingest_dag_configs_by_sequencing_ids,
-                           release_id, skip_notify, spark_jar)
+                           get_ingest_dag_configs_by_analysis_ids,
+                           get_ingest_dag_configs_by_batch_id, release_id,
+                           skip_notify, spark_jar)
 
 with DAG(
         dag_id='etl',
@@ -33,7 +33,7 @@ with DAG(
         params={
             'batch_ids': Param([], type=['null', 'array'],
                                description='Put a single batch id per line. Leave empty to skip ingest.'),
-            'sequencing_ids': Param([], type=['null', 'array'],
+            'analysis_ids': Param([], type=['null', 'array'],
                                description='Put a single id per line. Leave empty to skip ingest.'),
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
@@ -73,12 +73,12 @@ with DAG(
     params_validate_task = validate_color(color=color())
 
     get_batch_ids_task = get_batch_ids()
-    get_sequencing_ids_task = get_sequencing_ids()
+    get_analysis_ids_task = get_analysis_ids()
 
-    detect_batch_types_task = batch_type.detect(batch_ids=get_batch_ids_task, sequencing_ids=get_sequencing_ids_task, allowMultipleIdentifierTypes=True)
+    detect_batch_types_task = batch_type.detect(batch_ids=get_batch_ids_task, analysis_ids=get_analysis_ids_task, allowMultipleIdentifierTypes=True)
 
     get_ingest_dag_configs_by_batch_id_task = get_ingest_dag_configs_by_batch_id.expand(batch_id=get_batch_ids_task)
-    get_ingest_dag_configs_by_sequencing_ids_task = get_ingest_dag_configs_by_sequencing_ids.partial(all_batch_types=detect_batch_types_task, sequencing_ids=get_sequencing_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
+    get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_analysis_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
 
     trigger_ingest_by_batch_id_dags = TriggerDagRunOperator.partial(
         task_id='ingest_batches',
@@ -86,11 +86,11 @@ with DAG(
         wait_for_completion=True
     ).expand(conf=get_ingest_dag_configs_by_batch_id_task)
 
-    trigger_ingest_by_sequencing_ids_dags = TriggerDagRunOperator.partial(
-        task_id='ingest_sequencing_ids',
+    trigger_ingest_by_analysis_ids_dags = TriggerDagRunOperator.partial(
+        task_id='ingest_analysis_ids',
         trigger_dag_id='etl_ingest',
         wait_for_completion=True,
-    ).expand(conf=get_ingest_dag_configs_by_sequencing_ids_task)
+    ).expand(conf=get_ingest_dag_configs_by_analysis_ids_task)
 
     steps = default_or_initial(batch_param_name='batch_ids')
 
@@ -268,7 +268,7 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    (params_validate_task >> get_batch_ids_task >> get_sequencing_ids_task >> detect_batch_types_task >> 
-     get_ingest_dag_configs_by_batch_id_task >> get_ingest_dag_configs_by_sequencing_ids_task >>
-     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_sequencing_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
+    (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> detect_batch_types_task >> 
+     [get_ingest_dag_configs_by_batch_id_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
+     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
      publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_delete_previous_releases >> trigger_qc_es_dag >> trigger_cnv_frequencies >> trigger_qc_dag)

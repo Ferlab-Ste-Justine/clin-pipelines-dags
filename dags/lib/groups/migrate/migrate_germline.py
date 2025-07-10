@@ -26,14 +26,14 @@ def migrate_germline(
 
     validate_germline_task = batch_type.validate(
         batch_id=batch_id,
-        sequencing_ids=[],
+        analysis_ids=[],
         batch_type=ClinAnalysis.GERMLINE,
         skip=skip_all
     )
 
     normalize_germline_group = normalize_germline(
         batch_id=batch_id,
-        sequencing_ids=[],
+        analysis_ids=[],
         skip_all=skip_all,
         skip_snv=skip_snv,
         skip_cnv=skip_cnv,

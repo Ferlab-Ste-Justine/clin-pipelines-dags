@@ -8,7 +8,7 @@ from lib.utils_etl import ClinAnalysis
 @task_group(group_id='ingest_germline')
 def ingest_germline(
         batch_id: str,
-        sequencing_ids: list,
+        analysis_ids: list,
         batch_type_detected: bool,
         color: str,
         skip_import: str,
@@ -27,7 +27,7 @@ def ingest_germline(
 
     validate_batch_type_task = batch_type.validate(
         batch_id=batch_id,
-        sequencing_ids=sequencing_ids,
+        analysis_ids=analysis_ids,
         batch_type=ClinAnalysis.GERMLINE,
         skip=skip_all
     )
@@ -43,7 +43,7 @@ def ingest_germline(
 
     normalize_germline_group = normalize_germline(
         batch_id=batch_id,
-        sequencing_ids=sequencing_ids,
+        analysis_ids=analysis_ids,
         skip_all=skip_all,
         skip_snv=skip_snv,
         skip_cnv=skip_cnv,

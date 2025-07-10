@@ -11,7 +11,7 @@ from lib.utils_etl import ClinAnalysis, skip
 @task_group(group_id='normalize')
 def normalize_germline(
         batch_id: str,
-        sequencing_ids: list,
+        analysis_ids: list,
         skip_all: str,
         skip_snv: str,
         skip_cnv: str,
@@ -26,12 +26,12 @@ def normalize_germline(
     
     target_batch_types = [ClinAnalysis.GERMLINE]
 
-    snv = normalize.snv(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_snv))
-    cnv = normalize.cnv(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_cnv))
-    variants = normalize.variants(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_variants))
-    consequences = normalize.consequences(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_consequences))
-    exomiser = normalize.exomiser(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser))
-    coverage_by_gene = normalize.coverage_by_gene(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene))
+    snv = normalize.snv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_snv))
+    cnv = normalize.cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_cnv))
+    variants = normalize.variants(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_variants))
+    consequences = normalize.consequences(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_consequences))
+    exomiser = normalize.exomiser(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser))
+    coverage_by_gene = normalize.coverage_by_gene(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene))
 
     franklin_update = FranklinUpdate(
         group_id='franklin_update',
@@ -41,7 +41,7 @@ def normalize_germline(
         timeout=0,
     )
 
-    franklin = normalize.franklin(batch_id, sequencing_ids, target_batch_types, spark_jar, skip(skip_all, skip_franklin))
+    franklin = normalize.franklin(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_franklin))
 
     @task_group(group_id="nextflow")
     def nextflow_group():

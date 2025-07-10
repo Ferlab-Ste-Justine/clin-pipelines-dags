@@ -51,9 +51,9 @@ def _validate_cnv_vcf_files(metadata: dict, cnv_suffix: str):
 # In the future, we may consider renaming this to remove references to the batch concept.
 # Note that we restrict amount of activate mapped tasks per DAG to avoid memory issues and delta lake connection problems.
 @task.virtualenv(task_id='detect_batch_type', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical], max_active_tis_per_dag=1)
-def detect(batch_id: str = None, batch_ids: List[str] = None, sequencing_ids: List[str] = None, allowMultipleIdentifierTypes: bool = False) -> Dict[str, str]:
+def detect(batch_id: str = None, batch_ids: List[str] = None, analysis_ids: List[str] = None, allowMultipleIdentifierTypes: bool = False) -> Dict[str, str]:
     """
-    Returns a dict where the key is the batch id or the sequencing id and the value are the analysis types.
+    Returns a dict where the key is the batch id or the analysis id and the value are the analysis types.
 
     If `batch_ids` is provided and the analysis type cannot be determined from the `enriched_clinical` table,
     the function will attempt to infer the analysis type from the metadata file. If the metadata file does
@@ -75,14 +75,14 @@ def detect(batch_id: str = None, batch_ids: List[str] = None, sequencing_ids: Li
     logger = logging.getLogger(__name__)
 
     batch_ids = batch_ids if batch_ids else [batch_id] if batch_id and batch_id != "" else []
-    sequencing_ids = sequencing_ids if sequencing_ids else []
+    analysis_ids = analysis_ids if analysis_ids else []
 
-    if len(batch_ids) > 0 and len(sequencing_ids) > 0 and not allowMultipleIdentifierTypes:
-        raise AirflowFailException("Only one of batch_id or sequencing_ids can be provided")
+    if len(batch_ids) > 0 and len(analysis_ids) > 0 and not allowMultipleIdentifierTypes:
+        raise AirflowFailException("Only one of batch_id or analysis_ids can be provided")
 
-    if len(batch_ids) == 0 and len(sequencing_ids) == 0:
+    if len(batch_ids) == 0 and len(analysis_ids) == 0:
         # we can't raise an airflow skip exception here from a virtual task
-        logger.warning("Neither batch_id or sequencing_ids have been provided")
+        logger.warning("Neither batch_id or analysis_ids have been provided")
         return defaultdict(str)
 
     batch_ids_to_type = _detect_types_from_enrich_clinical(
@@ -96,9 +96,9 @@ def detect(batch_id: str = None, batch_ids: List[str] = None, sequencing_ids: Li
         logger.info(f"Unable to infer batch type for batch ID {missing_batch_ids} from the enriched clinical table. Falling back to metadata file.")
         batch_ids_to_type.update(_detect_types_from_metadata_file(missing_batch_ids))
 
-    sequencing_ids_to_type = _detect_types_from_enrich_clinical(
-        identifier_column="sequencing_id",
-        identifiers=sequencing_ids,
+    analysis_ids_to_type = _detect_types_from_enrich_clinical(
+        identifier_column="analysis_id",
+        identifiers=analysis_ids,
         must_exist=True
     )
 
@@ -108,14 +108,14 @@ def detect(batch_id: str = None, batch_ids: List[str] = None, sequencing_ids: Li
         if len(types) > 1:  # should never happen
             raise AirflowFailException(f"Batch ID {batch_id} has multiple analysis types: {types}")
         identifier_to_type[batch_id] = types[0]
-    for sequencing_id, types in sequencing_ids_to_type.items():
-        if sequencing_id in identifier_to_type: # for some reason a batch_id and sequencing_id have the same value
-            raise AirflowFailException(f"Duplicated identifier between batch_id and sequencing_id: {sequencing_id}")
+    for analysis_id, types in analysis_ids_to_type.items():
+        if analysis_id in identifier_to_type: # for some reason a batch_id and analysis have the same value
+            raise AirflowFailException(f"Duplicated identifier between batch_id and analysis_id: {analysis_id}")
         # remove SOMATIC_TUMOR_NORMAL if part of the types, somatic normal can only be imported via batch_id
         types = [t for t in types if t != ClinAnalysis.SOMATIC_TUMOR_NORMAL.value]
         if len(types) > 1: # should never happen unless in the future we add new analysis types
-            raise AirflowFailException(f"Sequencing: {sequencing_id} has multiple analysis types: {types}")
-        identifier_to_type[sequencing_id] = types[0]
+            raise AirflowFailException(f"Sequencing: {analysis_id} has multiple analysis types: {types}")
+        identifier_to_type[analysis_id] = types[0]
 
     # in case the DAG explicitly request one unique analysis type allowed
     all_types = set(identifier_to_type.values())
@@ -252,12 +252,12 @@ def skip_if_no_batch_in(target_batch_types: List[ClinAnalysis]) -> str:
 
 
 @task(task_id='validate_batch_type')
-def validate(batch_id: str, sequencing_ids: list, batch_type: ClinAnalysis, skip: str = ''):
+def validate(batch_id: str, analysis_ids: list, batch_type: ClinAnalysis, skip: str = ''):
     if skip:
         raise AirflowSkipException()
            
-    if (not batch_id or batch_id == "") and len(sequencing_ids) == 0:
-         raise AirflowFailException('Neither batch_id or sequencing_ids have been provided')
+    if (not batch_id or batch_id == "") and len(analysis_ids) == 0:
+         raise AirflowFailException('Neither batch_id or analysis_ids have been provided')
     
     if batch_id:
         clin_s3 = S3Hook(s3_conn_id)
@@ -295,5 +295,5 @@ def validate(batch_id: str, sequencing_ids: list, batch_type: ClinAnalysis, skip
             snv_vcf_suffix = ClinVCFSuffix.SNV_SOMATIC_TUMOR_NORMAL.value
             _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
 
-    if len(sequencing_ids) > 0:
-        raise AirflowSkipException('Validation for sequencing_ids is not implemented yet.')
+    if len(analysis_ids) > 0:
+        raise AirflowSkipException('Validation for analysis_ids is not implemented yet.')

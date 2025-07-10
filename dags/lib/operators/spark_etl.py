@@ -30,7 +30,7 @@ class SparkETLOperator(SparkOperator):
          **kwargs: Additional arguments for `SparkOperator`.
      """
 
-    template_fields = SparkOperator.template_fields + ('batch_id', 'sequencing_ids',)
+    template_fields = SparkOperator.template_fields + ('batch_id', 'analysis_ids',)
 
     def __init__(self,
                  steps: str,
@@ -39,7 +39,7 @@ class SparkETLOperator(SparkOperator):
                  spark_config: str,
                  entrypoint: str = '',
                  batch_id: str = '',
-                 sequencing_ids: str = '',
+                 analysis_ids: str = '',
                  chromosome: str = '',
                  target_batch_types: List[ClinAnalysis] = None,
                  detect_batch_type_task_id: str = 'detect_batch_type',
@@ -59,7 +59,7 @@ class SparkETLOperator(SparkOperator):
         self.app_name = app_name
         self.entrypoint = entrypoint
         self.batch_id = batch_id
-        self.sequencing_ids = sequencing_ids
+        self.analysis_ids = analysis_ids
         self.chromosome = chromosome
         self.target_batch_types = [target.value for target in (target_batch_types or [])]
         self.detect_batch_type_task_id = detect_batch_type_task_id
@@ -68,14 +68,14 @@ class SparkETLOperator(SparkOperator):
         # Check if batch type is in target batch types if batch_id and target_batch_types is defined
         # Useful for dynamically mapped task for that should only be run for specific batch types
         if self.target_batch_types:
-            detect_batch_type_key = self.batch_id if self.batch_id else self.sequencing_ids[0] if self.sequencing_ids and len(self.sequencing_ids) > 0 else None
+            detect_batch_type_key = self.batch_id if self.batch_id else self.analysis_ids[0] if self.analysis_ids and len(self.analysis_ids) > 0 else None
             
             if not detect_batch_type_key:
-                raise AirflowFailException(f'No batch_id or sequencing_ids defined for task')
+                raise AirflowFailException(f'No batch_id or analysis_ids defined for task')
             
             batch_type = context['ti'].xcom_pull(task_ids=self.detect_batch_type_task_id, key=detect_batch_type_key)
                      
-            target_batch_type_message = f'Batch id \'{self.batch_id}\' | Sequencings ids \'{self.sequencing_ids}\' of batch type \'{batch_type}\' expected to be in ' \
+            target_batch_type_message = f'Batch id \'{self.batch_id}\' | Analysis ids \'{self.analysis_ids}\' of batch type \'{batch_type}\' expected to be in ' \
                                             f'target batch types: {self.target_batch_types}'
                       
             if batch_type not in self.target_batch_types:
@@ -88,7 +88,7 @@ class SparkETLOperator(SparkOperator):
             entrypoint=self.entrypoint,
             steps=self.steps,
             batch_id=self.batch_id,
-            sequencing_ids=self.sequencing_ids,
+            analysis_ids=self.analysis_ids,
             chromosome=self.chromosome
         )
 

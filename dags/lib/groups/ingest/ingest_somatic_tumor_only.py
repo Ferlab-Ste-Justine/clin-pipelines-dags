@@ -9,7 +9,7 @@ from lib.utils_etl import ClinAnalysis
 @task_group(group_id='ingest_somatic_tumor_only')
 def ingest_somatic_tumor_only(
         batch_id: str,
-        sequencing_ids: list,
+        analysis_ids: list,
         batch_type_detected: bool,
         color: str,
         skip_import: str,
@@ -25,7 +25,7 @@ def ingest_somatic_tumor_only(
 
     validate_batch_type_task = batch_type.validate(
         batch_id=batch_id,
-        sequencing_ids=sequencing_ids,
+        analysis_ids=analysis_ids,
         batch_type=ClinAnalysis.SOMATIC_TUMOR_ONLY,
         skip=skip_all
     )
@@ -41,7 +41,7 @@ def ingest_somatic_tumor_only(
 
     normalize_somatic_tumor_only_group = normalize_somatic_tumor_only(
         batch_id=batch_id,
-        sequencing_ids=sequencing_ids,
+        analysis_ids=analysis_ids,
         skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only,

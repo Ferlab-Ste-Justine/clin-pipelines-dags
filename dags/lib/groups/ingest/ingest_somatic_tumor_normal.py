@@ -9,7 +9,7 @@ from lib.utils_etl import ClinAnalysis
 @task_group(group_id='ingest_somatic_tumor_normal')
 def ingest_somatic_tumor_normal(
         batch_id: str,
-        sequencing_ids: list,
+        analysis_ids: list,
         batch_type_detected: bool,
         color: str,
         skip_import: str,
@@ -24,7 +24,7 @@ def ingest_somatic_tumor_normal(
 
     validate_batch_type_task = batch_type.validate(
         batch_id=batch_id,
-        sequencing_ids=sequencing_ids,
+        analysis_ids=analysis_ids,
         batch_type=ClinAnalysis.SOMATIC_TUMOR_NORMAL,
         skip=skip_all
     )
@@ -41,7 +41,7 @@ def ingest_somatic_tumor_normal(
 
     normalize_somatic_tumor_normal_group = normalize_somatic_tumor_normal(
         batch_id=batch_id,
-        sequencing_ids=sequencing_ids,
+        analysis_ids=analysis_ids,
         skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_variants=skip_variants,
