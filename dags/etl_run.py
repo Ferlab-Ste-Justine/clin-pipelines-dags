@@ -162,7 +162,7 @@ with DAG(
     
     detect_batch_types_task = batch_type.detect(analysis_ids=get_all_analysis_ids_task, allowMultipleIdentifierTypes=True)
 
-    get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_all_sequencing_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
+    get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
 
     trigger_ingest_by_sequencing_ids_dags = TriggerDagRunOperator.partial(
         task_id='ingest_sequencing_ids',
