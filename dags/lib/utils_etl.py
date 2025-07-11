@@ -165,7 +165,7 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
     return {
         'batch_id': None,
         'analysis_ids': analysis_ids_compatible_with_type,
-        'color': dag_run.conf['color'],
-        'import': dag_run.conf['import'],
-        'spark_jar': dag_run.conf['spark_jar']
+        'color': dag_run.conf.get('color', None),
+        'import': dag_run.conf.get('import', 'no'),
+        'spark_jar': dag_run.conf.get('spark_jar', None),
     }
