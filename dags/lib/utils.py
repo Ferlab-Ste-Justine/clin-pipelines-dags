@@ -1,9 +1,9 @@
 import base64
 import hashlib
 import json
+from typing import Any, List
 
 import requests
-from typing import Any, List
 
 
 def join(string: str, parts: List[str]) -> str:
