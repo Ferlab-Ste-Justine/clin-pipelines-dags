@@ -9,3 +9,4 @@ pytest
 virtualenv~=20.26.3
 docker
 testcontainers
+jinja2

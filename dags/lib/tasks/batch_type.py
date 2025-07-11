@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException, AirflowSkipException
@@ -159,7 +159,7 @@ def _detect_types_from_enrich_clinical(identifier_column: str, identifiers: List
     identifiers_with_unknown_codes = defaultdict(list)
     identifier_to_types = defaultdict(list)
     for _id, code in distinct_pairs_df.itertuples():
-        if  code not in identifier_to_codes[_id]: # avoid duplicates
+        if code not in identifier_to_codes[_id]:  # avoid duplicates
             identifier_to_codes[_id].append(code)
             if code not in BioinfoAnalysisCode:
                 identifiers_with_unknown_codes[_id].append(code)

@@ -15,6 +15,7 @@ from lib.operators.pipeline import PipelineOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type
+from lib.tasks.clinical import get_all_analysis_ids
 from lib.tasks.nextflow import exomiser, post_processing
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color,
@@ -51,7 +52,7 @@ with DAG(
     params_validate = validate_color.override(on_execute_callback=None)(color=color())
 
     ingest_fhir_group = ingest_fhir(
-        batch_id='',  # No associated "batch"
+        batch_ids=[],  # No associated "batch"
         color=color(),
         skip_all=False,
         skip_import=True,  # Skipping because the data is already imported via the prescription API
@@ -104,18 +105,6 @@ with DAG(
 
         return _all_sequencing_ids
 
-    @task.virtualenv(task_id='get_all_analysis_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical], max_active_tis_per_dag=1)
-    def get_all_analysis_ids(all_sequencing_ids: Set[str]) -> str:
-        """
-        Retrieves all analysis IDs for every sequencing IDs
-        """
-        from lib.datasets import enriched_clinical
-        from lib.utils_etl_tables import get_analysis_ids, to_pandas
-
-        df: DataFrame = to_pandas(enriched_clinical.uri)
-        clinical_df = df[["sequencing_id", "analysis_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
-
-        return sorted(get_analysis_ids(clinical_df, all_sequencing_ids))
 
     @task.virtualenv(task_id='get_job_hash', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical], max_active_tis_per_dag=1)
     def get_job_hash(all_analysis_ids: Set[str]) -> str:
