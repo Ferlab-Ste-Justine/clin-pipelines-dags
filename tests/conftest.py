@@ -2,6 +2,7 @@ import http.client
 import logging
 import ssl
 from pathlib import Path
+from typing import List
 from unittest.mock import patch
 
 import airflow
@@ -171,3 +172,64 @@ def disable_get_franklin_http_conn_ssl(mock_airflow_variables):
 
     with patch('lib.franklin.get_franklin_http_conn', new=patched_get_franklin_http_conn):
         yield
+
+
+@pytest.fixture
+def load_vcfs():
+    def _load_vcfs(s3: S3Hook, bucket: str, paths: List[str]):
+        for path in paths:
+            s3.load_string(f'VCF content for {path}', key=path, bucket_name=bucket, replace=True)
+
+    return _load_vcfs
+
+
+@pytest.fixture
+def solo_analysis_row() -> dict:
+    """
+    Solo analysis submitted using legacy method (batch_id provided).
+    """
+    return {'analysis_id': 'A1', 'family_id': None, 'aliquot_id': '1', 'sequencing_id': 'S1', 'batch_id': 'BATCH_1',
+            'is_proband': True, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'affected_status': True,
+            'first_name': 'Jean', 'birth_date': '2000-01-01', 'gender': 'Male', 'clinical_signs': None}
+
+
+@pytest.fixture
+def trio_analysis_rows() -> List[dict]:
+    """
+    Trio analysis submitted using new method (dummy batch_id).
+    """
+    return [
+        {'analysis_id': 'A2', 'family_id': 'FM1', 'aliquot_id': '2', 'sequencing_id': 'S2', 'batch_id': 'foobar',
+         'is_proband': True, 'father_aliquot_id': '3', 'mother_aliquot_id': '4', 'affected_status': True,
+         'first_name': 'Jean', 'birth_date': '2000-01-01', 'gender': 'Male', 'clinical_signs': [
+            {'id': 'HP:0000001'}, {'id': 'HP:0000002'}
+        ]},
+        {'analysis_id': 'A2', 'family_id': 'FM1', 'aliquot_id': '3', 'sequencing_id': 'S3', 'batch_id': 'foobar',
+         'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'affected_status': False,
+         'first_name': 'Jeannot', 'birth_date': '1970-01-01', 'gender': 'Male', 'clinical_signs': None},
+        {'analysis_id': 'A2', 'family_id': 'FM1', 'aliquot_id': '4', 'sequencing_id': 'S4', 'batch_id': 'foobar',
+         'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'affected_status': True,
+         'first_name': 'Jeanne', 'birth_date': '1975-01-01', 'gender': 'Female', 'clinical_signs': None}
+    ]
+
+
+@pytest.fixture
+def duo_analysis_rows() -> List[dict]:
+    """
+    Duo analysis submitted using new method (dummy batch_id).
+    """
+    return [
+        {'analysis_id': 'A3', 'family_id': 'FM2', 'aliquot_id': '5', 'sequencing_id': 'S5', 'batch_id': 'foobar',
+         'is_proband': True, 'father_aliquot_id': None, 'mother_aliquot_id': 6, 'affected_status': True},
+        {'analysis_id': 'A3', 'family_id': 'FM2', 'aliquot_id': '6', 'sequencing_id': 'S6', 'batch_id': 'foobar',
+         'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'affected_status': False}
+    ]
+
+
+@pytest.fixture
+def clinical_data(solo_analysis_row, trio_analysis_rows, duo_analysis_rows) -> List[dict]:
+    return [
+        solo_analysis_row,
+        *trio_analysis_rows,
+        *duo_analysis_rows
+    ]

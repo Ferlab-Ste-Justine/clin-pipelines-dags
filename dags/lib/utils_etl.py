@@ -15,7 +15,8 @@ class ClinAnalysis(Enum):
 
 
 class ClinVCFSuffix(Enum):
-    SNV_GERMLINE = '.hard-filtered.formatted.norm.VEP.vcf.gz'
+    SNV_GERMLINE = '.norm.VEP.vcf.gz'
+    SNV_GERMLINE_LEGACY = f'.hard-filtered.formatted{SNV_GERMLINE}'
     SNV_SOMATIC_TUMOR_ONLY = '.dragen.WES_somatic-tumor_only.hard-filtered.norm.VEP.vcf.gz'
     SNV_SOMATIC_TUMOR_NORMAL = '.vcf.gz'
     CNV_GERMLINE = '.cnv.vcf.gz'
@@ -64,8 +65,8 @@ def color(prefix: str = '') -> str:
     return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
 
-def skip_import() -> str:
-    return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
+def skip_import(batch_param_name: str = 'batch_id') -> str:
+    return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.import == "yes" %}}{{% else %}}yes{{% endif %}}'
 
 
 def skip_batch() -> str:

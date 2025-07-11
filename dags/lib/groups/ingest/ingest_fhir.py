@@ -1,15 +1,18 @@
+from typing import List, Optional
+
 from airflow.decorators import task_group
 
 from lib.config import (K8sContext,
                         config_file, env)
 from lib.operators.pipeline import PipelineOperator
+from lib.operators.pipeline_fhir_import import PipelineFhirImportOperator
 from lib.operators.spark import SparkOperator
 from lib.utils_etl import skip
 
 
 @task_group(group_id='fhir')
 def ingest_fhir(
-        batch_id: str,
+        batch_ids: List[str],
         color: str,
         skip_all: str,
         skip_import: str,
@@ -17,17 +20,14 @@ def ingest_fhir(
         spark_jar: str,
         import_main_class: str = 'bio.ferlab.clin.etl.FileImport'
 ):
-    fhir_import = PipelineOperator(
+    fhir_import = PipelineFhirImportOperator.partial(
         task_id='fhir_import',
-        name='etl-ingest-fhir-import',
-        k8s_context=K8sContext.DEFAULT,
-        aws_bucket=f'cqgc-{env}-app-files-import',
         color=color,
+        main_class=import_main_class,
         skip=skip(skip_all, skip_import),
-        arguments=[
-            import_main_class, batch_id, 'false', 'true',
-        ],
-    )
+        dry_run=False,
+        full_metadata=True,
+    ).expand(batch_id=batch_ids)
 
     fhir_export = PipelineOperator(
         task_id='fhir_export',

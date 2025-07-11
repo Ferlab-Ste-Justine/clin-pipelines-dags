@@ -1,8 +1,10 @@
+from typing import List
+
 from airflow.decorators import task_group
 
 from lib import utils_nextflow
 from lib.config_nextflow import nextflow_svclustering_parental_origin_input_key, nextflow_bucket
-from lib.groups.franklin.franklin_update import FranklinUpdate
+from lib.groups.franklin.franklin_update import franklin_update
 from lib.tasks import normalize
 from lib.tasks.nextflow import svclustering_parental_origin
 from lib.utils_etl import skip
@@ -21,6 +23,7 @@ def normalize_germline(
         skip_franklin: str,
         skip_nextflow: str,
         spark_jar: str,
+        analysis_ids: List[str] = None  # TODO: Remove after merging Yann's PR
 ):
     snv = normalize.snv(batch_id, spark_jar, skip(skip_all, skip_snv))
     cnv = normalize.cnv(batch_id, spark_jar, skip(skip_all, skip_cnv))
@@ -29,12 +32,9 @@ def normalize_germline(
     exomiser = normalize.exomiser(batch_id, spark_jar, skip(skip_all, skip_exomiser))
     coverage_by_gene = normalize.coverage_by_gene(batch_id, spark_jar, skip(skip_all, skip_coverage_by_gene))
 
-    franklin_update = FranklinUpdate(
-        group_id='franklin_update',
-        batch_id=batch_id,
-        skip=skip(skip_all, skip_franklin),
-        poke_interval=0,
-        timeout=0,
+    franklin_update_task = franklin_update(
+        analysis_ids=analysis_ids,
+        skip=skip(skip_all, skip_franklin)
     )
 
     franklin = normalize.franklin(batch_id, spark_jar, skip(skip_all, skip_franklin))
@@ -57,4 +57,4 @@ def normalize_germline(
         (prepare_svclustering_parental_origin_task >> check_svclustering_parental_origin_input_file_exists >>
          run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task)
 
-    snv >> cnv >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update >> franklin >> nextflow_group()
+    snv >> cnv >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update_task >> franklin >> nextflow_group()

@@ -17,7 +17,7 @@ from lib.groups.qa import qa
 from lib.operators.notify import NotifyOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import batch_type, enrich
+from lib.tasks import batch_type, enrich, params
 from lib.tasks.batch_type import skip_if_no_batch_in
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial, release_id,
@@ -68,14 +68,6 @@ with DAG(
     params_validate_task = validate_color(color=color())
 
 
-    @task(task_id='get_batch_ids')
-    def get_batch_ids(ti=None) -> List[str]:
-        dag_run: DagRun = ti.dag_run
-        ids = dag_run.conf['batch_ids'] if dag_run.conf['batch_ids'] is not None else []
-        # try to keep the somatic_normal imported last
-        return sorted(list(set(ids)), key=lambda x: x.endswith("somatic_normal"))
-
-
     @task(task_id='get_ingest_dag_configs')
     def get_ingest_dag_config(batch_id: str, ti=None) -> dict:
         dag_run: DagRun = ti.dag_run
@@ -87,8 +79,8 @@ with DAG(
         }
 
 
-    get_batch_ids_task = get_batch_ids()
-    detect_batch_types_task = batch_type.detect.expand(batch_id=get_batch_ids_task)
+    get_batch_ids_task = params.get_batch_ids()
+    detect_batch_types_task = batch_type.detect(batch_ids=get_batch_ids_task)
     get_ingest_dag_configs_task = get_ingest_dag_config.expand(batch_id=get_batch_ids_task)
 
     trigger_ingest_dags = TriggerDagRunOperator.partial(
