@@ -22,6 +22,7 @@ def test_dag_has_all_tasks(dag_bag):
         'fhir.fhir_enrich_clinical',
         'detect_batch_type',
         'franklin_validate',
+        'get_all_analysis_ids',
         'create.create_analyses',
         'create.vcf_to_analyses',
         'create.group_families',
