@@ -14,7 +14,7 @@ from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import batch_type
+from lib.tasks import batch_type, params
 from lib.tasks.clinical import get_all_analysis_ids
 from lib.tasks.nextflow import exomiser, post_processing
 from lib.tasks.params_validate import validate_color
@@ -40,8 +40,6 @@ with DAG(
         max_active_tasks=1,
         max_active_runs=1
 ) as dag:
-    def get_sequencing_ids():
-        return '{{ params.sequencing_ids }}'
 
     start = EmptyOperator(
         task_id="start",
@@ -119,8 +117,10 @@ with DAG(
     def prepare_exomiser_references_analysis_ids(all_analysis_ids: Set[str]) -> str:
         return '--analysis-ids=' + ','.join(all_analysis_ids)
 
-    get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
-    get_all_analysis_ids_task = get_all_analysis_ids(get_sequencing_ids())
+    get_sequencing_ids_task = params.get_sequencing_ids()
+
+    get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids_task)
+    get_all_analysis_ids_task = get_all_analysis_ids(get_sequencing_ids_task)
     get_job_hash_task = get_job_hash(get_all_analysis_ids_task)
 
     prepare_nextflow_exomiser_task = exomiser.prepare(sequencing_ids=get_all_sequencing_ids_task)
@@ -166,7 +166,7 @@ with DAG(
 
     (
         start >> params_validate >>
-        ingest_fhir_group >>
+        ingest_fhir_group >> get_sequencing_ids_task >>
         get_all_sequencing_ids_task >> get_all_analysis_ids_task >> get_job_hash_task >>
         prepare_nextflow_exomiser_task, prepare_nextflow_post_processing_task >>
         nextflow_post_processing_task >> prepare_exomiser_references_analysis_ids_task >> add_exomiser_references_task >>

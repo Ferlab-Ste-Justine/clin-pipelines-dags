@@ -23,3 +23,15 @@ def test_get_sequencing_ids():
     sequencing_ids = get_sequencing_ids.function(mock_ti)
 
     assert sequencing_ids == ['seq_1', 'seq_2']  # should return the list as is
+
+
+def test_get_analysis_ids():
+    from dags.lib.tasks.params import get_analysis_ids
+
+    mock_ti = MagicMock()
+    mock_ti.dag_run.conf = {
+        'analysis_ids': ['ana_1', 'ana_2']
+    }
+    analysis_ids = get_analysis_ids.function(mock_ti)
+
+    assert analysis_ids == ['ana_1', 'ana_2']  # should return the list as is
