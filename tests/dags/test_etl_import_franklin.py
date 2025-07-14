@@ -13,7 +13,6 @@ def test_dag_is_importable(dag_bag):
 def test_dag_has_all_tasks(dag_bag):
     dag = dag_bag.get_dag(DAG_NAME)
     expected_tasks = {
-        'start',
         'get_batch_ids',
         'get_analysis_ids',
         'params_validate',
