@@ -8,7 +8,8 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib.config import clin_import_bucket, s3_conn_id
 from lib.datasets import enriched_clinical
 from lib.utils_etl import (ClinAnalysis, ClinSchema, ClinVCFSuffix,
-                           get_metadata_content, metadata_exists)
+                           batch_folder_exists, get_metadata_content,
+                           metadata_exists)
 
 
 def _validate_snv_vcf_files(s3: S3Hook, batch_id: str, snv_suffix: str):
@@ -161,7 +162,7 @@ def _detect_types_from_enrich_clinical(identifier_column: str, identifiers: List
     for _id, code in distinct_pairs_df.itertuples():
         if  code not in identifier_to_codes[_id]: # avoid duplicates
             identifier_to_codes[_id].append(code)
-            if code not in BioinfoAnalysisCode:
+            if code not in [c.value for c in BioinfoAnalysisCode]:
                 identifiers_with_unknown_codes[_id].append(code)
             else:
                 identifier_to_types[_id].append(BioinfoAnalysisCode(code).to_analysis_type())
@@ -204,9 +205,11 @@ def _detect_types_from_metadata_file(batch_ids: List[str]) -> Dict[str, List[str
                 batch_type = ClinAnalysis.SOMATIC_TUMOR_ONLY.value
             else:
                 raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
-        else:
+        elif batch_folder_exists(clin_s3, batch_id):
             # If the metadata file doesn't exist, it's a SOMATIC_TUMOR_NORMAL analysis
             batch_type = ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
+        else:
+            raise AirflowFailException(f'Batch ID {batch_id} does not exist in S3')
         identifier_to_types[batch_id] = [batch_type]
 
     logging.info(f"Batch IDs to analysis type: {identifier_to_types}")

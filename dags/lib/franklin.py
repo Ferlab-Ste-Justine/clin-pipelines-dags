@@ -4,19 +4,18 @@ import logging
 import urllib.parse
 from collections import defaultdict
 from enum import Enum
-from typing import List, Dict, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 from airflow.exceptions import AirflowFailException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from pandas import DataFrame
-
 from lib import config
-from lib.config import (clin_datalake_bucket, clin_import_bucket, env,
-                        franklin_assay_id, clin_nextflow_bucket)
+from lib.config import (clin_datalake_bucket, clin_import_bucket,
+                        clin_nextflow_bucket, env, franklin_assay_id)
 from lib.config_nextflow import nextflow_post_processing_vep_output_key
 from lib.datasets import enriched_clinical
 from lib.utils_etl import ClinVCFSuffix
 from lib.utils_etl_tables import to_pandas
+from pandas import DataFrame
 
 
 # current state of an analysis is saved inside _FRANKLIN_STATUS_.txt
@@ -60,6 +59,7 @@ def get_clinical_data(analysis_ids: List[str]) -> List[dict]:
 
 
 def group_families_from_clinical_data(clinical_data: List[dict]) -> Tuple[Dict[str, List[dict]], List[dict]]:
+    logging.info(f'FOO: {clinical_data}')
     # Separate rows with and without family_id
     family_analyses = [row for row in clinical_data if row.get('family_id') is not None]
     solo_analyses = [row for row in clinical_data if row.get('family_id') is None]

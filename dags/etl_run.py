@@ -120,7 +120,7 @@ with DAG(
         return '--analysis-ids=' + ','.join(all_analysis_ids)
 
     get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
-    get_all_analysis_ids_task = get_all_analysis_ids(get_sequencing_ids())
+    get_all_analysis_ids_task = get_all_analysis_ids(sequencing_ids=get_sequencing_ids())
     get_job_hash_task = get_job_hash(get_all_analysis_ids_task)
 
     prepare_nextflow_exomiser_task = exomiser.prepare(sequencing_ids=get_all_sequencing_ids_task)

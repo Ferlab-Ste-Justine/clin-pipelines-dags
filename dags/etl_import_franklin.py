@@ -52,20 +52,21 @@ with DAG(
 
     identifier_to_type = batch_type.detect(batch_ids=batch_ids, analysis_ids=analysis_ids)
 
-
     @task
     def franklin_validate(_identifier_to_type: dict[str, str]):
         # Only GERMLINE analyses are allowed
         if not all(analysis_type == ClinAnalysis.GERMLINE.value for analysis_type in _identifier_to_type.values()):
             raise AirflowFailException("Only GERMLINE analyses are allowed for Franklin.")
 
+    get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_ids=batch_ids)
+
     create = franklin_create(
-        analysis_ids=analysis_ids,
+        analysis_ids=get_all_analysis_ids,
         skip=''
     )
 
     update = franklin_update(
-        analysis_ids=analysis_ids,
+        analysis_ids=get_all_analysis_ids,
         skip=''
     )
 
@@ -75,4 +76,4 @@ with DAG(
     )
 
     ([batch_ids, analysis_ids] >> params_validate_task >> ingest_fhir_group >> identifier_to_type >>
-     franklin_validate(identifier_to_type) >> create >> update >> slack)
+     franklin_validate(identifier_to_type) >> get_all_analysis_ids >> create >> update >> slack)
