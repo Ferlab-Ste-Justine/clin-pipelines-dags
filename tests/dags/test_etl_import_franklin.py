@@ -15,7 +15,7 @@ def test_dag_has_all_tasks(dag_bag):
     expected_tasks = {
         'start',
         'get_batch_ids',
-        'get_sequencing_ids',
+        'get_analysis_ids',
         'params_validate',
         'fhir.fhir_import',
         'fhir.fhir_export',
@@ -23,7 +23,6 @@ def test_dag_has_all_tasks(dag_bag):
         'fhir.fhir_enrich_clinical',
         'detect_batch_type',
         'franklin_validate',
-        'get_all_analysis_ids',
         'create.create_analyses',
         'create.vcf_to_analyses',
         'create.group_families',
