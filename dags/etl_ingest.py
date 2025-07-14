@@ -13,7 +13,7 @@ from lib.groups.ingest.ingest_somatic_tumor_only import \
 from lib.slack import Slack
 from lib.tasks import batch_type, params
 from lib.tasks.params_validate import validate_batch_analysis_ids_color
-from lib.utils_etl import analysis_ids, batch_id, color, skip_import, spark_jar
+from lib.utils_etl import batch_id, color, skip_import, spark_jar
 
 with DAG(
         dag_id='etl_ingest',
@@ -35,13 +35,13 @@ with DAG(
         max_active_runs=1
 ) as dag:
 
+    get_analysis_ids_task = params.get_analysis_ids()
+
     params_validate = validate_batch_analysis_ids_color(
         batch_id=batch_id(),
-        analysis_ids=analysis_ids(),
+        analysis_ids=get_analysis_ids_task,
         color=color()
     )
-
-    get_analysis_ids_task = params.get_analysis_ids()
 
     detect_batch_type_task = batch_type.detect(batch_id=batch_id(), analysis_ids=get_analysis_ids_task)
 
@@ -97,6 +97,6 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> get_analysis_ids_task >> detect_batch_type_task >> [ingest_germline_group,
+    get_analysis_ids_task >> params_validate >> detect_batch_type_task >> [ingest_germline_group,
                                                   ingest_somatic_tumor_only_group,
                                                   ingest_somatic_tumor_normal_group] >> slack

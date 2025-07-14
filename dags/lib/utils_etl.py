@@ -16,8 +16,7 @@ class ClinAnalysis(Enum):
 
 
 class ClinVCFSuffix(Enum):
-    SNV_GERMLINE = '.norm.VEP.vcf.gz'
-    SNV_GERMLINE_LEGACY = f'.hard-filtered.formatted{SNV_GERMLINE}'
+    SNV_GERMLINE = '.hard-filtered.formatted.norm.VEP.vcf.gz'
     SNV_SOMATIC_TUMOR_ONLY = '.dragen.WES_somatic-tumor_only.hard-filtered.norm.VEP.vcf.gz'
     SNV_SOMATIC_TUMOR_NORMAL = '.vcf.gz'
     CNV_GERMLINE = '.cnv.vcf.gz'
@@ -45,9 +44,6 @@ class BioinfoAnalysisCode(Enum):
 
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
-
-def analysis_ids():
-    return '{{ params.analysis_ids or "" }}'
 
 def release_id(index: Optional[str] = None) -> str:
     if not index:
