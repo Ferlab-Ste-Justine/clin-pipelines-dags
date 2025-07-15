@@ -35,7 +35,7 @@ def _validate_cnv_vcf_files(metadata: dict, cnv_suffix: str):
     logging.info(f'Expecting CNV VCF(s) suffix: {cnv_suffix}')
 
     all_cnv_vcf_valid = True
-    for analysis in metadata['analyses']:
+    for analysis in metadata.get('analyses', []):
         cnv_file = analysis.get('files', {}).get('cnv_vcf')
         if cnv_file:
             if cnv_file.endswith(cnv_suffix):
@@ -262,7 +262,7 @@ def validate(batch_id: str, analysis_ids: list, batch_type: ClinAnalysis, skip: 
     if batch_id:
         clin_s3 = S3Hook(s3_conn_id)
         _metadata_exists = metadata_exists(clin_s3, batch_id)
-        metadata = get_metadata_content(clin_s3, batch_id) if metadata_exists else {}
+        metadata = get_metadata_content(clin_s3, batch_id) if _metadata_exists else {}
         submission_schema = metadata.get('submissionSchema', '<no metadata found>')
 
         if batch_type == ClinAnalysis.GERMLINE:
