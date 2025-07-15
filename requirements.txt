@@ -7,3 +7,5 @@ deltalake==0.24.0
 phenopackets==2.0.2.post4
 pytest
 virtualenv~=20.26.3
+docker
+testcontainers

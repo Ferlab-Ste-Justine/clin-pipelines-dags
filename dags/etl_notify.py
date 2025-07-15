@@ -5,7 +5,7 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from lib.slack import Slack
 from lib.tasks.notify import notify
-from lib.tasks.params_validate import validate_batch_color
+from lib.tasks.params_validate import validate_batch_analysis_ids_color
 from lib.utils_etl import batch_id, color
 
 with DAG(
@@ -20,7 +20,7 @@ with DAG(
             'on_failure_callback': Slack.notify_task_failure,
         },
 ) as dag:
-    params_validate = validate_batch_color(batch_id(), color())
+    params_validate = validate_batch_analysis_ids_color(batch_id(), None, color())
 
     notify_task = notify(
         batch_id=batch_id(),
