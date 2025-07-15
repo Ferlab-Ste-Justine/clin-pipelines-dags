@@ -59,7 +59,6 @@ def get_clinical_data(analysis_ids: List[str]) -> List[dict]:
 
 
 def group_families_from_clinical_data(clinical_data: List[dict]) -> Tuple[Dict[str, List[dict]], List[dict]]:
-    logging.info(f'FOO: {clinical_data}')
     # Separate rows with and without family_id
     family_analyses = [row for row in clinical_data if row.get('family_id') is not None]
     solo_analyses = [row for row in clinical_data if row.get('family_id') is None]
@@ -100,7 +99,7 @@ def filter_valid_families(family_groups: Dict[str, List[dict]]) -> Dict[str, Lis
         if not has_something_else and has_proband and (has_mother or has_father):  # TRIO or DUO
             filtered_families[family_id] = analyses
         else:
-            logging.info(
+            logging.warning(
                 f'(unsupported) family: {family_id} with PROBAND: {has_proband} MOTHER: {has_mother} FATHER: {has_father} UNSUPPORTED: {has_something_else} analyses: {analyses}')
     return filtered_families
 
