@@ -16,3 +16,8 @@ def get_batch_ids(ti) -> List[str]:
 def get_sequencing_ids(ti=None) -> list:
     dag_run: DagRun = ti.dag_run
     return dag_run.conf['sequencing_ids'] if dag_run.conf['sequencing_ids'] is not None else []
+
+@task(task_id='get_analysis_ids')
+def get_analysis_ids(ti=None) -> list:
+    dag_run: DagRun = ti.dag_run
+    return dag_run.conf['analysis_ids'] if dag_run.conf['analysis_ids'] is not None else []

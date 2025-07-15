@@ -4,19 +4,18 @@ import logging
 import urllib.parse
 from collections import defaultdict
 from enum import Enum
-from typing import List, Dict, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 from airflow.exceptions import AirflowFailException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from pandas import DataFrame
-
 from lib import config
-from lib.config import (clin_datalake_bucket, clin_import_bucket, env,
-                        franklin_assay_id, clin_nextflow_bucket)
+from lib.config import (clin_datalake_bucket, clin_import_bucket,
+                        clin_nextflow_bucket, env, franklin_assay_id)
 from lib.config_nextflow import nextflow_post_processing_vep_output_key
 from lib.datasets import enriched_clinical
 from lib.utils_etl import ClinVCFSuffix
 from lib.utils_etl_tables import to_pandas
+from pandas import DataFrame
 
 
 # current state of an analysis is saved inside _FRANKLIN_STATUS_.txt
@@ -100,7 +99,7 @@ def filter_valid_families(family_groups: Dict[str, List[dict]]) -> Dict[str, Lis
         if not has_something_else and has_proband and (has_mother or has_father):  # TRIO or DUO
             filtered_families[family_id] = analyses
         else:
-            logging.info(
+            logging.warning(
                 f'(unsupported) family: {family_id} with PROBAND: {has_proband} MOTHER: {has_mother} FATHER: {has_father} UNSUPPORTED: {has_something_else} analyses: {analyses}')
     return filtered_families
 

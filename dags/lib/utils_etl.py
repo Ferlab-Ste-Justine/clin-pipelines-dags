@@ -1,9 +1,10 @@
 import json
 from enum import Enum
-from typing import Optional, List
+from typing import Dict, List, Optional
 
+from airflow.decorators import task
+from airflow.models import DagRun
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 from lib import config
 from lib.config import clin_import_bucket, config_file
 
@@ -44,7 +45,6 @@ class BioinfoAnalysisCode(Enum):
 
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
-
 
 def release_id(index: Optional[str] = None) -> str:
     if not index:
@@ -101,6 +101,9 @@ def metadata_exists(clin_s3: S3Hook, batch_id: str) -> bool:
     metadata_path = f'{batch_id}/metadata.json'
     return clin_s3.check_for_key(metadata_path, clin_import_bucket)
 
+def batch_folder_exists(clin_s3: S3Hook, batch_id: str) -> bool:
+    metadata_path = f'{batch_id}/'
+    return clin_s3.check_for_key(metadata_path, clin_import_bucket)
 
 def get_metadata_content(clin_s3, batch_id) -> dict:
     metadata_path = f'{batch_id}/metadata.json'
@@ -118,6 +121,7 @@ def build_etl_job_arguments(
         entrypoint: Optional[str] = None,
         steps: str = "default",
         batch_id: Optional[str] = None,
+        analysis_ids: Optional[list[str]] = None,
         chromosome: Optional[str] = None) -> List[str]:
     arguments = [
             '--config', config_file,
@@ -126,8 +130,43 @@ def build_etl_job_arguments(
     ]
     if entrypoint:
         arguments = [entrypoint] + arguments
-    if batch_id:
+    if batch_id and batch_id != '':
         arguments = arguments + ['--batchId', batch_id]
+    if analysis_ids and len(analysis_ids) > 0:
+        arguments = arguments + ['--analysisId', ','.join(analysis_ids)]
     if chromosome:
         arguments = arguments + ['--chromosome', f'chr{chromosome}']
     return arguments
+
+@task(task_id='get_ingest_dag_configs_by_batch_id')
+def get_ingest_dag_configs_by_batch_id(batch_id: str, ti=None) -> dict:
+    dag_run: DagRun = ti.dag_run
+    return {
+        'batch_id': batch_id,
+        'analysis_ids': None,
+        'color': dag_run.conf['color'],
+        'import': dag_run.conf['import'],
+        'spark_jar': dag_run.conf['spark_jar']
+    }
+    
+@task(task_id='get_ingest_dag_configs_by_analysis_ids')
+def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str, ti=None) -> dict:
+    dag_run: DagRun = ti.dag_run
+
+    # try regroup analysis ids and generate a config of etl_ingest for each analysis type
+
+    analysis_ids_compatible_with_type = []
+    for identifier, type in all_batch_types.items():
+        if analysisType == type and identifier in analysis_ids:
+            analysis_ids_compatible_with_type.append(identifier)
+
+    if len(analysis_ids_compatible_with_type) == 0:
+        return None # No analysis ids found for that analysis type
+
+    return {
+        'batch_id': None,
+        'analysis_ids': analysis_ids_compatible_with_type,
+        'color': dag_run.conf.get('color', None),
+        'import': dag_run.conf.get('import', 'no'),
+        'spark_jar': dag_run.conf.get('spark_jar', None),
+    }

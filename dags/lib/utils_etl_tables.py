@@ -1,4 +1,4 @@
-from typing import Collection, Set, Optional
+from typing import Collection, Optional, Set
 
 from pandas import DataFrame
 
@@ -16,12 +16,15 @@ def to_pandas(dataset_uri: str) -> DataFrame:
     return dt.to_pandas()
 
 
-def get_analysis_ids(clinical_df: DataFrame, sequencing_ids: Optional[Collection[str]] = None,
+def get_analysis_ids(clinical_df: DataFrame, analysis_id: Optional[Collection[str]] = None, sequencing_ids: Optional[Collection[str]] = None,
                      batch_ids: Optional[Collection[str]] = None) -> Set[str]:
     """
-        Return the set of analysis ids correspondigng to the provided sequencing ids or batch ids from the
+        Return the set of analysis ids corresponding to the provided sequencing ids or batch ids from the
         enriched_clinical table.
     """
+    if not analysis_id:
+        analysis_id = []
+
     if not sequencing_ids:
         sequencing_ids = []
 
@@ -30,7 +33,7 @@ def get_analysis_ids(clinical_df: DataFrame, sequencing_ids: Optional[Collection
 
     return set(
         clinical_df.loc[
-            clinical_df["sequencing_id"].isin(sequencing_ids) | clinical_df["batch_id"].isin(batch_ids),
+            clinical_df["analysis_id"].isin(analysis_id) | clinical_df["sequencing_id"].isin(sequencing_ids) | clinical_df["batch_id"].isin(batch_ids),
             "analysis_id"
         ]
     )

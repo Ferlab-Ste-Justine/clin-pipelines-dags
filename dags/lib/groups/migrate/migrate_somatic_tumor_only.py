@@ -1,6 +1,6 @@
 from airflow.decorators import task_group
-
-from lib.groups.normalize.normalize_somatic_tumor_only import normalize_somatic_tumor_only
+from lib.groups.normalize.normalize_somatic_tumor_only import \
+    normalize_somatic_tumor_only
 from lib.tasks import batch_type
 from lib.utils_etl import ClinAnalysis, get_group_id
 
@@ -24,12 +24,14 @@ def migrate_somatic_tumor_only(
 
     validate_somatic_tumor_only_task = batch_type.validate(
         batch_id=batch_id,
+        analysis_ids=[],
         batch_type=ClinAnalysis.SOMATIC_TUMOR_ONLY,
         skip=skip_all
     )
 
     normalize_somatic_tumor_only_group = normalize_somatic_tumor_only(
         batch_id=batch_id,
+        analysis_ids=[],
         skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only,
