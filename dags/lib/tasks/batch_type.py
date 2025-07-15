@@ -261,12 +261,12 @@ def validate(batch_id: str, analysis_ids: list, batch_type: ClinAnalysis, skip: 
     
     if batch_id:
         clin_s3 = S3Hook(s3_conn_id)
-        metadata_exists = metadata_exists(clin_s3, batch_id)
+        _metadata_exists = metadata_exists(clin_s3, batch_id)
         metadata = get_metadata_content(clin_s3, batch_id) if metadata_exists else {}
         submission_schema = metadata.get('submissionSchema', '<no metadata found>')
 
         if batch_type == ClinAnalysis.GERMLINE:
-            if metadata_exists and submission_schema != ClinSchema.GERMLINE.value:
+            if _metadata_exists and submission_schema != ClinSchema.GERMLINE.value:
                 raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
 
             logging.info(f'Schema: {submission_schema}')
@@ -277,7 +277,7 @@ def validate(batch_id: str, analysis_ids: list, batch_type: ClinAnalysis, skip: 
             _validate_snv_vcf_files(clin_s3, batch_id, snv_vcf_suffix)
             _validate_cnv_vcf_files(metadata, cnv_vcf_suffix)
 
-        elif metadata_exists and batch_type == ClinAnalysis.SOMATIC_TUMOR_ONLY:
+        elif _metadata_exists and batch_type == ClinAnalysis.SOMATIC_TUMOR_ONLY:
             if submission_schema != ClinSchema.SOMATIC_TUMOR_ONLY.value:
                 raise AirflowFailException(f'Invalid submissionSchema: {submission_schema}')
 
