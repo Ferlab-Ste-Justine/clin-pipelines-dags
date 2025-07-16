@@ -1,4 +1,5 @@
 from enum import Enum
+from pathlib import Path
 
 import kubernetes
 from airflow.exceptions import AirflowConfigException
@@ -6,6 +7,7 @@ from airflow.models import Variable
 
 
 class Env:
+    TEST = 'test'  # Used for local development and testing
     QA = 'qa'
     STAGING = 'staging'
     PROD = 'prod'
@@ -24,7 +26,6 @@ class EtlConfig(Enum):
     MEDIUM = 'config-etl-medium'
     LARGE = 'config-etl-large'
     X_LARGE = 'config-etl-xlarge'
-
 
 env = Variable.get('environment')
 k8s_namespace = Variable.get('kubernetes_namespace')
@@ -51,6 +52,7 @@ clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'
 clin_nextflow_bucket = f'cqgc-{env}-app-nextflow'
 clin_scratch_bucket = f'cqgc-{env}-app-files-scratch'
+all_qlin_buckets = [clin_import_bucket, clin_datalake_bucket, clin_nextflow_bucket, clin_scratch_bucket]
 
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
 aws_image = 'amazon/aws-cli'
@@ -62,12 +64,26 @@ spark_service_account = 'spark'
 batch_ids = []
 chromosomes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y']
 
-if env == Env.QA:
+if env == Env.TEST:
+    fhir_image = 'ferlabcrsj/clin-fhir'
+    pipeline_image = 'ferlabcrsj/clin-pipelines'
+    panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
+    es_url = None
+    spark_jar = None
+    obo_parser_spark_jar = ''
+    ca_certificates = None
+    minio_certificate = None
+    indexer_context = K8sContext.DEFAULT
+    auth_url = None
+    config_file = None
+    franklin_assay_id = 'test_assay_id'
+    batch_ids = []
+elif env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.12.0.jar'
+    spark_jar = 'clin-variant-etl-v3.14.2.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -83,10 +99,10 @@ if env == Env.QA:
     ]
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:d88be39'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:839c5c8'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:67bc1f6'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.14.1.jar'
+    spark_jar = 'clin-variant-etl-v3.14.2.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -111,10 +127,10 @@ elif env == Env.STAGING:
     ]
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:d88be39'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:839c5c8'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:67bc1f6'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.14.1.jar'
+    spark_jar = 'clin-variant-etl-v3.14.2.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'

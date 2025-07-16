@@ -20,6 +20,24 @@ Install requirements :
 pip install -r requirements.txt
 ```
 
+---
+## Run tests
+Run all tests :
+```bash
+pytest
+```
+
+Run all tests except slow tests:
+```bash
+pytest -m "not slow"
+```
+
+Run all tests except tests that require VPN connection:
+```bash
+pytest -m "not vpn"
+```
+---
+
 ## Airflow dev stack
 
 Create `.env` file :
