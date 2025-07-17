@@ -131,8 +131,9 @@ def build_etl_job_arguments(
         arguments = [entrypoint] + arguments
     if batch_id and batch_id != '':
         arguments = arguments + ['--batchId', batch_id]
-    if analysis_ids and len(analysis_ids) > 0:
-        arguments = arguments + ['--analysisId', ','.join(analysis_ids)]
+    if analysis_ids:
+        for analysis_id in analysis_ids:
+            arguments += ['--analysisId', analysis_id]
     if chromosome:
         arguments = arguments + ['--chromosome', f'chr{chromosome}']
     return arguments
