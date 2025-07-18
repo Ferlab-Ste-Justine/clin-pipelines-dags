@@ -17,10 +17,9 @@ from lib.groups.qa import qa
 from lib.operators.notify import NotifyOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import batch_type, enrich
+from lib.tasks import batch_type, enrich, params
 from lib.tasks.batch_type import skip_if_no_batch_in
-from lib.tasks.params_validate import (get_analysis_ids, get_batch_ids,
-                                       validate_color)
+from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
                            get_ingest_dag_configs_by_analysis_ids,
                            get_ingest_dag_configs_by_batch_id, release_id,
@@ -72,8 +71,8 @@ with DAG(
 
     params_validate_task = validate_color(color=color())
 
-    get_batch_ids_task = get_batch_ids()
-    get_analysis_ids_task = get_analysis_ids()
+    get_batch_ids_task = params.get_batch_ids()
+    get_analysis_ids_task = params.get_analysis_ids()
 
     detect_batch_types_task = batch_type.detect(batch_ids=get_batch_ids_task, analysis_ids=get_analysis_ids_task, allowMultipleIdentifierTypes=True)
 

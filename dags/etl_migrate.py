@@ -90,7 +90,7 @@ with DAG(
     )
 
     all_dags = ingest_fhir(
-        batch_id='',
+        batch_ids=[],
         color=color(),
         skip_all='',
         skip_import='yes',  # always skip import, not the purpose of that dag
