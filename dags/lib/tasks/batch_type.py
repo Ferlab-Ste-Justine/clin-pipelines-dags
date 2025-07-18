@@ -233,11 +233,11 @@ def skip(batch_type: ClinAnalysis, batch_type_detected: bool,
         return ''  # Tasks won't be skipped
 
 
-def any_in(targets: List[str], batch_types: List[Dict[str, str]]):
+def any_in(targets: List[str], batch_types: Dict[str, str]):
     """
-    Macro for Jinja templating. Checks if there is at least one target type in a list of batch types.
+    Macro for Jinja templating. Checks if there is at least one target type in a dictionary of batch types.
     """
-    batch_types_list = [batch_type for bt in batch_types for batch_id, batch_type in bt.items()]
+    batch_types_list = list(batch_types.values())
     return any(target in batch_types_list for target in targets)
 
 
