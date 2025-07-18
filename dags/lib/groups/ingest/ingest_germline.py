@@ -1,7 +1,7 @@
 from airflow.decorators import task, task_group
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.normalize.normalize_germline import normalize_germline
-from lib.tasks import batch_type
+from lib.tasks import batch_type, clinical
 from lib.utils_etl import ClinAnalysis
 
 
@@ -41,9 +41,11 @@ def ingest_germline(
         spark_jar=spark_jar
     )
 
+    get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_id=batch_id)
+
     normalize_germline_group = normalize_germline(
         batch_id=batch_id,
-        analysis_ids=analysis_ids,
+        analysis_ids=get_all_analysis_ids,
         skip_all=skip_all,
         skip_snv=skip_snv,
         skip_cnv=skip_cnv,
@@ -56,4 +58,4 @@ def ingest_germline(
         spark_jar=spark_jar
     )
 
-    validate_batch_type_task >> ingest_fhir_group >> normalize_germline_group
+    validate_batch_type_task >> ingest_fhir_group >> get_all_analysis_ids >> normalize_germline_group
