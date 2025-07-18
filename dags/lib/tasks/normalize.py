@@ -153,7 +153,7 @@ def franklin(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAna
         spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
-        batch_id=batch_id,
+        batch_id=None,
         analysis_ids=analysis_ids,
         target_batch_types=target_batch_types
     )
