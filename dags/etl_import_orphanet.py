@@ -5,12 +5,12 @@ from airflow import DAG
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 from lib import config
-from lib.config import env, K8sContext, config_file
+from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.utils_s3 import get_s3_file_md5, download_and_check_md5, load_to_s3_with_md5
+from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
+                          load_to_s3_with_md5)
 
 with DAG(
     dag_id='etl_import_orphanet',
@@ -46,14 +46,14 @@ with DAG(
         # Verify MD5 checksum
         if download_md5_genes != s3_md5_genes:
             # Upload file to S3
-            load_to_s3_with_md5(s3, s3_bucket, s3_key_genes, file, download_md5_genes)
+            load_to_s3_with_md5(s3, s3_bucket, s3_key_genes, genes_file, download_md5_genes)
             logging.info(f'New genes imported MD5 hash: {download_md5_genes}')
             updated = True
 
         # Verify MD5 checksum
         if download_md5_diseases != s3_md5_diseases:
             # Upload file to S3
-            load_to_s3_with_md5(s3, s3_bucket, s3_key_diseases, file, download_md5_diseases)
+            load_to_s3_with_md5(s3, s3_bucket, s3_key_diseases, diseases_file, download_md5_diseases)
             logging.info(f'New diseases imported MD5 hash: {download_md5_diseases}')
             updated = True
 
