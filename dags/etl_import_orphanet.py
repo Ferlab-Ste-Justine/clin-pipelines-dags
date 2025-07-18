@@ -15,10 +15,12 @@ from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
 with DAG(
     dag_id='etl_import_orphanet',
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule='0 22 * * 5',
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },
+    catchup=False,
+    max_active_runs=1
 ) as dag:
 
     def _file():
