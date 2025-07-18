@@ -133,7 +133,7 @@ def build_etl_job_arguments(
         arguments = [entrypoint] + arguments
     if not batch_id_deprecated and batch_id and batch_id != '':
         arguments = arguments + ['--batchId', batch_id]
-    if analysis_ids:
+    if batch_id_deprecated and analysis_ids:
         for analysis_id in analysis_ids:
             arguments += ['--analysisId', analysis_id]
     if chromosome:
