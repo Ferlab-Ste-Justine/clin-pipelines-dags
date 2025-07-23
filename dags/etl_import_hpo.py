@@ -16,6 +16,7 @@ from lib.config import K8sContext, config_file, env, es_url, indexer_context
 from lib.operators.curl import CurlOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
 from lib.utils import http_get, http_get_file
@@ -36,6 +37,7 @@ with DAG(
         'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure
     },
+    catchup=False,
     max_active_tasks=2,
     max_active_runs=1
     ) as dag:
@@ -155,9 +157,15 @@ with DAG(
         ],
     )
 
+    trigger_genes = TriggerDagRunOperator(
+        task_id='genes',
+        trigger_dag_id='etl_import_genes',
+        wait_for_completion=False,
+    )
+
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, [download_hpo_genes, download_hpo_terms], [normalized_hpo_genes, normalized_hpo_terms], index_hpo_terms, publish_hpo_terms, slack)
+    chain(params_validate, [download_hpo_genes, download_hpo_terms], [normalized_hpo_genes, normalized_hpo_terms], index_hpo_terms, publish_hpo_terms, trigger_genes, slack)
