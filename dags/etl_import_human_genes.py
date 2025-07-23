@@ -3,14 +3,16 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-
 from lib import config
-from lib.config import env, K8sContext, config_file
+from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.utils_s3 import get_s3_file_md5, download_and_check_md5, load_to_s3_with_md5
+from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
+                          load_to_s3_with_md5)
 
 with DAG(
     dag_id='etl_import_human_genes',
@@ -19,6 +21,8 @@ with DAG(
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },
+    catchup=False,
+    max_active_runs=1
 ) as dag:
 
     def _file():
@@ -65,4 +69,15 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    file >> table
+    trigger_genes = TriggerDagRunOperator(
+        task_id='genes',
+        trigger_dag_id='etl_import_genes',
+        wait_for_completion=False,
+    )
+
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion
+    )
+
+    file >> table >> trigger_genes >> slack

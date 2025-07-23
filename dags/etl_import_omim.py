@@ -1,10 +1,11 @@
 from datetime import datetime
 
 from airflow import DAG
+from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 
 with DAG(
@@ -14,6 +15,8 @@ with DAG(
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },
+    catchup=False,
+    max_active_runs=1
 ) as dag:
 
     table = SparkOperator(
@@ -30,5 +33,17 @@ with DAG(
         ],
         trigger_rule=TriggerRule.ALL_SUCCESS,
         on_execute_callback=Slack.notify_dag_start,
-        on_success_callback=Slack.notify_dag_completion,
     )
+
+    trigger_genes = TriggerDagRunOperator(
+        task_id='genes',
+        trigger_dag_id='etl_import_genes',
+        wait_for_completion=False,
+    )
+
+    slack = EmptyOperator(
+        task_id="slack",
+        on_success_callback=Slack.notify_dag_completion
+    )
+     
+    table >> trigger_genes >> slack
