@@ -56,7 +56,8 @@ def get_s3_storage_options(s3_conn_id: str) -> dict:
     storage_options = {
         "AWS_ACCESS_KEY_ID": conn.login,
         "AWS_SECRET_ACCESS_KEY": conn.get_password(),
-        "AWS_ENDPOINT_URL": host
+        "AWS_ENDPOINT_URL": host,
+        "AWS_ALLOW_HTTP": "true"  # For testing with local Minio
     }
 
     return storage_options

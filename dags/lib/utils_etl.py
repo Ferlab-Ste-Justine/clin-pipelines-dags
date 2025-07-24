@@ -16,7 +16,8 @@ class ClinAnalysis(Enum):
 
 
 class ClinVCFSuffix(Enum):
-    SNV_GERMLINE = '.hard-filtered.formatted.norm.VEP.vcf.gz'
+    SNV_GERMLINE = '.norm.VEP.vcf.gz'
+    SNV_GERMLINE_LEGACY = f'.hard-filtered.formatted{SNV_GERMLINE}'
     SNV_SOMATIC_TUMOR_ONLY = '.dragen.WES_somatic-tumor_only.hard-filtered.norm.VEP.vcf.gz'
     SNV_SOMATIC_TUMOR_NORMAL = '.vcf.gz'
     CNV_GERMLINE = '.cnv.vcf.gz'
@@ -45,9 +46,6 @@ class BioinfoAnalysisCode(Enum):
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
 
-def analysis_ids():
-    return '{{ params.analysis_ids or "" }}'
-
 def release_id(index: Optional[str] = None) -> str:
     if not index:
         return '{{ params.release_id or "" }}'
@@ -67,8 +65,8 @@ def color(prefix: str = '') -> str:
     return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
 
-def skip_import() -> str:
-    return '{% if params.batch_id and params.batch_id|length and params.import == "yes" %}{% else %}yes{% endif %}'
+def skip_import(batch_param_name: str = 'batch_id') -> str:
+    return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.import == "yes" %}}{{% else %}}yes{{% endif %}}'
 
 
 def skip_batch() -> str:
@@ -103,6 +101,9 @@ def metadata_exists(clin_s3: S3Hook, batch_id: str) -> bool:
     metadata_path = f'{batch_id}/metadata.json'
     return clin_s3.check_for_key(metadata_path, clin_import_bucket)
 
+def batch_folder_exists(clin_s3: S3Hook, batch_id: str) -> bool:
+    metadata_path = f'{batch_id}/'
+    return clin_s3.check_for_key(metadata_path, clin_import_bucket)
 
 def get_metadata_content(clin_s3, batch_id) -> dict:
     metadata_path = f'{batch_id}/metadata.json'
@@ -120,6 +121,7 @@ def build_etl_job_arguments(
         entrypoint: Optional[str] = None,
         steps: str = "default",
         batch_id: Optional[str] = None,
+        batch_id_deprecated: Optional[bool] = False,
         analysis_ids: Optional[list[str]] = None,
         chromosome: Optional[str] = None) -> List[str]:
     arguments = [
@@ -129,10 +131,11 @@ def build_etl_job_arguments(
     ]
     if entrypoint:
         arguments = [entrypoint] + arguments
-    if batch_id and batch_id != '':
+    if not batch_id_deprecated and batch_id and batch_id != '':
         arguments = arguments + ['--batchId', batch_id]
-    if analysis_ids and len(analysis_ids) > 0:
-        arguments = arguments + ['--analysisId', ','.join(analysis_ids)]
+    if batch_id_deprecated and analysis_ids:
+        for analysis_id in analysis_ids:
+            arguments += ['--analysisId', analysis_id]
     if chromosome:
         arguments = arguments + ['--chromosome', f'chr{chromosome}']
     return arguments

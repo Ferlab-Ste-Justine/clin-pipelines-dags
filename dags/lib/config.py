@@ -46,7 +46,7 @@ show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 cosmic_credentials = Variable.get('cosmic_credentials', None)
 topmed_bravo_credentials = Variable.get('topmed_bravo_credentials', None)
 basespace_illumina_credentials = Variable.get('basespace_illumina_credentials', None)
-svclustering_batch_size = Variable.get('svclustering_batch_size', 100)
+svclustering_batch_size = Variable.get('svclustering_batch_size', '100')
 
 clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'
@@ -83,7 +83,7 @@ elif env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.14.2.jar'
+    spark_jar = 'clin-variant-etl-v3.16.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -102,7 +102,7 @@ elif env == Env.STAGING:
     pipeline_image = 'ferlabcrsj/clin-pipelines:67bc1f6'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.14.2.jar'
+    spark_jar = 'clin-variant-etl-v3.16.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -130,7 +130,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:67bc1f6'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.14.2.jar'
+    spark_jar = 'clin-variant-etl-v3.16.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
@@ -306,12 +306,14 @@ elif env == Env.PROD:
         '250530_A00516_0682_BHVWYCDRX5_somatic_normal',
         '250530_A00516_0683_AH5FYMDMX2_germinal',
         '250613_A00516_0684_AHY5FTDRX5_somatic',
-        '250620_A00516_0689_BHY5FJDRX5_somatic',
+        '250613_A00516_0684_AHY5FTDRX5_somatic_normal',
         '250620_A00516_0688_AHGYCYDSXF_germinal',
+        '250620_A00516_0689_BHY5FJDRX5_somatic',
+        '250620_A00516_0689_BHY5FJDRX5_somatic_normal',
         '250630_A00516_0691_AH5GGVDMX2_germinal',
         '250630_A00516_0692_BHYJKJDRX5_somatic',
-        '250613_A00516_0684_AHY5FTDRX5_somatic_normal',
-        '250620_A00516_0689_BHY5FJDRX5_somatic_normal',
+        '250707_A00516_0694_BH5GGCDMX2_germinal',
+        '250716_A00516_0696_AH3HNKDRX7_somatic',
     ]
 else:
     raise AirflowConfigException(f'Unexpected environment "{env}"')

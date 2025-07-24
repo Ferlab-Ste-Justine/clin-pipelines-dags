@@ -45,6 +45,7 @@ class SparkETLOperator(SparkOperator):
                  detect_batch_type_task_id: str = 'detect_batch_type',
                  spark_jar: str = '',
                  skip: str = '',
+                 batch_id_deprecated: bool = False,
                  **kwargs
                  ) -> None:
         super().__init__(
@@ -59,6 +60,7 @@ class SparkETLOperator(SparkOperator):
         self.app_name = app_name
         self.entrypoint = entrypoint
         self.batch_id = batch_id
+        self.batch_id_deprecated = batch_id_deprecated
         self.analysis_ids = analysis_ids
         self.chromosome = chromosome
         self.target_batch_types = [target.value for target in (target_batch_types or [])]
@@ -88,6 +90,7 @@ class SparkETLOperator(SparkOperator):
             entrypoint=self.entrypoint,
             steps=self.steps,
             batch_id=self.batch_id,
+            batch_id_deprecated=self.batch_id_deprecated,
             analysis_ids=self.analysis_ids,
             chromosome=self.chromosome
         )
