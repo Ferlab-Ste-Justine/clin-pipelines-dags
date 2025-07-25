@@ -25,6 +25,6 @@ class PipelineFhirImportOperator(PipelineOperator):
         self.arguments = [
             main_class,
             self.batch_id,
-            dry_run,
-            full_metadata
+            str(dry_run).lower(),
+            str(full_metadata).lower()
         ]
