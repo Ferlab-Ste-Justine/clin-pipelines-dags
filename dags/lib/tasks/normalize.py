@@ -154,7 +154,8 @@ def exomiser_cnv(batch_id: str, analysis_ids: list, target_batch_types: List[Cli
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        batch_id_deprecated=True
     )
 
 def franklin(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
