@@ -83,7 +83,9 @@ class NextflowOperator(BaseKubernetesOperator):
         nextflow_revision_option = ['-r', self.nextflow_pipeline_revision] if self.nextflow_pipeline_revision else []
         nextflow_config_file_options = [arg for file in self.nextflow_config_files for arg in ['-c', file] if file]
         nextflow_params_file_option = ['-params-file', self.nextflow_params_file] if self.nextflow_params_file else []
-        arguments = [arg for arg in self.arguments if arg] if self.arguments else []  # Remove empty strings
+        
+        # Remove empty strings and ensure all arguments are strings
+        arguments = [str(arg) for arg in self.arguments if str(arg)] if self.arguments else []
 
         self.arguments = ['nextflow', *nextflow_config_file_options, 'run', self.nextflow_pipeline,
                           *nextflow_revision_option, *nextflow_params_file_option, *arguments]
