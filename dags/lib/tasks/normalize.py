@@ -141,6 +141,21 @@ def exomiser(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAna
         target_batch_types=target_batch_types
     )
 
+def exomiser_cnv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+    return SparkETLOperator(
+        entrypoint='exomiser_cnv',
+        task_id='exomiser_cnv',
+        name='etl-normalize-exomiser',
+        steps='default',
+        app_name='etl_normalize_exomiser_cnv',
+        spark_class=NORMALIZED_MAIN_CLASS,
+        spark_config='config-etl-large',
+        spark_jar=spark_jar,
+        skip=skip,
+        batch_id=batch_id,
+        analysis_ids=analysis_ids,
+        target_batch_types=target_batch_types
+    )
 
 def franklin(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
     return SparkETLOperator(

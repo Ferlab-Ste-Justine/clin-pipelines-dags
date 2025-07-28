@@ -30,6 +30,7 @@ with DAG(
             'variants': Param('no', enum=['yes', 'no']),
             'consequences': Param('no', enum=['yes', 'no']),
             'exomiser': Param('no', enum=['yes', 'no']),
+            'exomiser_cnv': Param('no', enum=['yes', 'no']),
             'coverage_by_gene': Param('no', enum=['yes', 'no']),
             'franklin': Param('no', enum=['yes', 'no']),
             'nextflow': Param('no', enum=['yes', 'no']),
@@ -71,7 +72,11 @@ with DAG(
 
     def skip_exomiser() -> str:
         return format_skip_condition('exomiser')
-
+    
+    
+    def skip_exomiser_cnv() -> str:
+        return format_skip_condition('exomiser_cnv')
+    
 
     def skip_coverage_by_gene() -> str:
         return format_skip_condition('coverage_by_gene')
@@ -112,6 +117,7 @@ with DAG(
                 skip_variants=skip_variants(),
                 skip_consequences=skip_consequences(),
                 skip_exomiser=skip_exomiser(),
+                skip_exomiser_cnv=skip_exomiser_cnv(),
                 skip_coverage_by_gene=skip_coverage_by_gene(),
                 skip_franklin=skip_franklin(),
                 skip_nextflow=skip_nextflow(),

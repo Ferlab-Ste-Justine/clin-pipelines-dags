@@ -20,6 +20,7 @@ def normalize_germline(
         skip_variants: str,
         skip_consequences: str,
         skip_exomiser: str,
+        skip_exomiser_cnv: str ,
         skip_coverage_by_gene: str,
         skip_franklin: str,
         skip_nextflow: str,
@@ -33,6 +34,7 @@ def normalize_germline(
     variants = normalize.variants(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_variants))
     consequences = normalize.consequences(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_consequences))
     exomiser = normalize.exomiser(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser))
+    exomiser_cnv = normalize.exomiser_cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser_cnv))
     coverage_by_gene = normalize.coverage_by_gene(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene))
 
     franklin_update_task = franklin_update(
@@ -60,4 +62,4 @@ def normalize_germline(
         (prepare_svclustering_parental_origin_task >> check_svclustering_parental_origin_input_file_exists >>
          run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task)
 
-    snv >> cnv >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update_task >> franklin >> nextflow_group()
+    snv >> cnv >> variants >> consequences >> exomiser >> exomiser_cnv >> coverage_by_gene >> franklin_update_task >> franklin >> nextflow_group()

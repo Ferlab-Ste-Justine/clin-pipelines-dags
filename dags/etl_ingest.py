@@ -58,6 +58,7 @@ with DAG(
         skip_variants='',
         skip_consequences='',
         skip_exomiser='',
+        skip_exomiser_cnv='',
         skip_coverage_by_gene='',
         skip_franklin='',
         skip_nextflow='',

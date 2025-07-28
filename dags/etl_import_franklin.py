@@ -33,6 +33,8 @@ with DAG(
             'import': Param('yes', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
+        max_active_tasks=1,
+        max_active_runs=1,
 ) as dag:
 
     batch_ids: List[str] = params.get_batch_ids()
