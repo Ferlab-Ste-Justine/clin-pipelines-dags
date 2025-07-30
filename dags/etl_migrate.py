@@ -58,7 +58,7 @@ with DAG(
         dag_run: DagRun = ti.dag_run
         return {
             'batch_id': batch_id,
-            'skip_export_fhir': 'no', # export already done here, required if etl_migrate_batch is launch manually
+            'export_fhir': 'no', # export already done here, required if etl_migrate_batch is launch manually
             'color': dag_run.conf['color'],
             'snv': dag_run.conf['snv'],
             'snv_somatic': dag_run.conf['snv_somatic'],
