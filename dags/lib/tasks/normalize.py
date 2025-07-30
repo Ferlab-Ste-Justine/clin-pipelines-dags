@@ -6,7 +6,7 @@ from lib.utils_etl import ClinAnalysis
 NORMALIZED_MAIN_CLASS = 'bio.ferlab.clin.etl.normalized.RunNormalized'
 
 
-def snv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def snv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='snv',
         task_id='snv',
@@ -19,11 +19,12 @@ def snv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
 
-def snv_somatic(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def snv_somatic(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='snv_somatic',
         task_id='snv_somatic',
@@ -36,11 +37,12 @@ def snv_somatic(batch_id: str, analysis_ids: list, target_batch_types: List[Clin
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
 
-def cnv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def cnv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='cnv',
         task_id='cnv',
@@ -53,11 +55,12 @@ def cnv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
 
-def cnv_somatic_tumor_only(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def cnv_somatic_tumor_only(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='cnv_somatic_tumor_only',
         task_id='cnv_somatic_tumor_only',
@@ -70,11 +73,12 @@ def cnv_somatic_tumor_only(batch_id: str, analysis_ids: list, target_batch_types
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
 
-def variants(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def variants(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='variants',
         task_id='variants',
@@ -87,11 +91,12 @@ def variants(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAna
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
 
-def consequences(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def consequences(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='consequences',
         task_id='consequences',
@@ -104,11 +109,12 @@ def consequences(batch_id: str, analysis_ids: list, target_batch_types: List[Cli
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
 
-def coverage_by_gene(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def coverage_by_gene(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='coverage_by_gene',
         task_id='coverage_by_gene',
@@ -121,11 +127,12 @@ def coverage_by_gene(batch_id: str, analysis_ids: list, target_batch_types: List
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
 
-def exomiser(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def exomiser(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='exomiser',
         task_id='exomiser',
@@ -138,10 +145,11 @@ def exomiser(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAna
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
-        target_batch_types=target_batch_types
+        target_batch_types=target_batch_types,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
-def exomiser_cnv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def exomiser_cnv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='exomiser_cnv',
         task_id='exomiser_cnv',
@@ -155,10 +163,11 @@ def exomiser_cnv(batch_id: str, analysis_ids: list, target_batch_types: List[Cli
         batch_id=batch_id,
         analysis_ids=analysis_ids,
         target_batch_types=target_batch_types,
-        batch_id_deprecated=True
+        batch_id_deprecated=True,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
 
-def franklin(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str) -> SparkETLOperator:
+def franklin(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='franklin',
         task_id='franklin',
@@ -172,5 +181,6 @@ def franklin(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAna
         batch_id=batch_id,
         analysis_ids=analysis_ids,
         target_batch_types=target_batch_types,
-        batch_id_deprecated=True
+        batch_id_deprecated=True,
+        detect_batch_type_task_id=detect_batch_type_task_id,
     )
