@@ -18,11 +18,10 @@ def migrate_germline(
         skip_nextflow: str,
         spark_jar: str
 ):
-    detect_batch_type_task_id = f"{get_group_id('migrate', batch_id)}.detect_batch_type"
+
     skip_all = batch_type.skip(
         batch_type=ClinAnalysis.GERMLINE,
         batch_type_detected=True,
-        detect_batch_type_task_id=detect_batch_type_task_id
     )
 
     validate_germline_task = batch_type.validate(

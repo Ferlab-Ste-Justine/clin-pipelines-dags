@@ -1,21 +1,17 @@
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
+from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import batch_ids
 from lib.groups.ingest.ingest_fhir import ingest_fhir
-from lib.groups.migrate.migrate_germline import migrate_germline
-from lib.groups.migrate.migrate_somatic_tumor_normal import \
-    migrate_somatic_tumor_normal
-from lib.groups.migrate.migrate_somatic_tumor_only import \
-    migrate_somatic_tumor_only
+from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import color, get_group_id, spark_jar
+from lib.utils_etl import color, spark_jar
 
 with DAG(
         dag_id='etl_migrate',
@@ -40,61 +36,15 @@ with DAG(
             'trigger_rule': TriggerRule.NONE_FAILED,
             'on_failure_callback': Slack.notify_task_failure,
         },
-        max_active_tasks=4
+        max_active_tasks=4,
+        max_active_runs=1,
 ) as dag:
-    def format_skip_condition(param: str) -> str:
-        return '{% if params.' + param + ' == "yes" %}{% else %}yes{% endif %}'
-
-
-    def skip_snv() -> str:
-        return format_skip_condition('snv')
-
-
-    def skip_snv_somatic() -> str:
-        return format_skip_condition('snv_somatic')
-
-
-    def skip_cnv() -> str:
-        return format_skip_condition('cnv')
-
-
-    def skip_cnv_somatic_tumor_only() -> str:
-        return format_skip_condition('cnv_somatic_tumor_only')
-
-
-    def skip_variants() -> str:
-        return format_skip_condition('variants')
-
-
-    def skip_consequences() -> str:
-        return format_skip_condition('consequences')
-
-
-    def skip_exomiser() -> str:
-        return format_skip_condition('exomiser')
-    
-    
-    def skip_exomiser_cnv() -> str:
-        return format_skip_condition('exomiser_cnv')
-    
-
-    def skip_coverage_by_gene() -> str:
-        return format_skip_condition('coverage_by_gene')
-
-
-    def skip_franklin() -> str:
-        return format_skip_condition('franklin')
-
-
-    def skip_nextflow() -> str:
-        return format_skip_condition('nextflow')
-
 
     params_validate_task = validate_color(
         color=color()
     )
 
-    all_dags = ingest_fhir(
+    ingest_fhir_task = ingest_fhir(
         batch_ids=[],
         color=color(),
         skip_all='',
@@ -103,62 +53,39 @@ with DAG(
         spark_jar=spark_jar(),
     )
 
-    params_validate_task >> all_dags
+    @task(task_id='get_migrate_batch_dag_config')
+    def get_migrate_batch_dag_config(batch_id: str, ti=None) -> dict:
+        dag_run: DagRun = ti.dag_run
+        return {
+            'batch_id': batch_id,
+            'export_fhir': 'no', # export already done here, required if etl_migrate_batch is launch manually
+            'color': dag_run.conf['color'],
+            'snv': dag_run.conf['snv'],
+            'snv_somatic': dag_run.conf['snv_somatic'],
+            'cnv': dag_run.conf['cnv'],
+            'cnv_somatic_tumor_only': dag_run.conf['cnv_somatic_tumor_only'],
+            'variants': dag_run.conf['variants'],
+            'consequences':dag_run.conf['consequences'],
+            'exomiser':dag_run.conf['exomiser'],
+            'exomiser_cnv': dag_run.conf['exomiser_cnv'],
+            'coverage_by_gene':dag_run.conf['coverage_by_gene'],
+            'franklin':dag_run.conf['franklin'],
+            'nextflow':dag_run.conf['nextflow'],
+            'spark_jar': dag_run.conf['spark_jar'],
+        }
 
+    get_all_batch_ids_task = batch_type.get_all_batch_ids()
+    get_migrate_batch_dag_config_task = get_migrate_batch_dag_config.expand(batch_id=get_all_batch_ids_task)
 
-    def migrate_batch_id(batch_id: str) -> TaskGroup:
-        with TaskGroup(group_id=get_group_id('migrate', batch_id)) as group:
-            detect_batch_type_task = batch_type.detect(batch_id=batch_id)
-
-            migrate_germline_group = migrate_germline(
-                batch_id=batch_id,
-                skip_snv=skip_snv(),
-                skip_cnv=skip_cnv(),
-                skip_variants=skip_variants(),
-                skip_consequences=skip_consequences(),
-                skip_exomiser=skip_exomiser(),
-                skip_exomiser_cnv=skip_exomiser_cnv(),
-                skip_coverage_by_gene=skip_coverage_by_gene(),
-                skip_franklin=skip_franklin(),
-                skip_nextflow=skip_nextflow(),
-                spark_jar=spark_jar()
-            )
-
-            migrate_somatic_tumor_only_group = migrate_somatic_tumor_only(
-                batch_id=batch_id,
-                skip_snv_somatic=skip_snv_somatic(),
-                skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only(),
-                skip_variants=skip_variants(),
-                skip_consequences=skip_consequences(),
-                skip_coverage_by_gene=skip_coverage_by_gene(),
-                spark_jar=spark_jar()
-            )
-
-            migrate_somatic_tumor_normal_group = migrate_somatic_tumor_normal(
-                batch_id=batch_id,
-                skip_snv_somatic=skip_snv_somatic(),
-                skip_variants=skip_variants(),
-                skip_consequences=skip_consequences(),
-                skip_coverage_by_gene=skip_coverage_by_gene(),
-                spark_jar=spark_jar()
-            )
-
-            detect_batch_type_task >> [migrate_germline_group,
-                                       migrate_somatic_tumor_only_group,
-                                       migrate_somatic_tumor_normal_group]
-
-        return group
-
-
-    # concat every dags inside a loop
-    for batch_id in sorted(set(batch_ids)):
-        batch = migrate_batch_id(batch_id)
-        all_dags >> batch
-        all_dags = batch
+    trigger_migrate_batch_dags = TriggerDagRunOperator.partial(
+        task_id='etl_migrate_batch',
+        trigger_dag_id='etl_migrate_batch',
+        wait_for_completion=True
+    ).expand(conf=get_migrate_batch_dag_config_task)
 
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    all_dags >> slack
+    params_validate_task >> ingest_fhir_task >> get_all_batch_ids_task >> trigger_migrate_batch_dags >> slack
