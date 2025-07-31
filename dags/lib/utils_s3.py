@@ -2,9 +2,9 @@ import json
 from typing import Any
 
 import requests
-from airflow.exceptions import AirflowFailException
 from airflow.hooks.base import BaseHook
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.exceptions import AirflowFailException
 from lib.utils import file_md5, http_get_file
 
 
@@ -51,10 +51,12 @@ def load_to_s3_with_version(s3: S3Hook, s3_bucket: str, s3_key: str, file: str, 
 
 
 def get_s3_storage_options(s3_conn_id: str) -> dict:
+    conn = BaseHook.get_connection(s3_conn_id)
+    host = json.loads(conn.get_extra()).get("host")
     storage_options = {
-        "AWS_ACCESS_KEY_ID": 'cqgc-qa',
-        "AWS_SECRET_ACCESS_KEY": "GBQmHuvBqRvzjXEU2axvQq5o6RxVQ9",
-        "AWS_ENDPOINT_URL": "https://s3.cqgc.hsj.rtss.qc.ca",
+        "AWS_ACCESS_KEY_ID": conn.login,
+        "AWS_SECRET_ACCESS_KEY": conn.get_password(),
+        "AWS_ENDPOINT_URL": host,
         "AWS_ALLOW_HTTP": "true"  # For testing with local Minio
     }
 
