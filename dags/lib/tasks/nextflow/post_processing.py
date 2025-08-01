@@ -123,7 +123,7 @@ def prepare_cnv(seq_id_pheno_file_mapping: Dict[str, str], job_hash: str) -> str
     column_map = {
         'analysis_id': 'sample',
         'sequencing_id': 'sequencingId',
-        'sequencing_strategy': 'pheno',
+        'sequencing_strategy': 'sequencingType',
         'cnv_vcf_urls': 'vcf'
     }
 
@@ -139,10 +139,10 @@ def prepare_cnv(seq_id_pheno_file_mapping: Dict[str, str], job_hash: str) -> str
 
     samples['sequencingType'] = samples['sequencingType'].apply(set_sequencing_type)
 
-    # snv_vcf_urls (gvcf) is a list of URLs, we only need the first one
+    # cnv_vcf_urls (vcf) is a list of URLs, we only need the first one
     # Nextflow only supports s3:// URLs
     samples['vcf'] = samples['vcf'].str[0].str.replace('s3a://', 's3://', 1)
-    samples['pheno'] = samples['pheno'].map(seq_id_pheno_file_mapping)
+    samples['pheno'] = samples['sequencingId'].map(seq_id_pheno_file_mapping)
     samples.drop(columns=['sequencingId'], inplace=True)
 
     s3_key = nextflow_cnv_post_processing_input_key(job_hash)
