@@ -41,7 +41,7 @@ def ingest_germline(
         spark_jar=spark_jar
     )
 
-    get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_id=batch_id)
+    get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_id=batch_id, skip=skip_all)
 
     normalize_germline_group = normalize_germline(
         batch_id=batch_id,

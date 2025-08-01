@@ -6,7 +6,11 @@ from pandas import DataFrame
 
 
 @task.virtualenv(task_id='get_all_analysis_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
-def get_all_analysis_ids(analysis_ids: Optional[Set[str]] = None, sequencing_ids: Optional[Set[str]] = None, batch_ids: Optional[Set[str]] = None, batch_id: Optional[str] = None) -> List[str]:
+def get_all_analysis_ids(analysis_ids: Optional[Set[str]] = None, sequencing_ids: Optional[Set[str]] = None, batch_ids: Optional[Set[str]] = None, batch_id: Optional[str] = None, skip: bool = False) -> List[str]:
+    
+    if skip:
+        return []
+    
     """
     Retrieves all analysis IDs for every sequencing IDs
     """
