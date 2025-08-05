@@ -149,7 +149,7 @@ with DAG(
                 '--exomiser-type=snv',
             ]
         )
-        (prepare_nextflow_post_processing_task, nextflow_post_processing_task, add_exomiser_references_task)
+        prepare_nextflow_post_processing_task >> nextflow_post_processing_task >> add_exomiser_references_task
     
     @task_group(group_id='cnv')
     def cnv():
@@ -174,7 +174,7 @@ with DAG(
                 '--exomiser-type=cnv',
             ]
         )
-        (prepare_nextflow_post_processing_task, nextflow_post_processing_task, add_exomiser_references_task)
+        prepare_nextflow_post_processing_task >> nextflow_post_processing_task >> add_exomiser_references_task
 
     detect_batch_types_task = batch_type.detect(analysis_ids=get_all_analysis_ids_task, allowMultipleIdentifierTypes=True)
 
