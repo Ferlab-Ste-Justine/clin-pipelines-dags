@@ -46,10 +46,9 @@ with DAG(
     )
 
     detect_batch_type_task = batch_type.detect(batch_id=batch_id(), analysis_ids=get_analysis_ids_task)
-    get_analysis_ids_related_batch_task = get_analysis_ids_related_batch(get_analysis_ids_task, batch_id())
 
     ingest_germline_group = ingest_germline(
-        batch_id=get_analysis_ids_related_batch_task,
+        batch_id=batch_id(),
         analysis_ids=get_analysis_ids_task,
         batch_type_detected=True,
         color=color(),
@@ -68,7 +67,7 @@ with DAG(
     )
 
     ingest_somatic_tumor_only_group = ingest_somatic_tumor_only(
-        batch_id=get_analysis_ids_related_batch_task,
+        batch_id=batch_id(),
         analysis_ids=get_analysis_ids_task,
         batch_type_detected=True,
         color=color(),
@@ -83,7 +82,7 @@ with DAG(
     )
 
     ingest_somatic_tumor_normal_group = ingest_somatic_tumor_normal(
-        batch_id=get_analysis_ids_related_batch_task,
+        batch_id=batch_id(),
         analysis_ids=get_analysis_ids_task,
         batch_type_detected=True,
         color=color(),
@@ -101,4 +100,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    get_analysis_ids_task >> params_validate >> detect_batch_type_task >> get_analysis_ids_related_batch_task >> [ingest_germline_group, ingest_somatic_tumor_only_group, ingest_somatic_tumor_normal_group] >> slack
+    get_analysis_ids_task >> params_validate >> detect_batch_type_task >> [ingest_germline_group, ingest_somatic_tumor_only_group, ingest_somatic_tumor_normal_group] >> slack

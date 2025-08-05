@@ -30,7 +30,7 @@ def get_all_analysis_ids(analysis_ids: Optional[Set[str]] = None, sequencing_ids
     return all_analysis_ids
 
 @task.virtualenv(task_id='get_analysis_ids_related_batch', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
-def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: str) -> str:
+def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: str, skip: bool = False) -> str:
 
     '''
     Utils function to revert to Batch ID a list of analysis IDs provided to a DAG as param.
@@ -39,6 +39,9 @@ def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: s
     
     if batch_id and len(batch_id) > 0:
         return batch_id
+    
+    if skip:
+        return ""
     
     if not analysis_ids or len(analysis_ids) == 0:
         raise AirflowFailException(f"No batch ID or analysis IDs were provided.")
@@ -57,4 +60,4 @@ def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: s
     if len(all_batch_ids) > 1:
         raise AirflowFailException(f"Analysis IDs belong to more than one batch ID ({all_batch_ids}).")
 
-    return all_batch_ids[0]
+    return list(all_batch_ids)[0]
