@@ -12,6 +12,7 @@ from lib.groups.ingest.ingest_somatic_tumor_only import \
     ingest_somatic_tumor_only
 from lib.slack import Slack
 from lib.tasks import batch_type
+from lib.tasks.clinical import get_analysis_ids_related_batch
 from lib.tasks.params import get_analysis_ids
 from lib.tasks.params_validate import validate_batch_analysis_ids_color
 from lib.utils_etl import batch_id, color, skip_import, spark_jar
@@ -45,9 +46,10 @@ with DAG(
     )
 
     detect_batch_type_task = batch_type.detect(batch_id=batch_id(), analysis_ids=get_analysis_ids_task)
+    get_analysis_ids_related_batch_task = get_analysis_ids_related_batch(get_analysis_ids_task, batch_id())
 
     ingest_germline_group = ingest_germline(
-        batch_id=batch_id(),
+        batch_id=get_analysis_ids_related_batch_task,
         analysis_ids=get_analysis_ids_task,
         batch_type_detected=True,
         color=color(),
@@ -66,7 +68,7 @@ with DAG(
     )
 
     ingest_somatic_tumor_only_group = ingest_somatic_tumor_only(
-        batch_id=batch_id(),
+        batch_id=get_analysis_ids_related_batch_task,
         analysis_ids=get_analysis_ids_task,
         batch_type_detected=True,
         color=color(),
@@ -81,7 +83,7 @@ with DAG(
     )
 
     ingest_somatic_tumor_normal_group = ingest_somatic_tumor_normal(
-        batch_id=batch_id(),
+        batch_id=get_analysis_ids_related_batch_task,
         analysis_ids=get_analysis_ids_task,
         batch_type_detected=True,
         color=color(),
@@ -99,6 +101,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    get_analysis_ids_task >> params_validate >> detect_batch_type_task >> [ingest_germline_group,
-                                                  ingest_somatic_tumor_only_group,
-                                                  ingest_somatic_tumor_normal_group] >> slack
+    get_analysis_ids_task >> params_validate >> detect_batch_type_task >> get_analysis_ids_related_batch_task >> [ingest_germline_group, ingest_somatic_tumor_only_group, ingest_somatic_tumor_normal_group] >> slack
