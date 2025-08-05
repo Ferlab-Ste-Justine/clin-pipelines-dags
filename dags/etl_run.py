@@ -17,6 +17,7 @@ from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.clinical import get_all_analysis_ids
 from lib.tasks.nextflow import cnv_post_processing, exomiser, post_processing
+from lib.tasks.params import get_sequencing_ids
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color,
                            get_ingest_dag_configs_by_analysis_ids, spark_jar)
@@ -40,8 +41,6 @@ with DAG(
         max_active_tasks=1,
         max_active_runs=1
 ) as dag:
-    def get_sequencing_ids():
-        return '{{ params.sequencing_ids }}'
 
     start = EmptyOperator(
         task_id="start",
@@ -119,8 +118,9 @@ with DAG(
     def prepare_exomiser_references_analysis_ids(all_analysis_ids: Set[str]) -> str:
         return '--analysis-ids=' + ','.join(all_analysis_ids)
     
-    get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
-    get_all_analysis_ids_task = get_all_analysis_ids(sequencing_ids=get_sequencing_ids())
+    get_sequencing_ids_taks = get_sequencing_ids()
+    get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids_taks)
+    get_all_analysis_ids_task = get_all_analysis_ids(sequencing_ids=get_sequencing_ids_taks)
     get_job_hash_task = get_job_hash(get_all_analysis_ids_task)
 
     prepare_exomiser_references_analysis_ids_task = prepare_exomiser_references_analysis_ids(get_all_analysis_ids_task)
@@ -194,7 +194,7 @@ with DAG(
     (
         start >> params_validate >>
         ingest_fhir_group >>
-        get_all_sequencing_ids_task >> get_all_analysis_ids_task >> get_job_hash_task >>
+        get_sequencing_ids_taks >> get_all_sequencing_ids_task >> get_all_analysis_ids_task >> get_job_hash_task >>
         prepare_exomiser_references_analysis_ids_task >> prepare_nextflow_exomiser_task >> snv() >> cnv() >>
         detect_batch_types_task >> get_ingest_dag_configs_by_analysis_ids_task >> trigger_ingest_by_sequencing_ids_dags >>
         slack
