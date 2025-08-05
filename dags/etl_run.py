@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Set
 
 from airflow import DAG
-from airflow.decorators import task
+from airflow.decorators import task, task_group
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
@@ -16,7 +16,7 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.clinical import get_all_analysis_ids
-from lib.tasks.nextflow import exomiser, post_processing
+from lib.tasks.nextflow import cnv_post_processing, exomiser, post_processing
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color,
                            get_ingest_dag_configs_by_analysis_ids, spark_jar)
@@ -118,37 +118,64 @@ with DAG(
     @task
     def prepare_exomiser_references_analysis_ids(all_analysis_ids: Set[str]) -> str:
         return '--analysis-ids=' + ','.join(all_analysis_ids)
-
+    
     get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids())
     get_all_analysis_ids_task = get_all_analysis_ids(sequencing_ids=get_sequencing_ids())
     get_job_hash_task = get_job_hash(get_all_analysis_ids_task)
 
-    prepare_nextflow_exomiser_task = exomiser.prepare(sequencing_ids=get_all_sequencing_ids_task)
-    prepare_nextflow_post_processing_task = post_processing.prepare(
-        seq_id_pheno_file_mapping=prepare_nextflow_exomiser_task,
-        job_hash=get_job_hash_task
-    )
-    nextflow_post_processing_task = post_processing.run(
-        input=prepare_nextflow_post_processing_task,
-        job_hash=get_job_hash_task
-    )
-
     prepare_exomiser_references_analysis_ids_task = prepare_exomiser_references_analysis_ids(get_all_analysis_ids_task)
+    prepare_nextflow_exomiser_task = exomiser.prepare(sequencing_ids=get_all_sequencing_ids_task)
+
+    @task_group(group_id='snv')
+    def snv():
+        prepare_nextflow_post_processing_task = post_processing.prepare(
+            seq_id_pheno_file_mapping=prepare_nextflow_exomiser_task,
+            job_hash=get_job_hash_task
+        )
+        nextflow_post_processing_task = post_processing.run(
+            input=prepare_nextflow_post_processing_task,
+            job_hash=get_job_hash_task
+        )
+        add_exomiser_references_task = PipelineOperator(
+            task_id='add_exomiser_references_task',
+            name='add_exomiser_references_task',
+            k8s_context=K8sContext.DEFAULT,
+            color=color(),
+            max_active_tis_per_dag=10,
+            arguments=[
+                'bio.ferlab.clin.etl.AddNextflowDocuments',
+                prepare_exomiser_references_analysis_ids_task,
+                '--nextflow-output-folder=' + f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
+                '--exomiser-type=snv',
+            ]
+        )
+        (prepare_nextflow_post_processing_task, nextflow_post_processing_task, add_exomiser_references_task)
     
-    add_exomiser_references_task = PipelineOperator(
-        task_id='add_exomiser_references_task',
-        name='add_exomiser_references_task',
-        k8s_context=K8sContext.DEFAULT,
-        color=color(),
-        max_active_tis_per_dag=10,
-        arguments=[
-            'bio.ferlab.clin.etl.AddNextflowDocuments',
-            prepare_exomiser_references_analysis_ids_task,
-            '--nextflow-output-folder=' + f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
-            '--exomiser-type=snv',
-        ]
-    )
-    
+    @task_group(group_id='cnv')
+    def cnv():
+        prepare_nextflow_post_processing_task = cnv_post_processing.prepare(
+            seq_id_pheno_file_mapping=prepare_nextflow_exomiser_task,
+            job_hash=get_job_hash_task
+        )
+        nextflow_post_processing_task = cnv_post_processing.run(
+            input=prepare_nextflow_post_processing_task,
+            job_hash=get_job_hash_task
+        )
+        add_exomiser_references_task = PipelineOperator(
+            task_id='cnv_add_exomiser_references_task',
+            name='cnv_add_exomiser_references_task',
+            k8s_context=K8sContext.DEFAULT,
+            color=color(),
+            max_active_tis_per_dag=10,
+            arguments=[
+                'bio.ferlab.clin.etl.AddNextflowDocuments',
+                prepare_exomiser_references_analysis_ids_task,
+                '--nextflow-output-folder=' + f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
+                '--exomiser-type=cnv',
+            ]
+        )
+        (prepare_nextflow_post_processing_task, nextflow_post_processing_task, add_exomiser_references_task)
+
     detect_batch_types_task = batch_type.detect(analysis_ids=get_all_analysis_ids_task, allowMultipleIdentifierTypes=True)
 
     get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
@@ -168,8 +195,7 @@ with DAG(
         start >> params_validate >>
         ingest_fhir_group >>
         get_all_sequencing_ids_task >> get_all_analysis_ids_task >> get_job_hash_task >>
-        prepare_nextflow_exomiser_task, prepare_nextflow_post_processing_task >>
-        nextflow_post_processing_task >> prepare_exomiser_references_analysis_ids_task >> add_exomiser_references_task >>
+        prepare_exomiser_references_analysis_ids_task >> prepare_nextflow_exomiser_task >> snv() >> cnv() >>
         detect_batch_types_task >> get_ingest_dag_configs_by_analysis_ids_task >> trigger_ingest_by_sequencing_ids_dags >>
         slack
     )
