@@ -77,7 +77,7 @@ with DAG(
         logging.info(f"Distinct input sequencing IDs: {distinct_sequencing_ids}")
 
         df: DataFrame = to_pandas(enriched_clinical.uri)
-        clinical_df = df[["sequencing_id", "analysis_id", "is_proband", "clinical_signs", "snv_vcf_urls"]]
+        clinical_df = df[["sequencing_id", "analysis_id", "is_proband", "clinical_signs", "snv_vcf_urls", "batch_id"]]
 
         # Get all sequencing IDs that share the same analysis ID as the given sequencing IDs
         analysis_ids = get_analysis_ids(clinical_df, distinct_sequencing_ids)
