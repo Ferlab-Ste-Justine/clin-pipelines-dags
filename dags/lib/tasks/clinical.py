@@ -48,7 +48,7 @@ def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: s
     from lib.utils_etl_tables import get_batch_ids, to_pandas
 
     df: DataFrame = to_pandas(enriched_clinical.uri)
-    clinical_df = df[["analysis_id", "batch_id"]]
+    clinical_df = df[["analysis_id", "sequencing_id", "batch_id"]]
     all_batch_ids = sorted(get_batch_ids(clinical_df, analysis_ids=analysis_ids))
 
     if not all_batch_ids or len(all_batch_ids) == 0:
