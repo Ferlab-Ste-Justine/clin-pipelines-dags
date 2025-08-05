@@ -7,8 +7,9 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
 from lib.config import K8sContext
-from lib.config_nextflow import (nextflow_bucket,
-                                 nextflow_post_processing_exomiser_output_key)
+from lib.config_nextflow import (
+    nextflow_bucket, nextflow_cnv_post_processing_exomiser_output_key,
+    nextflow_post_processing_exomiser_output_key)
 from lib.datasets import enriched_clinical
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.operators.pipeline import PipelineOperator
@@ -170,7 +171,7 @@ with DAG(
             arguments=[
                 'bio.ferlab.clin.etl.AddNextflowDocuments',
                 prepare_exomiser_references_analysis_ids_task,
-                '--nextflow-output-folder=' + f'{nextflow_bucket}/{nextflow_post_processing_exomiser_output_key}',
+                '--nextflow-output-folder=' + f'{nextflow_bucket}/{nextflow_cnv_post_processing_exomiser_output_key}',
                 '--exomiser-type=cnv',
             ]
         )
