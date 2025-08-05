@@ -16,7 +16,7 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.clinical import get_all_analysis_ids
-from lib.tasks.nextflow import exomiser, post_processing
+from lib.tasks.nextflow import cnv_post_processing, exomiser, post_processing
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color,
                            get_ingest_dag_configs_by_analysis_ids, spark_jar)
@@ -128,11 +128,11 @@ with DAG(
 
     @task_group(group_id='snv')
     def snv():
-        prepare_nextflow_post_processing_task = post_processing.prepare_cnv(
+        prepare_nextflow_post_processing_task = post_processing.prepare(
             seq_id_pheno_file_mapping=prepare_nextflow_exomiser_task,
             job_hash=get_job_hash_task
         )
-        nextflow_post_processing_task = post_processing.run_cnv(
+        nextflow_post_processing_task = post_processing.run(
             input=prepare_nextflow_post_processing_task,
             job_hash=get_job_hash_task
         )
@@ -153,17 +153,17 @@ with DAG(
     
     @task_group(group_id='cnv')
     def cnv():
-        prepare_nextflow_post_processing_task = post_processing.prepare(
+        prepare_nextflow_post_processing_task = cnv_post_processing.prepare(
             seq_id_pheno_file_mapping=prepare_nextflow_exomiser_task,
             job_hash=get_job_hash_task
         )
-        nextflow_post_processing_task = post_processing.run(
+        nextflow_post_processing_task = cnv_post_processing.run(
             input=prepare_nextflow_post_processing_task,
             job_hash=get_job_hash_task
         )
         add_exomiser_references_task = PipelineOperator(
-            task_id='add_exomiser_references_task',
-            name='add_exomiser_references_task',
+            task_id='cnv_add_exomiser_references_task',
+            name='cnv_add_exomiser_references_task',
             k8s_context=K8sContext.DEFAULT,
             color=color(),
             max_active_tis_per_dag=10,
