@@ -79,7 +79,7 @@ with DAG(
         clinical_df = df[["sequencing_id", "analysis_id", "is_proband", "clinical_signs", "snv_vcf_urls", "batch_id"]]
 
         # Get all sequencing IDs that share the same analysis ID as the given sequencing IDs
-        analysis_ids = get_analysis_ids(clinical_df, distinct_sequencing_ids)
+        analysis_ids = get_analysis_ids(clinical_df, sequencing_ids=distinct_sequencing_ids)
         _all_sequencing_ids = set(clinical_df.loc[clinical_df["analysis_id"].isin(analysis_ids), "sequencing_id"])
         if not _all_sequencing_ids:
             raise AirflowFailException("No sequencing IDs found for the given input sequencing IDs")
