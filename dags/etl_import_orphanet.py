@@ -16,7 +16,7 @@ from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
 
 with DAG(
     dag_id='etl_import_orphanet',
-    start_date=datetime(2022, 1, 1),
+    start_date=datetime(2025, 9, 6),
     schedule='15 6 * * 6#1',
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
