@@ -15,6 +15,7 @@ def test_group_has_all_tasks():
         )
 
     expected_tasks = {
+        'fhir.prepare_expand_batch_ids',
         'fhir.fhir_import',
         'fhir.fhir_export',
         'fhir.fhir_normalize',
