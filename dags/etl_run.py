@@ -52,7 +52,7 @@ with DAG(
     params_validate = validate_color.override(on_execute_callback=None)(color=color())
 
     ingest_fhir_group = ingest_fhir(
-        batch_ids=[],  # No associated "batch"
+        batch_ids=None,  # No associated "batch"
         color=color(),
         skip_all=False,
         skip_import=True,  # Skipping because the data is already imported via the prescription API
