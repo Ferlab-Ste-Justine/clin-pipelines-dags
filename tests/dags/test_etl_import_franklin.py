@@ -16,6 +16,7 @@ def test_dag_has_all_tasks(dag_bag):
         'get_batch_ids',
         'get_analysis_ids',
         'params_validate',
+        'fhir.prepare_expand_batch_ids',
         'fhir.fhir_import',
         'fhir.fhir_export',
         'fhir.fhir_normalize',
