@@ -20,7 +20,6 @@ def test_dag_has_all_tasks(dag_bag):
         'fhir.fhir_export',
         'fhir.fhir_normalize',
         'fhir.fhir_enrich_clinical',
-        'fhir.prepare_expand_batch_ids',
         'detect_batch_type',
         'franklin_validate',
         'get_all_analysis_ids',
