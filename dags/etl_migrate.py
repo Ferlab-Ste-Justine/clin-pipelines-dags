@@ -45,7 +45,7 @@ with DAG(
     )
 
     ingest_fhir_task = ingest_fhir(
-        batch_ids=None,
+        batch_ids=[],
         color=color(),
         skip_all='',
         skip_import='yes',  # always skip import, not the purpose of that dag
