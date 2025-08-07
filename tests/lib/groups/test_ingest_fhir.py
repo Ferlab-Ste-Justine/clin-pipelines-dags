@@ -1,4 +1,4 @@
-from airflow.models import MappedOperator
+from airflow.models import MappedOperator, XComArg
 from airflow.models.dag import DAG
 
 
@@ -27,4 +27,5 @@ def test_group_has_all_tasks():
     fhir_import_task = dag.get_task('fhir.fhir_import')
     prepare_expand_batch_ids_task = dag.get_task('fhir.prepare_expand_batch_ids')
     assert isinstance(fhir_import_task, MappedOperator)
-    assert fhir_import_task.expand_input.value == {'batch_id': prepare_expand_batch_ids_task}
+    assert isinstance(fhir_import_task.expand_input.value['batch_id'], XComArg)
+    assert fhir_import_task.expand_input.value['batch_id'].task_id == prepare_expand_batch_ids_task.task_id
