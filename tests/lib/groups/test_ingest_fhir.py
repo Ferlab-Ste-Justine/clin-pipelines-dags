@@ -25,5 +25,6 @@ def test_group_has_all_tasks():
     assert task_ids == expected_tasks, f"Missing tasks: {expected_tasks - task_ids}"
 
     fhir_import_task = dag.get_task('fhir.fhir_import')
+    prepare_expand_batch_ids_task = dag.get_task('fhir.prepare_expand_batch_ids')
     assert isinstance(fhir_import_task, MappedOperator)
-    assert fhir_import_task.expand_input.value == {'batch_id': ['batch1', 'batch2']}
+    assert fhir_import_task.expand_input.value == {'batch_id': prepare_expand_batch_ids_task}
