@@ -60,19 +60,21 @@ nextflow_cnv_post_processing_pipeline = 'Ferlab-Ste-Justine/cnv-post-processing'
 nextflow_bucket = config.clin_nextflow_bucket
 nextflow_exomiser_input_key = lambda analysis_id: f'exomiser/input/{analysis_id}.pheno.json'
 
-nextflow_svclustering_input_key = 'svclustering/input/input.csv'
-nextflow_svclustering_output_key = 'svclustering/output'
+nextflow_svclustering_germline_input_key = 'svclustering/input/germline.samplesheet.cnv'
+nextflow_svclustering_somatic_input_key = 'svclustering/input/somatic.samplesheet.cnv'
+nextflow_svclustering_germline_output_key = 'svclustering/output/germline'
+nextflow_svclustering_somatic_output_key = 'svclustering/output/somatic'
 
 nextflow_svclustering_parental_origin_input_key = lambda batch_id: \
-    f'svclustering_parental_origin/input/{batch_id}/{batch_id}.csv'
+    f'svclustering_parental_origin/input/{batch_id}/{batch_id}.cnv'
 nextflow_svclustering_parental_origin_output_key = lambda batch_id: \
     f'svclustering_parental_origin/output/{batch_id}'
 
-nextflow_post_processing_input_key = lambda _hash: f'post_processing/input/{_hash}.samplesheet.csv'
+nextflow_post_processing_input_key = lambda _hash: f'post_processing/input/{_hash}.samplesheet.cnv'
 nextflow_post_processing_info_output_key = lambda _hash: f'post_processing/output/runs/{_hash}'  # _hash here can be a template
 nextflow_post_processing_vep_output_key = 'post_processing/output/ensemblvep'
 nextflow_post_processing_exomiser_output_key = 'post_processing/output/exomiser'
 
-nextflow_cnv_post_processing_input_key = lambda _hash: f'cnv_post_processing/input/{_hash}.samplesheet.csv'
+nextflow_cnv_post_processing_input_key = lambda _hash: f'cnv_post_processing/input/{_hash}.samplesheet.cnv'
 nextflow_cnv_post_processing_info_output_key = lambda _hash: f'cnv_post_processing/output/runs/{_hash}'  # _hash here can be a template
 nextflow_cnv_post_processing_exomiser_output_key = 'cnv_post_processing/output/exomiser'
