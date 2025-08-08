@@ -52,7 +52,7 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str], job_hash: str) -> str:
         'sequencing_id': 'sequencingId',
         'aliquot_id': 'sample',
         'sequencing_strategy': 'sequencingType',
-        'snv_vcf_urls': 'gvcf'
+        'snv_vcf_germline_urls': 'gvcf'
     }
 
     samples = df[df['sequencing_id'].isin(seq_id_pheno_file_mapping.keys())] \
@@ -67,7 +67,7 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str], job_hash: str) -> str:
 
     samples['sequencingType'] = samples['sequencingType'].apply(set_sequencing_type)
 
-    # snv_vcf_urls (gvcf) is a list of URLs, we only need the first one
+    # snv_vcf_germline_urls (gvcf) is a list of URLs, we only need the first one
     # Nextflow only supports s3:// URLs
     samples['gvcf'] = samples['gvcf'].str[0].str.replace('s3a://', 's3://', 1)
     samples['familyPheno'] = samples['sequencingId'].map(seq_id_pheno_file_mapping)

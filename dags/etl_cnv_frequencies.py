@@ -1,12 +1,16 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pendulum
 from airflow import DAG
 from airflow.decorators import task_group
 from airflow.models import Param
 from airflow.utils.trigger_rule import TriggerRule
+
 from lib.config import Env, env
+from lib.config_nextflow import nextflow_svclustering_germline_input_key, nextflow_svclustering_germline_output_key, \
+    nextflow_svclustering_somatic_input_key, nextflow_svclustering_somatic_output_key
 from lib.doc import cnv_frequencies as doc
+from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import (enrich, es, index, params_validate, prepare_index,
@@ -31,12 +35,47 @@ with DAG(
         catchup=False,
         max_active_runs=1
 ) as dag:
-        
     params_validate_task = params_validate.validate_color(color=color())
-    prepare_svclustering_task = svclustering.prepare(spark_jar())
-    run_svclustering_task = svclustering.run()
-    normalize_svclustering_task = svclustering.normalize(spark_jar())
-    enrich_cnv_task = enrich.cnv_all(spark_jar=spark_jar(), steps='initial', task_id='enrich_cnv')
+
+    ingest_fhir_group = ingest_fhir(
+        batch_ids=[],  # No associated "batch"
+        color=color(),
+        skip_all=False,
+        skip_import=True,  # Skipping because we only want to run enrich_clinical
+        skip_batch=False,
+        spark_jar=spark_jar()
+    )
+
+    prepare_svclustering_task = svclustering.prepare()
+
+
+    @task_group(group_id='run')
+    def run_group():
+        svclustering.run(input_key=nextflow_svclustering_germline_input_key,
+                         output_key=nextflow_svclustering_germline_output_key,
+                         task_id='svclustering_germline',
+                         name='svclustering-germline')
+
+        svclustering.run(input_key=nextflow_svclustering_somatic_input_key,
+                         output_key=nextflow_svclustering_somatic_output_key,
+                         task_id='svclustering_somatic',
+                         name='svclustering-somatic')
+
+
+    @task_group(group_id='normalize')
+    def normalize_group():
+        svclustering.normalize(entrypoint='normalize_svclustering_germline',
+                               spark_jar=spark_jar(),
+                               task_id='svclustering_germline',
+                               name='svclustering-germline')
+
+        svclustering.normalize(entrypoint='normalize_svclustering_somatic',
+                               spark_jar=spark_jar(),
+                               task_id='svclustering_somatic',
+                               name='svclustering-somatic')
+
+
+    enrich_cnv_task = enrich.cnv_all(spark_jar=spark_jar(), steps='default', task_id='enrich_cnv')
     prepare_cnv_centric_task = prepare_index.cnv_centric(spark_jar(), task_id='prepare_cnv_centric')
 
 
@@ -65,5 +104,6 @@ with DAG(
         }
     )
 
-    (params_validate_task >> prepare_svclustering_task >> run_svclustering_task >> normalize_svclustering_task >>
-     enrich_cnv_task >> prepare_cnv_centric_task >> qa_group() >> index_cnv_centric_task >> publish_cnv_centric_task >> trigger_rolling_dag >> delete_previous_release_task)
+    (params_validate_task >> ingest_fhir_group >> prepare_svclustering_task >> run_group() >> normalize_group() >>
+     enrich_cnv_task >> prepare_cnv_centric_task >> qa_group() >> index_cnv_centric_task >> publish_cnv_centric_task >>
+     trigger_rolling_dag >> delete_previous_release_task)
