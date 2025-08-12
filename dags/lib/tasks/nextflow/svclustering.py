@@ -79,18 +79,21 @@ def prepare():
 
 def run(input_key: str, output_key: str, task_id: str = 'svclustering', name: str = 'svclustering', skip: str = '',
         **kwargs):
-    return nextflow_svclustering_base_config \
-        .with_pipeline(nextflow_svclustering_pipeline) \
-        .with_revision(nextflow_svclustering_revision) \
+    return (
+        nextflow_svclustering_base_config
+        .with_pipeline(nextflow_svclustering_pipeline)
+        .with_revision(nextflow_svclustering_revision)
         .append_args(
-        '--input', f's3://{nextflow_bucket}/{input_key}',
-        '--outdir', f's3://{nextflow_bucket}/{output_key}') \
+            '--input', f's3://{nextflow_bucket}/{input_key}',
+            '--outdir', f's3://{nextflow_bucket}/{output_key}'
+        )
         .operator(
-        NextflowOperator,
-        task_id=task_id,
-        name=name,
-        skip=skip,
-        **kwargs
+            NextflowOperator,
+            task_id=task_id,
+            name=name,
+            skip=skip,
+            **kwargs
+        )
     )
 
 

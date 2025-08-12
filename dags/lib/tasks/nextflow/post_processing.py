@@ -54,7 +54,6 @@ def prepare(seq_id_pheno_file_mapping: Dict[str, str], job_hash: str) -> str:
         'sequencing_strategy': 'sequencingType',
         'snv_vcf_germline_urls': 'gvcf'
     }
-
     samples = df[df['sequencing_id'].isin(seq_id_pheno_file_mapping.keys())] \
         .rename(columns=column_map)[[*column_map.values()]]
 
