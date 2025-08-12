@@ -2,7 +2,7 @@ from airflow.decorators import task_group
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.normalize.normalize_somatic_tumor_only import \
     normalize_somatic_tumor_only
-from lib.tasks import batch_type
+from lib.tasks import batch_type, clinical
 from lib.utils_etl import ClinAnalysis
 
 
@@ -39,6 +39,9 @@ def ingest_somatic_tumor_only(
         spark_jar=spark_jar
     )
 
+    get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_id=batch_id, skip=skip_all)
+    get_analysis_ids_related_batch_task = clinical.get_analysis_ids_related_batch(analysis_ids=get_all_analysis_ids, batch_id=batch_id, skip=skip_all)
+
     normalize_somatic_tumor_only_group = normalize_somatic_tumor_only(
         batch_id=batch_id,
         analysis_ids=analysis_ids,
@@ -51,4 +54,4 @@ def ingest_somatic_tumor_only(
         spark_jar=spark_jar
     )
 
-    validate_batch_type_task >> ingest_fhir_group >> normalize_somatic_tumor_only_group
+    validate_batch_type_task >> ingest_fhir_group >> get_all_analysis_ids >> get_analysis_ids_related_batch_task >> normalize_somatic_tumor_only_group

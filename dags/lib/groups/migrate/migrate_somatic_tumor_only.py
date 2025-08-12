@@ -15,11 +15,9 @@ def migrate_somatic_tumor_only(
         skip_coverage_by_gene: str,
         spark_jar: str
 ):
-    detect_batch_type_task_id = f"{get_group_id('migrate', batch_id)}.detect_batch_type"
     skip_all = batch_type.skip(
         batch_type=ClinAnalysis.SOMATIC_TUMOR_ONLY,
         batch_type_detected=True,
-        detect_batch_type_task_id=detect_batch_type_task_id
     )
 
     validate_somatic_tumor_only_task = batch_type.validate(
