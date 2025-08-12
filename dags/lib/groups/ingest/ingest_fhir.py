@@ -1,12 +1,11 @@
 from typing import List, Optional
 
 from airflow.decorators import task_group
-
-from lib.config import (K8sContext,
-                        config_file, env)
+from lib.config import K8sContext, config_file, env
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.pipeline_fhir_import import PipelineFhirImportOperator
 from lib.operators.spark import SparkOperator
+from lib.tasks.params import prepare_expand_batch_ids
 from lib.utils_etl import skip
 
 
@@ -20,6 +19,9 @@ def ingest_fhir(
         spark_jar: str,
         import_main_class: str = 'bio.ferlab.clin.etl.FileImport'
 ):
+    
+    prepare_expand_batch_ids_task = prepare_expand_batch_ids(batch_ids, skip(skip_all, skip_import))
+
     fhir_import = PipelineFhirImportOperator.partial(
         task_id='fhir_import',
         color=color,
@@ -27,7 +29,7 @@ def ingest_fhir(
         skip=skip(skip_all, skip_import),
         dry_run=False,
         full_metadata=True,
-    ).expand(batch_id=batch_ids)
+    ).expand(batch_id=prepare_expand_batch_ids_task)
 
     fhir_export = PipelineOperator(
         task_id='fhir_export',
@@ -72,4 +74,4 @@ def ingest_fhir(
         ],
     )
 
-    fhir_import >> fhir_export >> fhir_normalize >> fhir_enrich_clinical
+    prepare_expand_batch_ids_task >> fhir_import >> fhir_export >> fhir_normalize >> fhir_enrich_clinical

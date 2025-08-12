@@ -124,6 +124,39 @@ def detect(batch_id: str = None, batch_ids: List[str] = None, analysis_ids: List
         raise AirflowFailException(f"DAG doesn't allow multiple analysis types: {all_types}")
     
     return identifier_to_type
+
+@task.virtualenv(task_id='get_all_batch_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical], max_active_tis_per_dag=1)
+def get_all_batch_ids(allow_config = True) -> List[str]:
+
+    import logging
+
+    from lib.config import batch_ids
+    from lib.datasets import enriched_clinical
+    from lib.utils_etl_tables import to_pandas
+    from pandas import DataFrame
+
+    logger = logging.getLogger(__name__)
+
+    all_batch_ids = []
+    is_from_config = False
+
+    # if batch_ids is defined in configuration
+    if allow_config and batch_ids and len(batch_ids) > 0:
+        all_batch_ids = batch_ids
+        is_from_config = True
+    else:
+        df: DataFrame = (
+            to_pandas(enriched_clinical.uri)
+            .filter(["batch_id"])
+            .set_index("batch_id")
+        )
+        all_batch_ids = df.index.unique().tolist()
+
+    sorted_unique_batch_id = sorted(set(all_batch_ids))
+
+    logger.info(f"Batch IDs (from {"config" if is_from_config else "clinical"}): {sorted_unique_batch_id}")
+    
+    return sorted_unique_batch_id
    
 
 def _detect_types_from_enrich_clinical(identifier_column: str, identifiers: List[str], must_exist=True) -> Dict[str, List[str]]:

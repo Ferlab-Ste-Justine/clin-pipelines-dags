@@ -18,6 +18,7 @@ def ingest_germline(
         skip_variants: str,
         skip_consequences: str,
         skip_exomiser: str,
+        skip_exomiser_cnv: str,
         skip_coverage_by_gene: str,
         skip_franklin: str,
         skip_nextflow: str,
@@ -42,9 +43,10 @@ def ingest_germline(
     )
 
     get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_id=batch_id, skip=skip_all)
+    get_analysis_ids_related_batch_task = clinical.get_analysis_ids_related_batch(analysis_ids=get_all_analysis_ids, batch_id=batch_id, skip=skip_all)
 
     normalize_germline_group = normalize_germline(
-        batch_id=batch_id,
+        batch_id=get_analysis_ids_related_batch_task,
         analysis_ids=get_all_analysis_ids,
         skip_all=skip_all,
         skip_snv=skip_snv,
@@ -52,10 +54,11 @@ def ingest_germline(
         skip_variants=skip_variants,
         skip_consequences=skip_consequences,
         skip_exomiser=skip_exomiser,
+        skip_exomiser_cnv=skip_exomiser_cnv,
         skip_coverage_by_gene=skip_coverage_by_gene,
         skip_franklin=skip_franklin,
         skip_nextflow=skip_nextflow,
         spark_jar=spark_jar
     )
 
-    validate_batch_type_task >> ingest_fhir_group >> get_all_analysis_ids >> normalize_germline_group
+    validate_batch_type_task >> ingest_fhir_group >> get_all_analysis_ids >> get_analysis_ids_related_batch_task >> normalize_germline_group

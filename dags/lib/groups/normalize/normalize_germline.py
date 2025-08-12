@@ -20,27 +20,30 @@ def normalize_germline(
         skip_variants: str,
         skip_consequences: str,
         skip_exomiser: str,
+        skip_exomiser_cnv: str ,
         skip_coverage_by_gene: str,
         skip_franklin: str,
         skip_nextflow: str,
         spark_jar: str,
+        detect_batch_type_task_id: str = None,
 ):
     
     target_batch_types = [ClinAnalysis.GERMLINE]
 
-    snv = normalize.snv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_snv))
-    cnv = normalize.cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_cnv))
-    variants = normalize.variants(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_variants))
-    consequences = normalize.consequences(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_consequences))
-    exomiser = normalize.exomiser(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser))
-    coverage_by_gene = normalize.coverage_by_gene(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene))
+    snv = normalize.snv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_snv), detect_batch_type_task_id)
+    cnv = normalize.cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_cnv), detect_batch_type_task_id)
+    variants = normalize.variants(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_variants), detect_batch_type_task_id)
+    consequences = normalize.consequences(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_consequences), detect_batch_type_task_id)
+    exomiser = normalize.exomiser(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser), detect_batch_type_task_id)
+    exomiser_cnv = normalize.exomiser_cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser_cnv), detect_batch_type_task_id)
+    coverage_by_gene = normalize.coverage_by_gene(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene), detect_batch_type_task_id)
 
     franklin_update_task = franklin_update(
         analysis_ids=analysis_ids,
         skip=skip(skip_all, skip_franklin)
     )
 
-    franklin = normalize.franklin(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_franklin))
+    franklin = normalize.franklin(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_franklin), detect_batch_type_task_id)
 
     @task_group(group_id="nextflow")
     def nextflow_group():
@@ -60,4 +63,4 @@ def normalize_germline(
         (prepare_svclustering_parental_origin_task >> check_svclustering_parental_origin_input_file_exists >>
          run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task)
 
-    snv >> cnv >> variants >> consequences >> exomiser >> coverage_by_gene >> franklin_update_task >> franklin >> nextflow_group()
+    snv >> cnv >> variants >> consequences >> exomiser >> exomiser_cnv >> coverage_by_gene >> franklin_update_task >> franklin >> nextflow_group()
