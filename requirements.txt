@@ -2,6 +2,8 @@ apache-airflow==2.9.3
 apache-airflow-providers-amazon==8.25.0
 apache-airflow-providers-cncf-kubernetes==8.3.3
 kubernetes~=29.0.0
+# To fix dependency conflict with protobuf version (apache-airflow and phenopackets)
+opentelemetry-exporter-otlp-proto-grpc==1.27.0
 pandas~=2.1.4
 deltalake==0.24.0
 phenopackets==2.0.2.post4
