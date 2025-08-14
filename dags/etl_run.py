@@ -77,7 +77,7 @@ with DAG(
         logging.info(f"Distinct input sequencing IDs: {distinct_sequencing_ids}")
 
         df: DataFrame = to_pandas(enriched_clinical.uri)
-        clinical_df = df[["sequencing_id", "analysis_id", "is_proband", "clinical_signs", "snv_vcf_urls", "batch_id"]]
+        clinical_df = df[["sequencing_id", "analysis_id", "is_proband", "clinical_signs", "snv_vcf_germline_urls", "batch_id"]]
 
         # Get all sequencing IDs that share the same analysis ID as the given sequencing IDs
         analysis_ids = get_analysis_ids(clinical_df, sequencing_ids=distinct_sequencing_ids)
@@ -91,8 +91,8 @@ with DAG(
         filtered_df = clinical_df[clinical_df["sequencing_id"].isin(_all_sequencing_ids)]
 
         # Ensure all sequencing IDs have at least one associated snv vcf url
-        missing_snv_seq_ids = set(filtered_df.loc[filtered_df["snv_vcf_urls"].isna() |
-                                                  (filtered_df["snv_vcf_urls"].str.len() == 0), "sequencing_id"])
+        missing_snv_seq_ids = set(filtered_df.loc[filtered_df["snv_vcf_germline_urls"].isna() |
+                                                  (filtered_df["snv_vcf_germline_urls"].str.len() == 0), "sequencing_id"])
         if missing_snv_seq_ids:
             raise AirflowFailException(f"Some sequencing IDs don't have associated SNV VCF files: {missing_snv_seq_ids}")
 
@@ -118,7 +118,7 @@ with DAG(
     @task
     def prepare_exomiser_references_analysis_ids(all_analysis_ids: Set[str]) -> str:
         return '--analysis-ids=' + ','.join(all_analysis_ids)
-    
+
     get_sequencing_ids_taks = get_sequencing_ids()
     get_all_sequencing_ids_task = get_all_sequencing_ids(get_sequencing_ids_taks)
     get_all_analysis_ids_task = get_all_analysis_ids(sequencing_ids=get_sequencing_ids_taks)
@@ -151,7 +151,7 @@ with DAG(
             ]
         )
         prepare_nextflow_post_processing_task >> nextflow_post_processing_task >> add_exomiser_references_task
-    
+
     @task_group(group_id='cnv')
     def cnv():
         prepare_nextflow_post_processing_task = cnv_post_processing.prepare(
