@@ -1,6 +1,4 @@
 {
-  "my_var": "test",
-  "your_var": "hello",
   "environment": "qa",
   "kubernetes_namespace": "cqgc-qa",
   "kubernetes_context_default": "kubernetes-admin-cluster.qa.cqgc@cluster.qa.cqgc",
@@ -13,5 +11,6 @@
   "s3_franklin_bucket": "genoox-upload-chu-st-justine",
   "franklin_url": "https://mocks.qa.cqgc.hsj.rtss.qc.ca/api/franklin",
   "franklin_email": "API_franklin_email",
-  "franklin_password": "test"
+  "franklin_password": "test",
+  "slack_hook_url": "https://hooks.slack.com/services/..."
 }
