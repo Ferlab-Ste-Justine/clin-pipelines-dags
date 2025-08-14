@@ -9,19 +9,15 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.utils.context import Context
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
-from lib.config import K8sContext, config_file, env, es_url, indexer_context
-from lib.operators.curl import CurlOperator
+from lib.config import K8sContext, env, es_url, indexer_context
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
-from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
 from lib.utils import http_get, http_get_file
-from lib.utils_etl import (batch_id, color, obo_parser_spark_jar, skip_import,
-                           spark_jar)
+from lib.utils_etl import (color, obo_parser_spark_jar, spark_jar)
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 
 with DAG(

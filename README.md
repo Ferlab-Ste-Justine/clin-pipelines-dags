@@ -119,19 +119,19 @@ Create Airflow connection:
 - Connection Type : `Amazon Web Services`
 - Extra :
 ```json
-// For base setup
+// For default setup
 {
   "endpoint_url": "http://minio:9000",
   "verify": false,
   "aws_access_key_id": "minioadmin",
   "aws_secret_access_key": "minioadmin"
 }
-// For localstack setup
+// For external minio setup
 {
-  "endpoint_url": "http://minio:9000",
+  "endpoint_url": "http://minio-external:9000",
   "verify": false,
-  "aws_access_key_id": "admin",
-  "aws_secret_access_key": "adminlocal"
+  "aws_access_key_id": "<your minio access key>",
+  "aws_secret_access_key": "<your minio password key>"
 }
 ```
 
