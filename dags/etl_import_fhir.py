@@ -47,7 +47,7 @@ with DAG(
 
     trigger_import_hpo = TriggerDagRunOperator(
         task_id='import_hpo',
-        trigger_dag_id='etl_import_hpo',
+        trigger_dag_id='etl_import_hpo_terms',
         wait_for_completion=True,
         skip=skip_if_param_not(fhir(), "yes"),  # only if we are importing FHIR
         conf={

@@ -16,6 +16,8 @@ x-airflow-common:
       condition: service_healthy
     postgres:
       condition: service_healthy
+  extra_hosts:
+      - "minio-external:host-gateway"
 
 services:
 
