@@ -6,6 +6,11 @@ from typing import Any, List
 import requests
 
 
+# Airflow's standard skip mechanism (exceptions) does not work in virtualenv
+# tasks, so we use this custom exit code to signal a skipped task.
+SKIP_EXIT_CODE = 99
+
+
 def join(string: str, parts: List[str]) -> str:
     return string.join(filter(None, parts))
 

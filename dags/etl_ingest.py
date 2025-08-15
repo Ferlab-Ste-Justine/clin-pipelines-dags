@@ -1,7 +1,6 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
@@ -12,7 +11,6 @@ from lib.groups.ingest.ingest_somatic_tumor_only import \
     ingest_somatic_tumor_only
 from lib.slack import Slack
 from lib.tasks import batch_type
-from lib.tasks.clinical import get_analysis_ids_related_batch
 from lib.tasks.params import get_analysis_ids
 from lib.tasks.params_validate import validate_batch_analysis_ids_color
 from lib.utils_etl import batch_id, color, skip_import, spark_jar
