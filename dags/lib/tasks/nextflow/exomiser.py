@@ -3,23 +3,26 @@ from typing import Dict, Set
 from airflow.decorators import task
 
 from lib.datasets import enriched_clinical
+from lib.utils import SKIP_EXIT_CODE
 
 
-@task.virtualenv(task_id='prepare_exomiser', requirements=["deltalake===0.24.0", "phenopackets===2.0.2.post4"],
+@task.virtualenv(skip_on_exit_code=SKIP_EXIT_CODE, task_id='prepare_exomiser', requirements=["deltalake===0.24.0", "phenopackets===2.0.2.post4"],
                  inlets=[enriched_clinical])
-def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
+def prepare(analysis_ids: Set[str], skip: str) -> Dict[str, str]:
     """
     Prepare phenopacket files for nextflow exomiser run.
 
-    For each proband in the given sequencing IDs, construct a phenopacket file containing its phenotypic features and
+    For each proband in the given analysis IDs, construct a phenopacket file containing its phenotypic features and
     family information, and upload it to S3.
-    :param sequencing_ids: Input sequencing IDs
-    :return: A mapping of sequencing IDs to the S3 path of the corresponding phenopacket file
+    :param analysis_ids: Input analysis IDs
+    :return: A mapping of analysis IDs to the S3 path of the corresponding phenopacket file
     """
     import logging
+    import sys
 
     import pandas as pd
     from pandas import DataFrame
+
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from google.protobuf.json_format import MessageToJson
     from phenopackets.schema.v1 import base_pb2 as pp_base
@@ -28,14 +31,18 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
     from lib.config import s3_conn_id
     from lib.config_nextflow import nextflow_bucket, nextflow_exomiser_input_key
     from lib.datasets import enriched_clinical
+    from lib.utils import SKIP_EXIT_CODE
     from lib.utils_etl_tables import to_pandas
+
+    if skip:
+        sys.exit(SKIP_EXIT_CODE)
 
     s3 = S3Hook(s3_conn_id)
 
     df: DataFrame = to_pandas(enriched_clinical.uri)
 
-    filtered_df = df[df['sequencing_id'].isin(sequencing_ids)]
-    clinical_df = filtered_df[['analysis_id', 'sequencing_id', 'aliquot_id', 'gender',
+    filtered_df = df[df['analysis_id'].isin(analysis_ids)]
+    clinical_df = filtered_df[['analysis_id', 'aliquot_id', 'gender',
                                'clinical_signs', 'is_proband', 'family_id', 'father_aliquot_id', 'mother_aliquot_id',
                                'affected_status_code']]
     probands_df = clinical_df[clinical_df['is_proband']]
@@ -55,7 +62,7 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
         "unknown": pp_base.Pedigree.Person.MISSING
     }
 
-    seq_file_mapping = {}
+    analysis_file_mapping = {}
 
     for _, proband_row in probands_df.iterrows():
         # Construct proband.subject field
@@ -109,8 +116,6 @@ def prepare(sequencing_ids: Set[str]) -> Dict[str, str]:
         file_path = f"s3://{nextflow_bucket}/{s3_key}"
         logging.info(f"Phenopacket file for analysis {analysis_id} uploaded to S3 path: {file_path}")
 
-        family_sequencing_ids = family_df['sequencing_id'].tolist()
-        for sequencing_id in family_sequencing_ids:
-            seq_file_mapping[sequencing_id] = file_path
+        analysis_file_mapping[analysis_id] = file_path
 
-    return seq_file_mapping
+    return analysis_file_mapping
