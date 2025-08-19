@@ -1,8 +1,8 @@
-from airflow.decorators import task, task_group
+from airflow.decorators import task_group
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.normalize.normalize_germline import normalize_germline
 from lib.tasks import batch_type, clinical
-from lib.utils_etl import ClinAnalysis
+from lib.utils_etl import BioinfoAnalysisCode, ClinAnalysis
 
 
 @task_group(group_id='ingest_germline')
@@ -43,7 +43,7 @@ def ingest_germline(
     )
 
     get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_id=batch_id, skip=skip_all)
-    get_analysis_ids_related_batch_task = clinical.get_analysis_ids_related_batch(analysis_ids=get_all_analysis_ids, batch_id=batch_id, skip=skip_all)
+    get_analysis_ids_related_batch_task = clinical.get_analysis_ids_related_batch(bioinfo_analysis_code=BioinfoAnalysisCode.GEBA, analysis_ids=get_all_analysis_ids, batch_id=batch_id, skip=skip_all)
 
     normalize_germline_group = normalize_germline(
         batch_id=get_analysis_ids_related_batch_task,

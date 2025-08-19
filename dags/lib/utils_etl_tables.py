@@ -1,5 +1,7 @@
 from typing import Collection, Optional, Set
 
+from lib.utils_etl import BioinfoAnalysisCode
+
 from pandas import DataFrame
 
 
@@ -38,7 +40,8 @@ def get_analysis_ids(clinical_df: DataFrame, analysis_ids: Optional[Collection[s
         ]
     )
 
-def get_batch_ids(clinical_df: DataFrame, analysis_ids: Optional[Collection[str]] = None, sequencing_ids: Optional[Collection[str]] = None) -> Set[str]:
+
+def get_batch_ids(clinical_df: DataFrame, bioinfo_analysis_code: BioinfoAnalysisCode, analysis_ids: Optional[Collection[str]] = None, sequencing_ids: Optional[Collection[str]] = None) -> Set[str]:
     """
         Return the set of batch ids corresponding to the provided sequencing ids or analysis ids from the
         enriched_clinical table.
@@ -51,7 +54,7 @@ def get_batch_ids(clinical_df: DataFrame, analysis_ids: Optional[Collection[str]
 
     return set(
         clinical_df.loc[
-            clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids),
+            (clinical_df["bioinfo_analysis_code"] == bioinfo_analysis_code.value) & (clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids)),
             "batch_id"
         ]
     )
