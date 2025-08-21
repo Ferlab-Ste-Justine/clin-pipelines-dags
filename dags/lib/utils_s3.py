@@ -59,7 +59,6 @@ def stream_upload_or_resume_to_s3(s3: S3Hook, s3_bucket: str, s3_key: str, url: 
             part_number = len(parts) + 1
             uploaded_bytes = sum(part['Size'] for part in retrieved_parts)
             headers['Range'] = f'bytes={uploaded_bytes}-'
-            logging.info(f"Resuming upload ({bytes_to_human_readable(uploaded_bytes)} already downloaded)")
         else:
             mpu_response = s3_client.create_multipart_upload(Bucket=s3_bucket, Key=s3_key)
             upload_id = mpu_response['UploadId']
