@@ -18,6 +18,7 @@ x-airflow-common:
       condition: service_healthy
   extra_hosts:
       - "minio-external:host-gateway"
+      # - "elasticsearch:host-gateway"
 
 services:
 
