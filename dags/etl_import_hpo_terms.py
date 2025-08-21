@@ -39,6 +39,8 @@ with DAG(
     ) as dag:
 
     params_validate = validate_color(color())
+    env_color = params_validate.__str__()
+    prefixed_color = ('_' + env_color) if env_color else ''
 
     def download(file, dest = None, **context):
         url = 'https://github.com/obophenotype/human-phenotype-ontology/releases'
@@ -111,7 +113,7 @@ with DAG(
         spark_jar=spark_jar(),
         arguments=[
             es_url, '', '',
-            f'clin_{env}' + color('_') + '_hpo', #clin_qa_green_hpo_v2024-01-01
+            f'clin_{env}' + prefixed_color + '_hpo', #clin_qa_green_hpo_v2024-01-01
             '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}',
             'hpo_terms_template.json',
             'hpo_terms',
@@ -125,9 +127,9 @@ with DAG(
         task_id='publish_hpo_terms',
         name='etl-publish-hpo-terms',
         k8s_context=K8sContext.DEFAULT,
-        color=color(),
+        color=env_color,
         arguments=[
-            'bio.ferlab.clin.etl.PublishHpoTerms', f'clin_{env}' + color('_') + '_hpo', '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}', 'hpo'
+            'bio.ferlab.clin.etl.PublishHpoTerms', f'clin_{env}' + prefixed_color + '_hpo', '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}', 'hpo'
         ],
     )
 
