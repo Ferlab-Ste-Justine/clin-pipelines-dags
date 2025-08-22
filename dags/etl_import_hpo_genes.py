@@ -17,7 +17,7 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
 from lib.utils import http_get, http_get_file
-from lib.utils_etl import (color, spark_jar)
+from lib.utils_etl import spark_jar
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 
 with DAG(
@@ -25,9 +25,7 @@ with DAG(
     start_date=datetime(2022, 8, 16),
     schedule='30 7 * * 6',
     params={
-        'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),
-        'obo_parser_spark_jar': Param('', type=['null', 'string']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -37,8 +35,6 @@ with DAG(
     max_active_tasks=2,
     max_active_runs=1
     ) as dag:
-
-    params_validate = validate_color(color())
 
     def download(file, dest = None, **context):
         url = 'https://github.com/obophenotype/human-phenotype-ontology/releases'
@@ -112,4 +108,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, download_hpo_genes, normalized_hpo_genes, trigger_genes, slack)
+    chain(download_hpo_genes, normalized_hpo_genes, trigger_genes, slack)

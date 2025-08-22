@@ -1,8 +1,9 @@
+import logging
 from typing import List
 
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
-from airflow.models import DagRun
+from lib.utils_etl import get_current_color
 from lib.config import Env, env
 from lib.slack import Slack
 
@@ -43,8 +44,16 @@ def validate_release(release_id: str):
 
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)
-def validate_color(color: str):
-    _validate_color(color)
+def validate_color(color: str, **context):
+    env_color = color
+    # If the DAG is triggered via scheduler, we need to get the current color from Elasticsearch
+    if not context.get('dag_run').external_trigger:
+        logging.info('scheduled run')
+        if env == Env.QA:
+            env_color = get_current_color()
+
+    _validate_color(env_color)
+    return env_color
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)
 def validate_batch_analysis_ids_color(batch_id: str, analysis_ids: List[str], color: str):
