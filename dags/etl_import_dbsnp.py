@@ -52,7 +52,7 @@ with DAG(
         s3_key = get_s3_key(file)
         s3_md5 = get_s3_file_md5(s3, s3_bucket, s3_key)
         if not s3_md5:
-            logging.info(f'The file does not exist in S3: {s3_key}')
+            logging.info(f'No MD5 found in S3: {s3_key}')
         else:
             logging.info(f'Current dbsnp file imported MD5 hash: {s3_md5}')
 
@@ -61,7 +61,7 @@ with DAG(
             logging.info(f'The file is up to date!')
             raise AirflowSkipException()
         else:
-            logging.info(f'The file is not up to date. MD5 hashs do not match (current is {s3_md5}), proceeding with import.')
+            logging.info(f'The file is not up to date. MD5 hashs do not match, proceeding with import.')
 
         # Upload files to S3
         stream_upload_or_resume_to_s3(s3, s3_bucket, s3_key, f'{url}/{file}', md5 = md5_hash)
