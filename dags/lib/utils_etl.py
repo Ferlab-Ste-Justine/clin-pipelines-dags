@@ -102,8 +102,8 @@ def metadata_exists(clin_s3: S3Hook, batch_id: str) -> bool:
     return clin_s3.check_for_key(metadata_path, clin_import_bucket)
 
 def batch_folder_exists(clin_s3: S3Hook, batch_id: str) -> bool:
-    metadata_path = f'{batch_id}/'
-    return clin_s3.check_for_key(metadata_path, clin_import_bucket)
+    metadata_path = f'{batch_id}'
+    return clin_s3.check_for_prefix(prefix=metadata_path, delimiter="/", bucket_name=clin_import_bucket)
 
 def get_metadata_content(clin_s3, batch_id) -> dict:
     metadata_path = f'{batch_id}/metadata.json'
