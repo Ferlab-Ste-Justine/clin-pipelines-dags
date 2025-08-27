@@ -81,10 +81,12 @@ with DAG(
 
     @task_group(group_id='qa')
     def qa_group():
-        no_dup_nextflow_svclustering_task = qa.no_dup_nextflow_svclustering(spark_jar())
+        no_dup_nextflow_svclustering_germline_task = qa.no_dup_nextflow_svclustering_germline(spark_jar())
+        no_dup_nextflow_svclustering_somatic_task = qa.no_dup_nextflow_svclustering_somatic(spark_jar())
         no_dup_nextflow_svclustering_parental_origin_task = qa.no_dup_nextflow_svclustering_parental_origin(spark_jar())
         no_dup_cnv_centric_task = qa.no_dup_cnv_centric(spark_jar())
-        [no_dup_nextflow_svclustering_task, no_dup_nextflow_svclustering_parental_origin_task, no_dup_cnv_centric_task]
+        [no_dup_nextflow_svclustering_germline_task, no_dup_nextflow_svclustering_somatic_task,
+         no_dup_nextflow_svclustering_parental_origin_task, no_dup_cnv_centric_task]
 
 
     release_id = es.get_release_id(release_id(), color('_'), index='cnv_centric')

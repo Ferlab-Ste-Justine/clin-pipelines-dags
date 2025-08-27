@@ -130,10 +130,16 @@ no_dup_coverage_by_gene = '''
 - Objectif : Les coverages doivent être uniques dans la table coverage_by_gene
 '''
 
-no_dup_nextflow_svclustering = '''
+no_dup_nextflow_svclustering_germline = '''
 ### Documentation
-- Test : Non duplication - Table nextflow_svclustering
-- Objectif : Les clusters doivent être uniques dans la table nextflow_svclustering
+- Test : Non duplication - Table nextflow_svclustering_germline
+- Objectif : Les clusters doivent être uniques dans la table nextflow_svclustering_germline
+'''
+
+no_dup_nextflow_svclustering_somatic = '''
+### Documentation
+- Test : Non duplication - Table nextflow_svclustering_somatic
+- Objectif : Les clusters doivent être uniques dans la table nextflow_svclustering_somatic
 '''
 
 no_dup_nextflow_svclustering_parental_origin = '''
