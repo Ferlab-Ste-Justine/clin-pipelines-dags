@@ -19,13 +19,14 @@ from lib.utils_s3 import get_s3_file_version
 with DAG(
     dag_id='etl_import_topmed_bravo',
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule='0 7 * */3 6',
+    catchup=False,
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },
 ) as dag:
 
-    url = 'https://bravo.sph.umich.edu'
+    url = 'https://legacy.bravo.sph.umich.edu'
     path = 'hg38/downloads'
     file_prefix = 'bravo-dbsnp-chr'
     file_ext = '.vcf.gz'
