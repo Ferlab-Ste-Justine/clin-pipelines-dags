@@ -4,59 +4,61 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException
+from airflow.exceptions import AirflowFailException, AirflowSkipException
+from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.task_group import TaskGroup
+from airflow.utils.trigger_rule import TriggerRule
 
 from lib import config
 from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.tasks.public_data import update_public_data_entry_task
-from lib.utils import http_get, http_get_file
-from lib.utils_s3 import get_s3_file_version
+from lib.tasks.should_continue import should_continue, skip_if_not_new_version
+from lib.utils import http_get
+from lib.utils_s3 import get_s3_file_version, stream_upload_or_resume_to_s3
 
 with DAG(
     dag_id='etl_import_topmed_bravo',
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule='0 7 * */3 6',
+    catchup=False,
+    params={
+        'freeze_version': Param(None, type=['null', 'integer']),
+        'credential': Param('', type=['null', 'string']),
+        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
+    },
     default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
+    max_active_tasks=8
 ) as dag:
 
-    url = 'https://bravo.sph.umich.edu'
-    path = 'hg38/downloads'
+    download_link_url = 'https://api.bravo.sph.umich.edu/ui/link?chrom=chr'
     file_prefix = 'bravo-dbsnp-chr'
+    version_filename= 'bravo-dbsnp-freeze'
     file_ext = '.vcf.gz'
 
     s3 = S3Hook(config.s3_conn_id)
     s3_bucket = f'cqgc-{env}-app-datalake'
     s3_key_prefix = f'raw/landing/topmed/'
 
-    chromosomes = list(range(1, 23)) + list('X')
-
-    version = None
+    chromosomes = list(range(1, 22)) + list('X')
 
     with TaskGroup(group_id='files') as files:
 
         @task(task_id='init', on_execute_callback=Slack.notify_dag_start)
-        def init():
-            # Get latest version
-            html = http_get(url).text
-            latest_ver = re.search(
-                'bravo.sph.umich.edu/(.+)/hg38/', html).group(1)
-            logging.info(f'TOPMed Bravo latest version: {latest_ver}')
+        def init(**context):
+            latest_ver = str(context["params"]["freeze_version"])
 
             # Get imported version
-            imported_ver = get_s3_file_version(
-                s3, s3_bucket, f'{s3_key_prefix}{file_prefix}'
-            )
+            imported_ver = get_s3_file_version(s3, s3_bucket, f'{s3_key_prefix}{version_filename}')
             logging.info(f'TOPMed Bravo imported version: {imported_ver}')
 
             # Skip task if up to date
-            if imported_ver == latest_ver:
-                raise AirflowSkipException()
+            skip_if_not_new_version(imported_ver != latest_ver, context)
 
             # Send latest version to xcom
             return latest_ver
@@ -64,49 +66,38 @@ with DAG(
         version = init()
 
         @task
-        def transfer(latest_ver: str, chromosome: str, coverage: bool = False):
-            type_path = 'coverage' if coverage else 'vcf'
-            file_suffix = '.coverage' if coverage else '.coverage'
+        def download(version, chromosome: str, **context):
+            # Skip download if no new version
+            if not version:
+                raise AirflowSkipException()
 
-            # Download file
-            http_get_file(
-                f'{url}/{latest_ver}/{path}/{type_path}/{chromosome}',
-                f'{file_prefix}{chromosome}{file_suffix}{file_ext}',
+            cookie = context["params"]["credential"]
+            if not cookie:
+                raise AirflowFailException('No TOPMed Bravo credentials provided (should be a valid cookie)')
+
+            filename = f'{file_prefix}{chromosome}{file_ext}'
+
+            # Get file link
+            response = http_get(f'{download_link_url}{chromosome}', headers={'Cookie': cookie})
+            download_link = response.json()['url']
+
+            # Upload file directly to S3
+            stream_upload_or_resume_to_s3(s3, s3_bucket, f'{s3_key_prefix}{filename}', download_link,
                 {
                     'Accept-Encoding': 'gzip, deflate, br',
-                    'Cookie': config.topmed_bravo_credentials,
+                    'Cookie': cookie,
                 },
-            )
-            logging.info('Download complete')
-
-            # Upload file to S3
-            s3.load_file(
-                f'{file_prefix}{chromosome}{file_suffix}{file_ext}',
-                f'{s3_key_prefix}{file_prefix}{chromosome}{file_suffix}{file_ext}',
-                s3_bucket, replace=True,
             )
             logging.info('Upload to S3 complete')
 
-        @task
-        def files_variants(chromosome: str, **kwargs):
-            transfer(version, chromosome)
-
-        variants = files_variants.expand(chromosome=chromosomes)
-
-        @task
-        def files_coverage(chromosome: str, **kwargs):
-            transfer(version, chromosome, True)
-
-        coverage = files_coverage.expand(chromosome=chromosomes)
+        variants = download.expand(version= version, chromosome=chromosomes)
 
         @task(task_id='release')
-        def release():
-            s3.load_string(
-                version, f'{s3_key_prefix}{file_prefix}.version', s3_bucket, replace=True
-            )
+        def release(version):
+            s3.load_string(version, f'{s3_key_prefix}{version_filename}.version', s3_bucket, replace=True)
             logging.info(f'New TOPMed Bravo imported version: {version}')
 
-        version >> variants >> coverage >> release()
+        version >> should_continue() >> variants >> release(version)
 
     table = SparkOperator(
         task_id='table',
