@@ -199,13 +199,27 @@ def no_dup_coverage_by_gene(spark_jar: str) -> SparkOperator:
     )
 
 
-def no_dup_nextflow_svclustering(spark_jar: str) -> SparkOperator:
+def no_dup_nextflow_svclustering_germline(spark_jar: str) -> SparkOperator:
     return SparkOperator(
-        task_id='no_dup_nextflow_svclustering',
-        doc_md=doc.no_dup_nextflow_svclustering,
-        name='etl-qc-no-dup-nextflow-svclustering',
+        task_id='no_dup_nextflow_svclusterin_germline',
+        doc_md=doc.no_dup_nextflow_svclustering_germline,
+        name='etl-qc-no-dup-nextflow-svclustering-germline',
         k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNextflowSVClustering',
+        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNextflowSVClusteringGermline',
+        spark_config='config-etl-small',
+        spark_jar=spark_jar,
+        arguments=['clin' + env_url('_')],
+        skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
+    )
+
+
+def no_dup_nextflow_svclustering_somatic(spark_jar: str) -> SparkOperator:
+    return SparkOperator(
+        task_id='no_dup_nextflow_svclustering_somatic',
+        doc_md=doc.no_dup_nextflow_svclustering_somatic,
+        name='etl-qc-no-dup-nextflow-svclustering-somatic',
+        k8s_context=K8sContext.ETL,
+        spark_class='bio.ferlab.clin.etl.qc.variantlist.NonDuplicationNextflowSVClusteringSomatic',
         spark_config='config-etl-small',
         spark_jar=spark_jar,
         arguments=['clin' + env_url('_')],
