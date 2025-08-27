@@ -16,7 +16,8 @@ from lib.utils_s3 import get_s3_file_version, download_and_check_md5, load_to_s3
 with DAG(
     dag_id='etl_import_ensembl',
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule='15 8 * * 6',
+    catchup=False,
     default_args={
         'on_failure_callback': Slack.notify_task_failure,
     },
