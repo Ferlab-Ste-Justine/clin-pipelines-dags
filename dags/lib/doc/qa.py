@@ -20,15 +20,20 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 
 ### Différents tests
 - Table gnomad_joint_v4
+- Table enriched_clinical
 - Table normalized_snv
+- Table normalized_snv_somatic
 - Table normalized_consequences
 - Table normalized_variants
+- Table snv
+- Table snv_somatic
 - Table consequences
 - Table variants
 - Table variant_centric
 - Table cnv_centric
 - Table coverage_by_gene
-- Table nextflow_svclustering
+- Table nextflow_svclustering_germline
+- Table nextflow_svclustering_somatic
 - Table nextflow_svclustering_parental_origin
 
 ## Série de tests comparant la liste des variants entre les tables
