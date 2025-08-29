@@ -149,6 +149,37 @@ def clin_minio(get_s3_hook):
     yield s3_hook
 
 
+@pytest.fixture(scope="function")
+def clean_up_clin_minio(clin_minio):
+    from lib.config import all_qlin_buckets
+
+    def _clean_up():
+        for bucket in all_qlin_buckets:
+            keys = clin_minio.list_keys(bucket_name=bucket)
+            if keys:
+                logging.info(f"Emptying bucket: {bucket}")
+                clin_minio.delete_objects(bucket=bucket, keys=keys)
+
+    _clean_up()  # Clean up before test
+    yield
+    _clean_up()  # Clean up after test
+
+
+@pytest.fixture(scope="function")
+def clin_minio_with_clean_up(clin_minio, get_s3_hook):
+    from lib.config import all_qlin_buckets
+
+    s3_hook = clin_minio
+
+    for bucket in all_qlin_buckets:
+        keys = clin_minio.list_keys(bucket_name=bucket)
+        if keys:
+            logging.info(f"Emptying bucket: {bucket}")
+            clin_minio.delete_objects(bucket=bucket, keys=keys)
+
+    yield s3_hook
+
+
 @pytest.fixture(scope="session")
 def franklin_s3(get_s3_hook):
     from lib.config import s3_franklin, s3_franklin_bucket
