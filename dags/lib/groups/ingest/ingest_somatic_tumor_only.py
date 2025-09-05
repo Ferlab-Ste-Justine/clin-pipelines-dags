@@ -44,7 +44,7 @@ def ingest_somatic_tumor_only(
 
     normalize_somatic_tumor_only_group = normalize_somatic_tumor_only(
         batch_id=get_analysis_ids_related_batch_task,
-        analysis_ids=analysis_ids,
+        analysis_ids=get_all_analysis_ids,
         skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only,
