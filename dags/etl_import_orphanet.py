@@ -2,15 +2,17 @@ import logging
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowSkipException
 from airflow.operators.empty import EmptyOperator
+from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.trigger_rule import TriggerRule
 from lib import config
 from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
+from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
                           load_to_s3_with_md5)
 
@@ -18,14 +20,18 @@ with DAG(
     dag_id='etl_import_orphanet',
     start_date=datetime(2025, 9, 6),
     schedule='15 6 * * 6#1',
+    params={
+        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
+    },
     default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
     catchup=False,
     max_active_runs=1
 ) as dag:
 
-    def _file():
+    def _file(**context):
         url = 'https://www.orphadata.com/data/xml'
         genes_file = 'en_product6.xml'
         diseases_file = 'en_product9_ages.xml'
@@ -61,8 +67,8 @@ with DAG(
             logging.info(f'New diseases imported MD5 hash: {download_md5_diseases}')
             updated = True
 
-        if not updated:
-            raise AirflowSkipException()
+        # Skip task if up to date
+        skip_if_not_new_version(updated, context)
        
 
     file = PythonOperator(
@@ -96,4 +102,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> table >> trigger_genes >> slack
+    file >> should_continue() >> table >> trigger_genes >> slack
