@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowSkipException, AirflowFailException
+from airflow.exceptions import AirflowFailException
 from airflow.models.baseoperator import chain
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
@@ -11,6 +11,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
+from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.config import K8sContext, env, es_url, indexer_context
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
@@ -28,6 +29,7 @@ with DAG(
         'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),
         'obo_parser_spark_jar': Param('', type=['null', 'string']),
+        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -71,8 +73,7 @@ with DAG(
         context['ti'].xcom_push(key=f'{destFile}.version', value=latest_ver)
 
         # Skip task if up to date
-        if imported_ver == latest_ver:
-            raise AirflowSkipException()
+        skip_if_not_new_version(imported_ver != latest_ver, context)
 
         # Download file
         http_get_file(f'{url}/download/{latest_ver}/{file}', file)
@@ -138,4 +139,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, download_hpo_terms, normalized_hpo_terms, index_hpo_terms, publish_hpo_terms, slack)
+    chain(params_validate, download_hpo_terms, should_continue(), normalized_hpo_terms, index_hpo_terms, publish_hpo_terms, slack)
