@@ -3,31 +3,27 @@ import re
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowSkipException
+from airflow.exceptions import AirflowSkipException, AirflowFailException
 from airflow.models.baseoperator import chain
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.utils.context import Context
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
-from lib.config import K8sContext, config_file, env, es_url, indexer_context
-from lib.operators.curl import CurlOperator
+from lib.config import K8sContext, env, es_url, indexer_context
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
-from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
 from lib.utils import http_get, http_get_file
-from lib.utils_etl import (batch_id, color, obo_parser_spark_jar, skip_import,
-                           spark_jar)
+from lib.utils_etl import (color, obo_parser_spark_jar, spark_jar)
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 
 with DAG(
-    dag_id='etl_import_hpo',
-    start_date=datetime(2022, 1, 1),
-    schedule=None,
+    dag_id='etl_import_hpo_terms',
+    start_date=datetime(2022, 8, 16),
+    schedule='15 7 * * 6',
     params={
         'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),
@@ -43,6 +39,8 @@ with DAG(
     ) as dag:
 
     params_validate = validate_color(color())
+    env_color = params_validate.__str__()
+    prefixed_color = ('_' + env_color) if env_color else ''
 
     def download(file, dest = None, **context):
         url = 'https://github.com/obophenotype/human-phenotype-ontology/releases'
@@ -64,7 +62,7 @@ with DAG(
         if latest_ver_search is None:
             logging.error(f'Could not find source latest version for: {file}')
             context['ti'].xcom_push(key=f'{destFile}.version', value=imported_ver)
-            raise AirflowSkipException()
+            raise AirflowFailException()
 
         latest_ver = latest_ver_search.group(1)
         logging.info(f'{file} latest version: {latest_ver}')
@@ -83,33 +81,11 @@ with DAG(
         load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
         logging.info(f'New {file} imported version: {latest_ver}')
 
-
-    download_hpo_genes = PythonOperator(
-        task_id='download_hpo_genes',
-        python_callable=download,
-        op_args=['genes_to_phenotype.txt']
-    )
-
     # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
     download_hpo_terms = PythonOperator(
         task_id='download_hpo_terms',
         python_callable=download,
         op_args=['hp-fr.obo', 'hp.obo']
-    )
-
-    normalized_hpo_genes = SparkOperator(
-        task_id='normalized_hpo_genes',
-        name='etl-import-hpo-genes',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='config-etl-medium',
-        spark_jar=spark_jar(),
-        arguments=[
-            'hpo',
-            '--config', config_file,
-            '--steps', 'initial',
-            '--app-name', 'etl_import_hpo_genes',
-        ],
     )
 
     normalized_hpo_terms = SparkOperator(
@@ -137,7 +113,7 @@ with DAG(
         spark_jar=spark_jar(),
         arguments=[
             es_url, '', '',
-            f'clin_{env}' + color('_') + '_hpo', #clin_qa_green_hpo_v2024-01-01
+            f'clin_{env}' + prefixed_color + '_hpo', #clin_qa_green_hpo_v2024-01-01
             '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}',
             'hpo_terms_template.json',
             'hpo_terms',
@@ -151,16 +127,10 @@ with DAG(
         task_id='publish_hpo_terms',
         name='etl-publish-hpo-terms',
         k8s_context=K8sContext.DEFAULT,
-        color=color(),
+        color=env_color,
         arguments=[
-            'bio.ferlab.clin.etl.PublishHpoTerms', f'clin_{env}' + color('_') + '_hpo', '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}', 'hpo'
+            'bio.ferlab.clin.etl.PublishHpoTerms', f'clin_{env}' + prefixed_color + '_hpo', '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}', 'hpo'
         ],
-    )
-
-    trigger_genes = TriggerDagRunOperator(
-        task_id='genes',
-        trigger_dag_id='etl_import_genes',
-        wait_for_completion=False,
     )
 
     slack = EmptyOperator(
@@ -168,4 +138,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, [download_hpo_genes, download_hpo_terms], [normalized_hpo_genes, normalized_hpo_terms], index_hpo_terms, publish_hpo_terms, trigger_genes, slack)
+    chain(params_validate, download_hpo_terms, normalized_hpo_terms, index_hpo_terms, publish_hpo_terms, slack)

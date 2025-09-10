@@ -36,6 +36,16 @@ with DAG(
 
     def csv() -> str:
         return '{{ params.csv or "" }}'
+    
+    trigger_import_hpo = TriggerDagRunOperator(
+        task_id='import_hpo',
+        trigger_dag_id='etl_import_hpo_terms',
+        wait_for_completion=True,
+        skip=skip_if_param_not(fhir(), "yes"),  # only if we are importing FHIR
+        conf={
+            'color': color(),
+        }
+    )
 
     ig_publish = FhirOperator(
         task_id='ig_publish',
@@ -43,16 +53,6 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         skip=skip_if_param_not(fhir(), "yes"),
         color=color(),
-    )
-
-    trigger_import_hpo = TriggerDagRunOperator(
-        task_id='import_hpo',
-        trigger_dag_id='etl_import_hpo',
-        wait_for_completion=True,
-        skip=skip_if_param_not(fhir(), "yes"),  # only if we are importing FHIR
-        conf={
-            'color': color(),
-        }
     )
 
     wait_30s = WaitOperator(
@@ -87,4 +87,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> ig_publish >> trigger_import_hpo >> wait_30s >> csv_import >> [restart_qlin_me, restart_forms] >> slack
+    params_validate >> trigger_import_hpo >> ig_publish >> wait_30s >> csv_import >> [restart_qlin_me, restart_forms] >> slack

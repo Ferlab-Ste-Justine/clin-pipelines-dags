@@ -20,15 +20,20 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 
 ### Différents tests
 - Table gnomad_joint_v4
+- Table enriched_clinical
 - Table normalized_snv
+- Table normalized_snv_somatic
 - Table normalized_consequences
 - Table normalized_variants
+- Table snv
+- Table snv_somatic
 - Table consequences
 - Table variants
 - Table variant_centric
 - Table cnv_centric
 - Table coverage_by_gene
-- Table nextflow_svclustering
+- Table nextflow_svclustering_germline
+- Table nextflow_svclustering_somatic
 - Table nextflow_svclustering_parental_origin
 
 ## Série de tests comparant la liste des variants entre les tables
@@ -130,10 +135,16 @@ no_dup_coverage_by_gene = '''
 - Objectif : Les coverages doivent être uniques dans la table coverage_by_gene
 '''
 
-no_dup_nextflow_svclustering = '''
+no_dup_nextflow_svclustering_germline = '''
 ### Documentation
-- Test : Non duplication - Table nextflow_svclustering
-- Objectif : Les clusters doivent être uniques dans la table nextflow_svclustering
+- Test : Non duplication - Table nextflow_svclustering_germline
+- Objectif : Les clusters doivent être uniques dans la table nextflow_svclustering_germline
+'''
+
+no_dup_nextflow_svclustering_somatic = '''
+### Documentation
+- Test : Non duplication - Table nextflow_svclustering_somatic
+- Objectif : Les clusters doivent être uniques dans la table nextflow_svclustering_somatic
 '''
 
 no_dup_nextflow_svclustering_parental_origin = '''

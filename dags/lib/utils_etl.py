@@ -1,12 +1,14 @@
 import json
 from enum import Enum
+import logging
 from typing import Dict, List, Optional
 
 from airflow.decorators import task
 from airflow.models import DagRun
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+import requests
 from lib import config
-from lib.config import clin_import_bucket, config_file
+from lib.config import clin_import_bucket, config_file, env, Env, es_url
 
 
 class ClinAnalysis(Enum):
@@ -46,6 +48,7 @@ class BioinfoAnalysisCode(Enum):
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
 
+
 def release_id(index: Optional[str] = None) -> str:
     if not index:
         return '{{ params.release_id or "" }}'
@@ -64,6 +67,25 @@ def obo_parser_spark_jar() -> str:
 def color(prefix: str = '') -> str:
     return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
+def get_current_color() -> str:
+    if env != Env.QA:
+        raise Exception('get_current_color should only be used in QA environment')
+    
+    color = ''
+    response = requests.get(f'{es_url}/_cat/aliases/clin_qa_gene_centric?format=json')
+    
+    if response.status_code == 200:
+        data = response.json()
+        if data and data[0]['index']:
+            index_parts = data[0]['index'].split('_')
+            if len(index_parts) > 2:
+                color = index_parts[2]
+
+    if color:
+        logging.info(f'Current color is: {color}')
+    else:
+        logging.info('No current color found')
+    return color
 
 def skip_import(batch_param_name: str = 'batch_id') -> str:
     return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.import == "yes" %}}{{% else %}}yes{{% endif %}}'
@@ -101,9 +123,11 @@ def metadata_exists(clin_s3: S3Hook, batch_id: str) -> bool:
     metadata_path = f'{batch_id}/metadata.json'
     return clin_s3.check_for_key(metadata_path, clin_import_bucket)
 
+
 def batch_folder_exists(clin_s3: S3Hook, batch_id: str) -> bool:
     metadata_path = f'{batch_id}'
     return clin_s3.check_for_prefix(prefix=metadata_path, delimiter="/", bucket_name=clin_import_bucket)
+
 
 def get_metadata_content(clin_s3, batch_id) -> dict:
     metadata_path = f'{batch_id}/metadata.json'
@@ -140,6 +164,7 @@ def build_etl_job_arguments(
         arguments = arguments + ['--chromosome', f'chr{chromosome}']
     return arguments
 
+
 @task(task_id='get_ingest_dag_configs_by_batch_id')
 def get_ingest_dag_configs_by_batch_id(batch_id: str, ti=None) -> dict:
     dag_run: DagRun = ti.dag_run
@@ -150,20 +175,26 @@ def get_ingest_dag_configs_by_batch_id(batch_id: str, ti=None) -> dict:
         'import': dag_run.conf['import'],
         'spark_jar': dag_run.conf['spark_jar']
     }
-    
+
+
+@task(task_id='get_germline_analysis_ids')
+def get_germline_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: List[str]) -> List[str]:
+    return _get_analysis_ids_compatible_with_type(
+        all_batch_types=all_batch_types,
+        analysis_ids=analysis_ids,
+        analysisType=ClinAnalysis.GERMLINE.value
+    )
+
+
 @task(task_id='get_ingest_dag_configs_by_analysis_ids')
 def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str, ti=None) -> dict:
     dag_run: DagRun = ti.dag_run
 
     # try regroup analysis ids and generate a config of etl_ingest for each analysis type
-
-    analysis_ids_compatible_with_type = []
-    for identifier, type in all_batch_types.items():
-        if analysisType == type and identifier in analysis_ids:
-            analysis_ids_compatible_with_type.append(identifier)
+    analysis_ids_compatible_with_type = _get_analysis_ids_compatible_with_type(all_batch_types, analysis_ids, analysisType)
 
     if len(analysis_ids_compatible_with_type) == 0:
-        return None # No analysis ids found for that analysis type
+        return None  # No analysis ids found for that analysis type
 
     return {
         'batch_id': None,
@@ -172,3 +203,11 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
         'import': dag_run.conf.get('import', 'no'),
         'spark_jar': dag_run.conf.get('spark_jar', None),
     }
+
+
+def _get_analysis_ids_compatible_with_type(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str) -> List[str]:
+    analysis_ids_compatible_with_type = []
+    for identifier, type in all_batch_types.items():
+        if analysisType == type and identifier in analysis_ids:
+            analysis_ids_compatible_with_type.append(identifier)
+    return analysis_ids_compatible_with_type
