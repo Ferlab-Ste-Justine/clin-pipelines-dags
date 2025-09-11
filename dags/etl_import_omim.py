@@ -8,7 +8,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
-from lib.config import K8sContext, config_file, env
+from lib.config import K8sContext, config_file, env, omim_credentials
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
@@ -32,7 +32,7 @@ with DAG(
 ) as dag:
 
     def _file(**context):
-        url = 'https://data.omim.org/downloads/oOHLFM8TQEaUch03i8MF7A'
+        url = f'https://data.omim.org/downloads/{omim_credentials}'
         genes_file = 'genemap2.txt'
         updated = False
 

@@ -6,7 +6,7 @@ from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.sensors.base import BaseSensorOperator
 from lib.config import env, es_url
 from lib.slack import Slack
-from lib.utils_es import color, format_es_url
+from lib.utils_etl import get_color, get_index_of_alias
 
 
 class RollingAutoSensor(BaseSensorOperator):
@@ -15,24 +15,6 @@ class RollingAutoSensor(BaseSensorOperator):
         super().__init__(*args, **kwargs)
 
     def poke(self, context):
-
-        def get_index_of_alias(index_name: str):
-            response = requests.get(f'{es_url}/_cat/aliases/{index_name}', verify=False)
-            logging.info(f'Get alias for {index_name}:\n[{response.status_code}] {response.text}')
-            if not response.ok:
-                return None
-            first_line = response.text.split('\n')[0]
-            columns = first_line.split(' ')
-            if len(columns) < 2:
-                return None
-            return columns[1]
-
-        def get_color(index_name: str):
-            if "blue" in index_name:
-                return 'blue'
-            if "green" in index_name:
-                return 'green'
-            return None
 
         def swap_aliases(color: str):
             url = f'{es_url}/_aliases'

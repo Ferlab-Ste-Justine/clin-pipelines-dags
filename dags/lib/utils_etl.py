@@ -67,19 +67,34 @@ def obo_parser_spark_jar() -> str:
 def color(prefix: str = '') -> str:
     return '{% if params.color and params.color|length %}' + prefix + '{{ params.color }}{% endif %}'
 
+
+def get_index_of_alias(alias_name: str):
+    response = requests.get(f'{es_url}/_cat/aliases/{alias_name}?format=json', verify=False)
+    data = response.json()
+    index_name = data[0]['index'] if response.ok and len(data) > 0 else None
+
+    if index_name:
+        logging.info(f'The index matching alias "{alias_name}" is: "{index_name}"')
+    else:
+        logging.warning(f'No index found for alias "{alias_name}"')
+
+    return index_name
+
+
+def get_color(index_name: str):
+    if "blue" in index_name:
+        return 'blue'
+    if "green" in index_name:
+        return 'green'
+    return None
+
+
 def get_current_color() -> str:
     if env != Env.QA:
         raise Exception('get_current_color should only be used in QA environment')
     
-    color = ''
-    response = requests.get(f'{es_url}/_cat/aliases/clin_qa_gene_centric?format=json')
-    
-    if response.status_code == 200:
-        data = response.json()
-        if data and data[0]['index']:
-            index_parts = data[0]['index'].split('_')
-            if len(index_parts) > 2:
-                color = index_parts[2]
+    gene_centric_index = get_index_of_alias('clin_qa_gene_centric')
+    color = get_color(gene_centric_index)
 
     if color:
         logging.info(f'Current color is: {color}')
