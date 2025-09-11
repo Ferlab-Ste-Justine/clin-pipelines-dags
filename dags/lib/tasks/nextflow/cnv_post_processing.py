@@ -58,7 +58,7 @@ def prepare(analysis_id_pheno_file_mapping: Dict[str, str], job_hash: str, skip:
         'cnv_vcf_germline_urls': 'vcf'
     }
 
-    samples = df[df['analysis_id'].isin(analysis_id_pheno_file_mapping.keys())] \
+    samples = df[df['analysis_id'].isin(analysis_id_pheno_file_mapping.keys()) & df["is_proband"]] \
         .rename(columns=column_map)[[*column_map.values()]]
 
     # Replace sequencing strategy with 'WES' because Nextflow expects 'WES' instead of 'WXS'
