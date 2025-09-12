@@ -1,7 +1,7 @@
 from airflow.exceptions import AirflowSkipException
-from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.operators.pod import \
+    KubernetesPodOperator
 from kubernetes.client import models as k8s
-
 from lib import config
 from lib.config import auth_url, env, env_url
 from lib.utils import join
@@ -67,6 +67,11 @@ class PipelineOperator(KubernetesPodOperator):
             k8s.V1EnvVar(
                 name='CLIN_URL',
                 value='https://portail' + env_url('.') +
+                '.cqgc.hsj.rtss.qc.ca',
+            ),
+            k8s.V1EnvVar(
+                name='QLIN_ME_HYBRID_URL',
+                value='https://qlin-me-hybrid' + env_url('.') +
                 '.cqgc.hsj.rtss.qc.ca',
             ),
             k8s.V1EnvVar(
