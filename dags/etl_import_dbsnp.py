@@ -13,7 +13,7 @@ from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
+from lib.tasks.public_data import update_public_data_entry_task, push_version_to_xcom
 from lib.utils import http_get
 from lib.utils_s3 import (get_s3_file_md5, stream_upload_or_resume_to_s3, stream_upload_to_s3)
 
@@ -99,4 +99,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    file >> should_continue() >> table >> get_update_public_data_entry_task('dbsnp')
+    file >> should_continue() >> table >> update_public_data_entry_task('dbsnp')

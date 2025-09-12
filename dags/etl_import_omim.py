@@ -12,7 +12,7 @@ from lib.config import K8sContext, config_file, env, omim_credentials
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
+from lib.tasks.public_data import update_public_data_entry_task, push_version_to_xcom
 from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
                           load_to_s3_with_md5)
@@ -91,4 +91,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> should_continue() >> table >> trigger_genes >> get_update_public_data_entry_task('omim', True) >> slack
+    file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task('omim', True) >> slack

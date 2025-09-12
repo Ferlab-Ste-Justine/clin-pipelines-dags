@@ -170,7 +170,8 @@ def _get_public_data_json():
 def push_version_to_xcom(version, context):
     context['ti'].xcom_push(key='public_data_file_version', value=version)
 
-def update_public_data_entry(id, no_version = False, **context):
+@task
+def update_public_data_entry_task(id, allow_no_version = False, **context):
     # The lock is automatically acquired and released when the with block is exited
     with lock:
         if not id:
@@ -178,10 +179,10 @@ def update_public_data_entry(id, no_version = False, **context):
         
         version = context['ti'].xcom_pull(key='public_data_file_version')
         if not version:
-            if not no_version:
-                raise Exception("version not found in XCom, make sure to call 'push_version_to_xcom' before this task")
+            if allow_no_version:
+                logging.info(f"no version found for '{id}'")
             else:
-                logging.warning(f"no version found for '{id}'")
+                raise Exception("version not found in XCom, make sure to call 'push_version_to_xcom' before this task")
 
         # Check if the entry already exists
         public_data = _get_public_data_json()
@@ -196,10 +197,3 @@ def update_public_data_entry(id, no_version = False, **context):
 
         # Save to S3
         s3.load_string(json.dumps(public_data), s3_public_data_file_key, s3_public_bucket, replace=True)
-
-def get_update_public_data_entry_task(id, no_version = False):
-    return PythonOperator(
-        task_id='update_public_data_entry',
-        python_callable=update_public_data_entry,
-        op_kwargs={'id': id, 'no_version': no_version}
-    )

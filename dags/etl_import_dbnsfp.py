@@ -3,7 +3,7 @@ from datetime import datetime
 from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.tasks.public_data import get_update_public_data_entry_task
+from lib.tasks.public_data import update_public_data_entry_task
 from datetime import datetime
 
 from airflow import DAG
@@ -62,4 +62,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    raw >> enriched >> get_update_public_data_entry_task('dbnsfp', True)
+    raw >> enriched >> update_public_data_entry_task('dbnsfp', True)

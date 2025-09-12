@@ -12,7 +12,7 @@ from lib import config
 from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
+from lib.tasks.public_data import update_public_data_entry_task, push_version_to_xcom
 from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils_s3 import get_s3_file_version, download_and_check_md5, load_to_s3_with_version
 
@@ -99,4 +99,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    file >> should_continue() >> table >> get_update_public_data_entry_task('ensembl')
+    file >> should_continue() >> table >> update_public_data_entry_task('ensembl')

@@ -11,7 +11,7 @@ from lib import config
 from lib.config import clin_datalake_bucket, K8sContext, config_file
 from lib.slack import Slack
 from lib.operators.spark import SparkOperator
-from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
+from lib.tasks.public_data import update_public_data_entry_task, push_version_to_xcom
 from lib.utils_s3 import stream_upload_or_resume_to_s3, get_s3_file_version
 
 
@@ -89,7 +89,7 @@ def etl_import_gnomad_v4_joint(**context):
 
     slack = EmptyOperator(task_id="slack", on_success_callback=Slack.notify_dag_completion)
 
-    files >> table >> get_update_public_data_entry_task('gnomad_joint_v4') >> slack
+    files >> table >> update_public_data_entry_task('gnomad_joint_v4') >> slack
 
 
 etl_import_gnomad_v4_joint()

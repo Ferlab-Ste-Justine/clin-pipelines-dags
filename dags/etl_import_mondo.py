@@ -16,7 +16,7 @@ from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.tasks import publish_index
 from lib.tasks.params_validate import validate_color
-from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
+from lib.tasks.public_data import update_public_data_entry_task, push_version_to_xcom
 from lib.utils import http_get, http_get_file
 from lib.utils_etl import (color, obo_parser_spark_jar,
                            spark_jar)
@@ -131,4 +131,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, download_mondo_terms, normalized_mondo_terms, index_mondo_terms, publish_mondo, get_update_public_data_entry_task('mondo'), slack)
+    chain(params_validate, download_mondo_terms, normalized_mondo_terms, index_mondo_terms, publish_mondo, update_public_data_entry_task('mondo'), slack)

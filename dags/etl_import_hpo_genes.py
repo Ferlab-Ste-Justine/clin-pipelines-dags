@@ -15,7 +15,7 @@ from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
+from lib.tasks.public_data import update_public_data_entry_task, push_version_to_xcom
 from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils import http_get, http_get_file
 from lib.utils_etl import spark_jar
@@ -114,4 +114,4 @@ with DAG(
     )
 
 
-    chain(download_hpo_genes, should_continue(), normalized_hpo_genes, trigger_genes, get_update_public_data_entry_task('hpo'), slack)
+    chain(download_hpo_genes, should_continue(), normalized_hpo_genes, trigger_genes, update_public_data_entry_task('hpo'), slack)

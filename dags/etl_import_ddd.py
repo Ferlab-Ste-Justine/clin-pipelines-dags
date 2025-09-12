@@ -4,31 +4,23 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.exceptions import AirflowSkipException
-from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.utils.trigger_rule import TriggerRule
-from dags.lib.tasks.public_data import create_json_file
 from lib import config
 from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
-from lib.tasks.should_continue import should_continue, skip_if_not_new_version
+from lib.tasks.public_data import update_public_data_entry_task, push_version_to_xcom
 from lib.utils import http_get_file
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 
 with DAG(
     dag_id='etl_import_ddd',
     start_date=datetime(2022, 1, 1),
-    schedule='0 8 * * 6',
-    params={
-        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
-    },
+    schedule=None,
     default_args={
-        'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
     catchup=False,
@@ -36,7 +28,6 @@ with DAG(
 ) as dag:
 
     def _file(**context):
-        create_json_file()
         url = 'https://www.ebi.ac.uk/gene2phenotype/downloads'
         file = 'DDG2P.csv.gz'
 
@@ -59,7 +50,8 @@ with DAG(
         logging.info(f'DDD imported version: {imported_ver}')
 
         # Skip task if up to date
-        skip_if_not_new_version(imported_ver != latest_ver)
+        if imported_ver == latest_ver:
+            raise AirflowSkipException()
 
         # Upload file to S3
         load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
@@ -99,4 +91,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> should_continue() >> table >> trigger_genes >> get_update_public_data_entry_task('gene2phenotype-ddd') >> slack
+    file >> table >> trigger_genes >> update_public_data_entry_task('gene2phenotype-ddd') >> slack
