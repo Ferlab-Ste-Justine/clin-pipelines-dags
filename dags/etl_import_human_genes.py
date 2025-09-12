@@ -11,6 +11,7 @@ from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
+from lib.tasks.public_data import get_update_public_data_entry_task
 from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
                           load_to_s3_with_md5)
 
@@ -80,4 +81,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> table >> trigger_genes >> slack
+    file >> table >> trigger_genes >> get_update_public_data_entry_task('human_genes', True) >> slack

@@ -12,6 +12,7 @@ from airflow.utils.trigger_rule import TriggerRule
 from lib.config import env, s3_conn_id, basespace_illumina_credentials, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
+from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
 from lib.utils import http_get
 from lib.utils_s3 import stream_upload_to_s3, get_s3_file_version
 
@@ -24,7 +25,7 @@ with DAG(
             'on_failure_callback': Slack.notify_task_failure,
         },
 ) as dag:
-    def _file():
+    def _file(**context):
         # file_name -> file_id
         indel = {
             "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
@@ -74,6 +75,8 @@ with DAG(
         # If no files have been updated, skip task
         if not updated:
             raise AirflowSkipException()
+        
+        push_version_to_xcom(latest_ver, context)
 
 
     file = PythonOperator(
@@ -150,4 +153,4 @@ with DAG(
     file >> [indel_table, snv_table]
     indel_table >> enrich_indel
     snv_table >> enrich_snv
-    [enrich_snv, enrich_indel] >> slack
+    [enrich_snv, enrich_indel] >> get_update_public_data_entry_task('spliceai') >> slack

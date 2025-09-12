@@ -13,6 +13,7 @@ from lib import config
 from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
+from lib.tasks.public_data import get_update_public_data_entry_task, push_version_to_xcom
 from lib.utils import http_get, http_get_file
 from lib.utils_s3 import get_s3_file_version
 
@@ -38,7 +39,7 @@ with DAG(
 
     with TaskGroup(group_id='files') as files:
 
-        def _init():
+        def _init(**context):
             # Get latest version
             html = http_get(url).text
             latest_ver = re.search(
@@ -54,6 +55,9 @@ with DAG(
             # Skip task if up to date
             if imported_ver == latest_ver:
                 raise AirflowSkipException()
+
+            # Pass the version to the next task
+            push_version_to_xcom(latest_ver, context)
 
             # Send latest version to xcom
             return latest_ver
@@ -130,4 +134,5 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    files >> table
+
+    files >> table >> get_update_public_data_entry_task('topmed_bravo')
