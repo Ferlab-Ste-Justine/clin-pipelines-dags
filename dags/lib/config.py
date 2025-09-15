@@ -100,8 +100,8 @@ elif env == Env.QA:
         '4_data_to_import_somatic_normal',
     ]
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:48e97b1'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:c60c896'
+    fhir_image = 'ferlabcrsj/clin-fhir:148f1ce'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:48e97b1'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'clin-variant-etl-v3.21.0.jar'
@@ -114,8 +114,8 @@ elif env == Env.STAGING:
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [] # automatic dags/lib/tasks/batch_type:get_all_batch_ids
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:48e97b1'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:c60c896'
+    fhir_image = 'ferlabcrsj/clin-fhir:148f1ce'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:48e97b1'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 'clin-variant-etl-v3.18.3-rollback-normalized-variants-es-shards.jar'
