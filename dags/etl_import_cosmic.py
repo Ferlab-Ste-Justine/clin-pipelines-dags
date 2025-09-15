@@ -5,9 +5,9 @@ import tarfile
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
@@ -15,7 +15,7 @@ from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.public_data import update_public_data_entry_task, push_version_to_xcom
+from lib.tasks.public_data import update_public_data_entry_task
 from lib.utils import http_get, http_get_file
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 
@@ -37,7 +37,8 @@ with DAG(
         http_get_file(download_url, file_name)
 
 
-    def _files(**context):
+    @task(task_id='files', on_execute_callback=Slack.notify_dag_start)
+    def files():
         url = 'https://cancer.sanger.ac.uk/cosmic'
         path = 'file_download/GRCh38/cosmic'
 
@@ -92,14 +93,10 @@ with DAG(
         if not updated:
             raise AirflowSkipException()
 
-        push_version_to_xcom(latest_ver, context)
+        return latest_ver
 
 
-    files = PythonOperator(
-        task_id='files',
-        python_callable=_files,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+    version = files()
 
     gene_table = SparkOperator(
         task_id='gene_table',
@@ -142,4 +139,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    files >> [gene_table, mutation_table] >> trigger_genes >> update_public_data_entry_task('cosmic') >> slack
+    version >> [gene_table, mutation_table] >> trigger_genes >> update_public_data_entry_task('cosmic', version) >> slack

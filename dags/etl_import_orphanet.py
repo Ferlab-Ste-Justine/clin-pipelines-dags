@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
@@ -32,7 +33,8 @@ with DAG(
     max_active_runs=1
 ) as dag:
 
-    def _file(**context):
+    @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
+    def file(**context):
         url = 'https://www.orphadata.com/data/xml'
         genes_file = 'en_product6.xml'
         diseases_file = 'en_product9_ages.xml'
@@ -72,11 +74,7 @@ with DAG(
         skip_if_not_new_version(updated, context)
        
 
-    file = PythonOperator(
-        task_id='file',
-        python_callable=_file,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+    get_file = file()
 
     table = SparkOperator(
         task_id='table',
@@ -103,4 +101,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task('orphanet', True) >> slack
+    get_file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task('orphanet', True) >> slack
