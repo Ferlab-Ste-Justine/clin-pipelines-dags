@@ -7,7 +7,7 @@ from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperato
 from kubernetes.client import models as k8s
 
 from lib import config
-from lib.config import env
+from lib.config import env, devSkipTask
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,10 @@ class SparkOperator(KubernetesPodOperator):
         self.skip = skip
 
     def execute(self, context):
+
+        if devSkipTask:
+            logging.info("Skipping task because devSkipTask is set to true")
+            raise AirflowSkipException()
 
         if env in self.skip_env:
             raise AirflowSkipException()
