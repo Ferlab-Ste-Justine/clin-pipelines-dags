@@ -48,7 +48,7 @@ omim_credentials = Variable.get('omim_credentials', None)
 topmed_bravo_credentials = Variable.get('topmed_bravo_credentials', None)
 basespace_illumina_credentials = Variable.get('basespace_illumina_credentials', None)
 svclustering_batch_size = Variable.get('svclustering_batch_size', '100')
-devSkipTask = Variable.get('dev_skip_task', None) == 'yes'
+dev_skip_task = Variable.get('dev_skip_task', None) == 'yes'
 
 clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'

@@ -4,7 +4,7 @@ from airflow.providers.cncf.kubernetes.operators.pod import \
     KubernetesPodOperator
 from kubernetes.client import models as k8s
 from lib import config
-from lib.config import auth_url, env, env_url, devSkipTask
+from lib.config import auth_url, env, env_url, dev_skip_task
 from lib.utils import join
 
 
@@ -39,8 +39,8 @@ class PipelineOperator(KubernetesPodOperator):
 
     def execute(self, **kwargs):
 
-        if devSkipTask:
-            logging.info("Skipping task because devSkipTask is set to true")
+        if dev_skip_task:
+            logging.info("Skipping task because dev_skip_task is set to true")
             raise AirflowSkipException()
 
         if self.skip:
