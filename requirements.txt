@@ -12,3 +12,4 @@ virtualenv~=20.26.3
 docker
 testcontainers
 jinja2
+Flask-Limiter==3.12

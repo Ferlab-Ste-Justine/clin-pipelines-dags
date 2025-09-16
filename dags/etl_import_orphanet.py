@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
 from airflow.models.param import Param
 from airflow.operators.python import PythonOperator
@@ -12,6 +13,7 @@ from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
+from lib.tasks.public_data import update_public_data_entry_task
 from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
                           load_to_s3_with_md5)
@@ -31,7 +33,8 @@ with DAG(
     max_active_runs=1
 ) as dag:
 
-    def _file(**context):
+    @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
+    def file(**context):
         url = 'https://www.orphadata.com/data/xml'
         genes_file = 'en_product6.xml'
         diseases_file = 'en_product9_ages.xml'
@@ -71,11 +74,7 @@ with DAG(
         skip_if_not_new_version(updated, context)
        
 
-    file = PythonOperator(
-        task_id='file',
-        python_callable=_file,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+    get_file = file()
 
     table = SparkOperator(
         task_id='table',
@@ -102,4 +101,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> should_continue() >> table >> trigger_genes >> slack
+    get_file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task('orphanet', True) >> slack

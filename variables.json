@@ -12,5 +12,6 @@
   "franklin_url": "https://mocks.qa.cqgc.hsj.rtss.qc.ca/api/franklin",
   "franklin_email": "API_franklin_email",
   "franklin_password": "test",
-  "slack_hook_url": "https://hooks.slack.com/services/..."
+  "slack_hook_url": "https://hooks.slack.com/services/...",
+  "dev_skip_task": "yes"
 }
