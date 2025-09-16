@@ -3,9 +3,9 @@ from typing import List
 
 from airflow.decorators import task
 from airflow.exceptions import AirflowFailException
-from lib.utils_etl import get_current_color
 from lib.config import Env, env
 from lib.slack import Slack
+from lib.utils_etl import get_current_color
 
 
 def _validate_color(color: str) -> None:
@@ -44,15 +44,20 @@ def validate_release(release_id: str):
 
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)
-def validate_color(color: str, **context):
+def validate_color(color: str, api_trigger: bool = False, **context):
     env_color = color
-    # If the DAG is triggered via scheduler, we need to get the current color from Elasticsearch
-    if not context.get('dag_run').external_trigger:
-        logging.info('scheduled run')
-        if env == Env.QA:
-            env_color = get_current_color()
-
-    _validate_color(env_color)
+    try:
+        _validate_color(env_color)
+    except AirflowFailException as e:
+        is_color_resolved = False
+        # If the DAG is triggered via scheduler or API request, we need to get the current color from Elasticsearch
+        if api_trigger or not context.get('dag_run').external_trigger:
+            logging.info('scheduled or API run')
+            if env == Env.QA:
+                env_color = get_current_color()
+                is_color_resolved = True
+        if not is_color_resolved:
+            raise
     return env_color
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)

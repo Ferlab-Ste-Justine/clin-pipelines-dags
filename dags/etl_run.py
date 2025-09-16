@@ -12,10 +12,8 @@ from lib.tasks import batch_type
 from lib.tasks.clinical import get_all_analysis_ids
 from lib.tasks.params import get_sequencing_ids
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import (
-    ClinAnalysis, color,
-    get_germline_analysis_ids, get_ingest_dag_configs_by_analysis_ids,
-    spark_jar)
+from lib.utils_etl import (ClinAnalysis, color, get_germline_analysis_ids,
+                           get_ingest_dag_configs_by_analysis_ids, spark_jar)
 
 with DAG(
         dag_id='etl_run',
@@ -42,7 +40,7 @@ with DAG(
     )
 
     # Disabling callback as the start task already perform the slack notification
-    params_validate = validate_color.override(on_execute_callback=None)(color=color())
+    params_validate = validate_color.override(on_execute_callback=None)(color=color(), api_trigger=True)
 
     ingest_fhir_group = ingest_fhir(
         batch_ids=[],  # No associated "batch"
