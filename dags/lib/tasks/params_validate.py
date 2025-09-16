@@ -44,20 +44,14 @@ def validate_release(release_id: str):
 
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)
-def validate_color(color: str, api_trigger: bool = False, **context):
+def validate_color(color: str, **context):
     env_color = color
-    try:
-        _validate_color(env_color)
-    except AirflowFailException as e:
-        is_color_resolved = False
-        # If the DAG is triggered via scheduler or API request, we need to get the current color from Elasticsearch
-        if api_trigger or not context.get('dag_run').external_trigger:
-            logging.info('scheduled or API run')
-            if env == Env.QA:
-                env_color = get_current_color()
-                is_color_resolved = True
-        if not is_color_resolved:
-            raise
+    # If the DAG is triggered via scheduler or API request, we need to get the current color from Elasticsearch
+    if not env_color and env == Env.QA:
+        env_color = get_current_color()
+        logging.info(f'No color found using current ES: {env_color}')
+   
+    _validate_color(env_color)
     return env_color
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)

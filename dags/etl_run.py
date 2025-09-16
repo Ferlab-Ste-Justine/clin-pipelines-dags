@@ -40,11 +40,11 @@ with DAG(
     )
 
     # Disabling callback as the start task already perform the slack notification
-    params_validate = validate_color.override(on_execute_callback=None)(color=color(), api_trigger=True)
+    params_validate_color = validate_color.override(on_execute_callback=None)(color=color())
 
     ingest_fhir_group = ingest_fhir(
         batch_ids=[],  # No associated "batch"
-        color=color(),
+        color=params_validate_color,
         skip_all=False,
         skip_import=True,  # Skipping because the data is already imported via the prescription API
         skip_batch=False,
@@ -73,7 +73,7 @@ with DAG(
     )
 
     (
-        start >> params_validate >>
+        start >> params_validate_color >>
         ingest_fhir_group >>
         get_sequencing_ids_task >> get_all_analysis_ids_task >>
         detect_batch_types_task >>
