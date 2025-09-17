@@ -2,16 +2,18 @@ import logging
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowSkipException
+from airflow.decorators import task
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
+from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
-from lib.config import K8sContext, config_file, env
+from lib.config import K8sContext, config_file, env, omim_credentials
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
+from lib.tasks.public_data import update_public_data_entry_task
+from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
                           load_to_s3_with_md5)
 
@@ -19,15 +21,20 @@ with DAG(
     dag_id='etl_import_omim',
     start_date=datetime(2025, 8, 9),
     schedule='30 6 * * 6',
+    params={
+        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
+    },
     default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
     catchup=False,
     max_active_runs=1
 ) as dag:
 
-    def _file():
-        url = 'https://data.omim.org/downloads/oOHLFM8TQEaUch03i8MF7A'
+    @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
+    def file(**context):
+        url = f'https://data.omim.org/downloads/{omim_credentials}'
         genes_file = 'genemap2.txt'
         updated = False
 
@@ -49,14 +56,11 @@ with DAG(
             logging.info(f'New OMIM genes imported MD5 hash: {download_md5_genes}')
             updated = True
 
-        if not updated:
-            raise AirflowSkipException()
+        # Skip task if up to date
+        skip_if_not_new_version(updated, context)
+
        
-    file = PythonOperator(
-        task_id='file',
-        python_callable=_file,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+    get_file = file()
 
     table = SparkOperator(
         task_id='table',
@@ -70,7 +74,6 @@ with DAG(
             '--steps', 'default',
             '--app-name', 'etl_import_omim_table',
         ],
-        trigger_rule=TriggerRule.ALL_SUCCESS,
         on_execute_callback=Slack.notify_dag_start,
     )
 
@@ -84,5 +87,5 @@ with DAG(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion
     )
-     
-    table >> trigger_genes >> slack
+
+    get_file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task('omim', True) >> slack

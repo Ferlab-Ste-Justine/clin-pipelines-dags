@@ -44,9 +44,11 @@ franklin_password = Variable.get('franklin_password', None)
 slack_hook_url = Variable.get('slack_hook_url', None)
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 cosmic_credentials = Variable.get('cosmic_credentials', None)
+omim_credentials = Variable.get('omim_credentials', None)
 topmed_bravo_credentials = Variable.get('topmed_bravo_credentials', None)
 basespace_illumina_credentials = Variable.get('basespace_illumina_credentials', None)
 svclustering_batch_size = Variable.get('svclustering_batch_size', '100')
+dev_skip_task = Variable.get('dev_skip_task', None) == 'yes'
 
 clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'
@@ -83,7 +85,7 @@ elif env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.19.6-rollback-normalized-variants.jar'
+    spark_jar = 'clin-variant-etl-v3.21.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'

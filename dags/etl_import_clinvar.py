@@ -3,28 +3,39 @@ import re
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowFailException, AirflowSkipException
-from airflow.operators.python import PythonOperator
+from airflow.decorators import task
+from airflow.exceptions import AirflowFailException
+from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.trigger_rule import TriggerRule
 from lib import config
 from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
+from lib.tasks.public_data import update_public_data_entry_task
+from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils import file_md5, http_get, http_get_file
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
+
+from airflow.models.baseoperator import chain
 
 with DAG(
     dag_id='etl_import_clinvar',
     start_date=datetime(2025, 8, 9),
     schedule='0 6 * * 6',
+    params={
+        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
+    },
     default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
     catchup=False,
     max_active_runs=1
 ) as dag:
 
-    def _file():
+    @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
+    def file(**context):
         url = 'https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38'
         file = 'clinvar.vcf.gz'
 
@@ -45,8 +56,7 @@ with DAG(
         logging.info(f'ClinVar imported version: {imported_ver}')
 
         # Skip task if up to date
-        if imported_ver == latest_ver:
-            raise AirflowSkipException()
+        skip_if_not_new_version(imported_ver != latest_ver, context)
 
         # Download file
         http_get_file(f'{url}/{file}', file)
@@ -60,11 +70,9 @@ with DAG(
         load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
         logging.info(f'New ClinVar imported version: {latest_ver}')
 
-    file = PythonOperator(
-        task_id='file',
-        python_callable=_file,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+        return latest_ver
+
+    version = file()
 
     table = SparkOperator(
         task_id='table',
@@ -81,4 +89,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    file >> table
+    chain(version, should_continue(), table, update_public_data_entry_task('clinvar', version))

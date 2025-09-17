@@ -3,23 +3,31 @@ import re
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowSkipException
-from airflow.operators.python import PythonOperator
+from airflow.decorators import task
+from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.utils.trigger_rule import TriggerRule
 
 from lib import config
 from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
+from lib.tasks.public_data import update_public_data_entry_task
+from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils_s3 import get_s3_file_version, download_and_check_md5, load_to_s3_with_version
 
 with DAG(
     dag_id='etl_import_ensembl',
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule='45 7 * * 6',
+    params={
+        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
+    },
     default_args={
+        'trigger_rule': TriggerRule.NONE_FAILED,
         'on_failure_callback': Slack.notify_task_failure,
     },
+    catchup=False,
 ) as dag:
 
     def find_last_version(checksums: str, type: str) -> str:
@@ -32,8 +40,8 @@ with DAG(
                 return version.group(1)
         return None
 
-
-    def _file():
+    @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
+    def file(**context):
         url = 'http://ftp.ensembl.org/pub/current_tsv/homo_sapiens'
         types = ['canonical', 'ena', 'entrez', 'refseq', 'uniprot']
         checksums = 'CHECKSUMS'
@@ -65,15 +73,12 @@ with DAG(
                 logging.info(f'New {type} imported version: {new_version}')
                 updated = True
 
-        if not updated:
-            raise AirflowSkipException()
-       
+        # Skip task if up to date
+        skip_if_not_new_version(updated, context)
 
-    file = PythonOperator(
-        task_id='file',
-        python_callable=_file,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+        return new_version
+
+    version = file()
 
     table = SparkOperator(
         task_id='table',
@@ -90,4 +95,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    file >> table
+    version >> should_continue() >> table >> update_public_data_entry_task('ensembl', version)

@@ -2,15 +2,16 @@ import logging
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib import config
 from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
+from lib.tasks.public_data import update_public_data_entry_task
 from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
                           load_to_s3_with_md5)
 
@@ -25,7 +26,8 @@ with DAG(
     max_active_runs=1
 ) as dag:
 
-    def _file():
+    @task(on_execute_callback=Slack.notify_dag_start)
+    def file():
         url = 'https://ftp.ncbi.nlm.nih.gov/refseq/H_sapiens'
         file = 'Homo_sapiens.gene_info.gz'
 
@@ -48,11 +50,7 @@ with DAG(
         load_to_s3_with_md5(s3, s3_bucket, s3_key, file, download_md5)
         logging.info(f'New imported MD5 hash: {download_md5}')
 
-    file = PythonOperator(
-        task_id='file',
-        python_callable=_file,
-        on_execute_callback=Slack.notify_dag_start,
-    )
+    get_file = file()
 
     table = SparkOperator(
         task_id='table',
@@ -80,4 +78,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    file >> table >> trigger_genes >> slack
+    get_file >> table >> trigger_genes >> update_public_data_entry_task('human_genes', True) >> slack

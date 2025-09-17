@@ -1,21 +1,22 @@
+from datetime import datetime
 import logging
 import re
-from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowSkipException, AirflowFailException
-from airflow.models.baseoperator import chain
+from airflow.decorators import task
+from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
+from lib.tasks.should_continue import should_continue
 from lib.config import K8sContext, env, es_url, indexer_context
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
+from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils import http_get, http_get_file
 from lib.utils_etl import (color, obo_parser_spark_jar, spark_jar)
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
@@ -28,6 +29,7 @@ with DAG(
         'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),
         'obo_parser_spark_jar': Param('', type=['null', 'string']),
+        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -42,6 +44,7 @@ with DAG(
     env_color = params_validate.__str__()
     prefixed_color = ('_' + env_color) if env_color else ''
 
+    @task(task_id='download_hpo_terms')
     def download(file, dest = None, **context):
         url = 'https://github.com/obophenotype/human-phenotype-ontology/releases'
 
@@ -71,8 +74,7 @@ with DAG(
         context['ti'].xcom_push(key=f'{destFile}.version', value=latest_ver)
 
         # Skip task if up to date
-        if imported_ver == latest_ver:
-            raise AirflowSkipException()
+        skip_if_not_new_version(imported_ver != latest_ver, context)
 
         # Download file
         http_get_file(f'{url}/download/{latest_ver}/{file}', file)
@@ -81,12 +83,10 @@ with DAG(
         load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
         logging.info(f'New {file} imported version: {latest_ver}')
 
+        return latest_ver
+
     # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
-    download_hpo_terms = PythonOperator(
-        task_id='download_hpo_terms',
-        python_callable=download,
-        op_args=['hp-fr.obo', 'hp.obo']
-    )
+    version = download('hp-fr.obo', 'hp.obo')
 
     normalized_hpo_terms = SparkOperator(
         task_id='normalized_hpo_terms',
@@ -138,4 +138,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, download_hpo_terms, normalized_hpo_terms, index_hpo_terms, publish_hpo_terms, slack)
+    params_validate >> version >> should_continue() >> normalized_hpo_terms >> index_hpo_terms >> publish_hpo_terms >> slack

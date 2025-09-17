@@ -5,7 +5,6 @@ from datetime import datetime
 from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
-from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.task_group import TaskGroup
 
@@ -13,6 +12,7 @@ from lib import config
 from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
+from lib.tasks.public_data import update_public_data_entry_task
 from lib.utils import http_get, http_get_file
 from lib.utils_s3 import get_s3_file_version
 
@@ -36,9 +36,12 @@ with DAG(
 
     chromosomes = list(range(1, 23)) + list('X')
 
+    version = None
+
     with TaskGroup(group_id='files') as files:
 
-        def _init():
+        @task(task_id='init', on_execute_callback=Slack.notify_dag_start)
+        def init():
             # Get latest version
             html = http_get(url).text
             latest_ver = re.search(
@@ -58,12 +61,9 @@ with DAG(
             # Send latest version to xcom
             return latest_ver
 
-        init = PythonOperator(
-            task_id='init',
-            python_callable=_init,
-            on_execute_callback=Slack.notify_dag_start,
-        )
+        version = init()
 
+        @task
         def transfer(latest_ver: str, chromosome: str, coverage: bool = False):
             type_path = 'coverage' if coverage else 'vcf'
             file_suffix = '.coverage' if coverage else '.coverage'
@@ -89,31 +89,24 @@ with DAG(
 
         @task
         def files_variants(chromosome: str, **kwargs):
-            latest_ver = kwargs['ti'].xcom_pull(task_ids=['files.init'])[0]
-            transfer(latest_ver, chromosome)
+            transfer(version, chromosome)
 
         variants = files_variants.expand(chromosome=chromosomes)
 
         @task
         def files_coverage(chromosome: str, **kwargs):
-            latest_ver = kwargs['ti'].xcom_pull(task_ids=['files.init'])[0]
-            transfer(latest_ver, chromosome, True)
+            transfer(version, chromosome, True)
 
         coverage = files_coverage.expand(chromosome=chromosomes)
 
-        def _release(**kwargs):
-            latest_ver = kwargs['ti'].xcom_pull(task_ids=['files.init'])[0]
+        @task(task_id='release')
+        def release():
             s3.load_string(
-                latest_ver, f'{s3_key_prefix}{file_prefix}.version', s3_bucket, replace=True
+                version, f'{s3_key_prefix}{file_prefix}.version', s3_bucket, replace=True
             )
-            logging.info(f'New TOPMed Bravo imported version: {latest_ver}')
+            logging.info(f'New TOPMed Bravo imported version: {version}')
 
-        release = PythonOperator(
-            task_id='release',
-            python_callable=_release,
-        )
-
-        init >> variants >> coverage >> release
+        version >> variants >> coverage >> release()
 
     table = SparkOperator(
         task_id='table',
@@ -130,4 +123,5 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    files >> table
+
+    files >> table >> update_public_data_entry_task('topmed_bravo', version)

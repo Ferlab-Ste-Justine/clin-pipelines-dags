@@ -11,7 +11,8 @@ from lib import config
 from lib.config import clin_datalake_bucket, K8sContext, config_file
 from lib.slack import Slack
 from lib.operators.spark import SparkOperator
-from lib.utils_s3 import stream_upload_to_s3, get_s3_file_version
+from lib.tasks.public_data import update_public_data_entry_task
+from lib.utils_s3 import stream_upload_or_resume_to_s3, get_s3_file_version
 
 
 LATEST_VERSION = "4.1"
@@ -58,13 +59,15 @@ def etl_import_gnomad_v4_joint():
 
                 logging.info(f"Importing file {key}")
 
-                stream_upload_to_s3(clin_s3, clin_datalake_bucket, destination_key, presigned_url)
+                stream_upload_or_resume_to_s3(clin_s3, clin_datalake_bucket, destination_key, presigned_url)
 
         # Update version
         logging.info(f"Version {LATEST_VERSION} of gnomAD joint imported to S3.")
         clin_s3.load_string(LATEST_VERSION, f"{destination_prefix}.version", clin_datalake_bucket, replace=True)
 
-    files = download_files()
+        return LATEST_VERSION
+
+    version = download_files()
 
     table = SparkOperator(
         task_id="table",
@@ -86,7 +89,7 @@ def etl_import_gnomad_v4_joint():
 
     slack = EmptyOperator(task_id="slack", on_success_callback=Slack.notify_dag_completion)
 
-    files >> table >> slack
+    version >> table >> update_public_data_entry_task('gnomad_joint_v4', version) >> slack
 
 
 etl_import_gnomad_v4_joint()

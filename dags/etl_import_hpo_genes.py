@@ -3,11 +3,10 @@ import re
 from datetime import datetime
 
 from airflow import DAG
-from airflow.exceptions import AirflowSkipException, AirflowFailException
-from airflow.models.baseoperator import chain
+from airflow.decorators import task
+from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
@@ -15,7 +14,8 @@ from lib.config import K8sContext, config_file, env
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.params_validate import validate_color
+from lib.tasks.public_data import update_public_data_entry_task
+from lib.tasks.should_continue import should_continue, skip_if_not_new_version
 from lib.utils import http_get, http_get_file
 from lib.utils_etl import spark_jar
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
@@ -26,6 +26,7 @@ with DAG(
     schedule='30 7 * * 6',
     params={
         'spark_jar': Param('', type=['null', 'string']),
+        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
     },
     default_args={
         'trigger_rule': TriggerRule.NONE_FAILED,
@@ -36,6 +37,9 @@ with DAG(
     max_active_runs=1
     ) as dag:
 
+    is_new_version = False
+
+    @task(task_id='download_hpo_genes')
     def download(file, dest = None, **context):
         url = 'https://github.com/obophenotype/human-phenotype-ontology/releases'
 
@@ -65,8 +69,7 @@ with DAG(
         context['ti'].xcom_push(key=f'{destFile}.version', value=latest_ver)
 
         # Skip task if up to date
-        if imported_ver == latest_ver:
-            raise AirflowSkipException()
+        skip_if_not_new_version(imported_ver != latest_ver, context)
 
         # Download file
         http_get_file(f'{url}/download/{latest_ver}/{file}', file)
@@ -75,13 +78,11 @@ with DAG(
         load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
         logging.info(f'New {file} imported version: {latest_ver}')
 
+        return latest_ver
 
-    download_hpo_genes = PythonOperator(
-        task_id='download_hpo_genes',
-        python_callable=download,
-        op_args=['genes_to_phenotype.txt']
-    )
 
+    version = download('genes_to_phenotype.txt') 
+    
     normalized_hpo_genes = SparkOperator(
         task_id='normalized_hpo_genes',
         name='etl-import-hpo-genes',
@@ -108,4 +109,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(download_hpo_genes, normalized_hpo_genes, trigger_genes, slack)
+    version >> should_continue() >> normalized_hpo_genes >> trigger_genes >> update_public_data_entry_task('hpo', version) >> slack

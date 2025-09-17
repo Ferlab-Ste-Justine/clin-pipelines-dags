@@ -3,24 +3,21 @@ import re
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
-from airflow.models.baseoperator import chain
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.operators.python import PythonOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.utils.context import Context
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
-from lib.config import K8sContext, config_file, env, es_url, indexer_context
-from lib.operators.curl import CurlOperator
-from lib.operators.pipeline import PipelineOperator
+from lib.config import K8sContext, env, es_url, indexer_context
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.tasks import publish_index
 from lib.tasks.params_validate import validate_color
+from lib.tasks.public_data import update_public_data_entry_task
 from lib.utils import http_get, http_get_file
-from lib.utils_etl import (batch_id, color, obo_parser_spark_jar, skip_import,
+from lib.utils_etl import (color, obo_parser_spark_jar,
                            spark_jar)
 from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
 
@@ -43,6 +40,7 @@ with DAG(
 
     params_validate = validate_color(color())
 
+    @task(task_id='download_mondo_terms')
     def download(file, dest = None, **context):
         url = 'https://github.com/monarch-initiative/mondo/releases'
 
@@ -82,13 +80,11 @@ with DAG(
         load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
         logging.info(f'New {file} imported version: {latest_ver}')
 
+        return latest_ver
+
 
     # used to get the version, the obo-parser will download the file on its own again
-    download_mondo_terms = PythonOperator(
-        task_id='download_mondo_terms',
-        python_callable=download,
-        op_args=['mondo-base.obo', 'mondo.obo']
-    )
+    version = download('mondo-base.obo', 'mondo.obo') 
 
     normalized_mondo_terms = SparkOperator(
         task_id='normalized_mondo_terms',
@@ -131,4 +127,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(params_validate, download_mondo_terms, normalized_mondo_terms, index_mondo_terms, publish_mondo, slack)
+    params_validate >> version >> normalized_mondo_terms >> index_mondo_terms >> publish_mondo >> update_public_data_entry_task('mondo', version) >> slack
