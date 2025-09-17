@@ -64,15 +64,23 @@ with DAG(
 
     @task_group(group_id='normalize')
     def normalize_group():
-        svclustering.normalize(entrypoint='normalize_svclustering_germline',
+        svclustering.normalize(entrypoint='normalize_svclustering_germline_del',
                                spark_jar=spark_jar(),
-                               task_id='svclustering_germline',
-                               name='svclustering-germline')
+                               task_id='svclustering_germline_del',
+                               name='svclustering-germline-del')
+        svclustering.normalize(entrypoint='normalize_svclustering_germline_dup',
+                               spark_jar=spark_jar(),
+                               task_id='svclustering_germline_dup',
+                               name='svclustering-germline-dup')
 
-        svclustering.normalize(entrypoint='normalize_svclustering_somatic',
+        svclustering.normalize(entrypoint='normalize_svclustering_somatic_del',
                                spark_jar=spark_jar(),
-                               task_id='svclustering_somatic',
-                               name='svclustering-somatic')
+                               task_id='svclustering_somatic_del',
+                               name='svclustering-somatic-del')
+        svclustering.normalize(entrypoint='normalize_svclustering_somatic_dup',
+                               spark_jar=spark_jar(),
+                               task_id='svclustering_somatic_dup',
+                               name='svclustering-somatic-dup')
 
 
     enrich_cnv_task = enrich.cnv_all(spark_jar=spark_jar(), steps='default', task_id='enrich_cnv')
