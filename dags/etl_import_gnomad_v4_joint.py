@@ -89,7 +89,7 @@ def etl_import_gnomad_v4_joint():
 
     slack = EmptyOperator(task_id="slack", on_success_callback=Slack.notify_dag_completion)
 
-    version >> table >> update_public_data_entry_task('gnomad_joint_v4', version) >> slack
+    version >> table >> update_public_data_entry_task(version) >> slack
 
 
 etl_import_gnomad_v4_joint()

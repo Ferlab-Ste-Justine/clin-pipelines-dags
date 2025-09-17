@@ -124,4 +124,4 @@ with DAG(
     )
 
 
-    files >> table >> update_public_data_entry_task('topmed_bravo', version)
+    files >> table >> update_public_data_entry_task(version)

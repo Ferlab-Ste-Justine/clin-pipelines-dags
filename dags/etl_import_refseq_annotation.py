@@ -74,4 +74,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    version >> table >> update_public_data_entry_task('refseq_annotation', version)
+    version >> table >> update_public_data_entry_task(version)

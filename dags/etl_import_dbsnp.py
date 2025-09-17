@@ -96,4 +96,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    version >> should_continue() >> table >> update_public_data_entry_task('dbsnp', version)
+    version >> should_continue() >> table >> update_public_data_entry_task(version)

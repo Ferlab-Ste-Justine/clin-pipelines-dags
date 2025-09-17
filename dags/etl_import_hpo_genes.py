@@ -109,4 +109,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    version >> should_continue() >> normalized_hpo_genes >> trigger_genes >> update_public_data_entry_task('hpo', version) >> slack
+    version >> should_continue() >> normalized_hpo_genes >> trigger_genes >> update_public_data_entry_task(version) >> slack

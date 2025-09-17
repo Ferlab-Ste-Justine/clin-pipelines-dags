@@ -69,4 +69,4 @@ with DAG(
         ]
     )
     
-    version >> table >> update_public_data_entry_task('1000_genomes', version)
+    version >> table >> update_public_data_entry_task(version)

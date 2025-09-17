@@ -151,4 +151,4 @@ with DAG(
     version >> [indel_table, snv_table]
     indel_table >> enrich_indel
     snv_table >> enrich_snv
-    [enrich_snv, enrich_indel] >> update_public_data_entry_task('spliceai', version) >> slack
+    [enrich_snv, enrich_indel] >> update_public_data_entry_task(version) >> slack

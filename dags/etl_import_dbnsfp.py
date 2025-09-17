@@ -62,4 +62,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    raw >> enriched >> update_public_data_entry_task('dbnsfp', True)
+    raw >> enriched >> update_public_data_entry_task(None, True)

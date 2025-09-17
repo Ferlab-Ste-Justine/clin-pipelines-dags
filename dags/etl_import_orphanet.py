@@ -101,4 +101,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    get_file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task('orphanet', True) >> slack
+    get_file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task(None, True) >> slack
