@@ -89,4 +89,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    chain(version, should_continue(), table, update_public_data_entry_task('clinvar', version))
+    chain(version, should_continue(), table, update_public_data_entry_task(version))

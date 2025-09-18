@@ -88,4 +88,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    version >> table >> trigger_genes >> update_public_data_entry_task('gene2phenotype-ddd', version) >> slack
+    version >> table >> trigger_genes >> update_public_data_entry_task(version) >> slack

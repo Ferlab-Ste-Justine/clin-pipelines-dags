@@ -139,4 +139,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    version >> [gene_table, mutation_table] >> trigger_genes >> update_public_data_entry_task('cosmic', version) >> slack
+    version >> [gene_table, mutation_table] >> trigger_genes >> update_public_data_entry_task(version) >> slack

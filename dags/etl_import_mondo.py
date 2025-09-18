@@ -127,4 +127,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> version >> normalized_mondo_terms >> index_mondo_terms >> publish_mondo >> update_public_data_entry_task('mondo', version) >> slack
+    params_validate >> version >> normalized_mondo_terms >> index_mondo_terms >> publish_mondo >> update_public_data_entry_task(version) >> slack
