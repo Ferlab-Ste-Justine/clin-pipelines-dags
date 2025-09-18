@@ -44,7 +44,7 @@ with DAG(
             'on_failure_callback': Slack.notify_task_failure,
         },
         max_active_tasks=4,
-        max_active_runs=1,
+        max_active_runs=2,
 ) as dag:
     def format_skip_condition(param: str) -> str:
         return '{% if params.' + param + ' == "yes" %}{% else %}yes{% endif %}'
