@@ -1,11 +1,7 @@
 from airflow.decorators import task
-
-from lib.config_nextflow import (
-    nextflow_svclustering_revision,
-    nextflow_svclustering_pipeline,
-    nextflow_bucket,
-    NEXTFLOW_MAIN_CLASS
-)
+from lib.config_nextflow import (NEXTFLOW_MAIN_CLASS, nextflow_bucket,
+                                 nextflow_svclustering_pipeline,
+                                 nextflow_svclustering_revision)
 from lib.config_operators import nextflow_svclustering_base_config
 from lib.datasets import enriched_clinical
 from lib.operators.nextflow import NextflowOperator
@@ -16,14 +12,15 @@ from lib.operators.spark_etl import SparkETLOperator
 def prepare():
     import io
     import logging
-    from pandas import DataFrame
-    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
+    from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from lib.config import s3_conn_id
-    from lib.config_nextflow import (nextflow_bucket, nextflow_svclustering_germline_input_key,
+    from lib.config_nextflow import (nextflow_bucket,
+                                     nextflow_svclustering_germline_input_key,
                                      nextflow_svclustering_somatic_input_key)
     from lib.datasets import enriched_clinical
     from lib.utils_etl_tables import to_pandas
+    from pandas import DataFrame
 
     s3 = S3Hook(s3_conn_id)
     df: DataFrame = to_pandas(enriched_clinical.uri)
@@ -105,7 +102,7 @@ def normalize(entrypoint: str, spark_jar: str, task_id: str, name: str, skip: st
         steps='default',
         app_name=entrypoint,  # Use entrypoint as app name since it follows our app name convention
         spark_class=NEXTFLOW_MAIN_CLASS,
-        spark_config='config-etl-small',
+        spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
         **kwargs
