@@ -5,10 +5,11 @@ from airflow import DAG
 from airflow.decorators import task_group
 from airflow.models import Param
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import Env, env
-from lib.config_nextflow import nextflow_svclustering_germline_input_key, nextflow_svclustering_germline_output_key, \
-    nextflow_svclustering_somatic_input_key, nextflow_svclustering_somatic_output_key
+from lib.config_nextflow import (nextflow_svclustering_germline_input_key,
+                                 nextflow_svclustering_germline_output_key,
+                                 nextflow_svclustering_somatic_input_key,
+                                 nextflow_svclustering_somatic_output_key)
 from lib.doc import cnv_frequencies as doc
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
@@ -33,7 +34,8 @@ with DAG(
             'on_failure_callback': Slack.notify_task_failure
         },
         catchup=False,
-        max_active_runs=1
+        max_active_runs=1,
+        max_active_tasks=1
 ) as dag:
     params_validate_task = params_validate.validate_color(color=color())
 

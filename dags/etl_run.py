@@ -59,6 +59,19 @@ with DAG(
     get_germline_analysis_ids_task = get_germline_analysis_ids(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task)
     nextflow_germline_task_group = nextflow_germline(analysis_ids=get_germline_analysis_ids_task)
 
+    trigger_franklin_by_analysis_id_dags = TriggerDagRunOperator(
+        task_id='import_franklin',
+        trigger_dag_id='etl_import_franklin',
+        wait_for_completion=True,
+        conf={
+            'batch_ids': None,
+            'analysis_ids': get_all_analysis_ids_task,
+            'color':params_validate_color,
+            'import': 'no',
+            'spark_jar': spark_jar(),
+        }
+    )
+
     get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
 
     trigger_ingest_by_sequencing_ids_dags = TriggerDagRunOperator.partial(
@@ -78,6 +91,7 @@ with DAG(
         get_sequencing_ids_task >> get_all_analysis_ids_task >>
         detect_batch_types_task >>
         get_germline_analysis_ids_task >> nextflow_germline_task_group >>
+        trigger_franklin_by_analysis_id_dags >>
         get_ingest_dag_configs_by_analysis_ids_task >> trigger_ingest_by_sequencing_ids_dags >>
         slack
     )
