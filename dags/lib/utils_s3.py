@@ -104,6 +104,7 @@ def stream_upload_or_resume_to_s3(s3: S3Hook, s3_bucket: str, s3_key: str, url: 
         # Save md5 checksum
         if(md5):
             s3.load_string(md5, f'{s3_key}.md5', s3_bucket, replace=True)
+            logging.info(f"Md5 file saved, but not checked (cannot be done on stream upload)")
 
         logging.info(f"Multipart upload of {s3_key} from {url} completed successfully")
 
@@ -127,8 +128,8 @@ def load_to_s3_with_md5(s3: S3Hook, s3_bucket: str, s3_key: str, file: str, file
 
 def load_to_s3_with_version(s3: S3Hook, s3_bucket: str, s3_key: str, file: str, file_version: str) -> None:
     s3.load_file(file, s3_key, s3_bucket, replace=True)
-    s3.load_string(file_version, f'{s3_key}.version', s3_bucket, replace=True)
-
+    if file_version:
+        s3.load_string(file_version, f'{s3_key}.version', s3_bucket, replace=True)
 
 def get_s3_storage_options(s3_conn_id: str) -> dict:
     conn = BaseHook.get_connection(s3_conn_id)
@@ -148,3 +149,4 @@ def bytes_to_human_readable(byteSize: int) -> str:
         gbBytes = mbBytes / 1024
         return f"{gbBytes:.2f} GB"
     return f"{mbBytes:.2f} MB"
+

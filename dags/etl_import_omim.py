@@ -3,64 +3,58 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.operators.empty import EmptyOperator
-from airflow.models.param import Param
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.utils.trigger_rule import TriggerRule
 from lib import config
-from lib.config import K8sContext, config_file, env, omim_credentials
+from lib.config import K8sContext, config_file, omim_credentials
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.public_data import update_public_data_entry_task
-from lib.tasks.should_continue import should_continue, skip_if_not_new_version
-from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
-                          load_to_s3_with_md5)
+from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
+from lib.utils_s3 import download_and_check_md5, get_s3_file_md5
+
+
+omim_dag = PublicSourceDag(
+    name='omim',
+    display_name="OMIM",
+    website="https://www.omim.org/",
+    schedule='30 6 * * 6',  # every Saturday at 6:30am
+)
 
 with DAG(
-    dag_id='etl_import_omim',
+    dag_id=omim_dag.dag_id,
     start_date=datetime(2025, 8, 9),
-    schedule='30 6 * * 6',
-    params={
-        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
-    },
-    default_args={
-        'trigger_rule': TriggerRule.NONE_FAILED,
-        'on_failure_callback': Slack.notify_task_failure,
-    },
+    schedule=omim_dag.schedule,
+    params=PublicSourceDag.params,
+    default_args=PublicSourceDag.default_args,
     catchup=False,
     max_active_runs=1
 ) as dag:
 
     @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
-    def file(**context):
+    def file():
         url = f'https://data.omim.org/downloads/{omim_credentials}'
-        genes_file = 'genemap2.txt'
-        updated = False
+        file_name = 'genemap2.txt'
 
         s3 = S3Hook(config.s3_conn_id)
-        s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key_genes = f'raw/landing/omim/{genes_file}'
 
         # Get latest s3 MD5 checksum
-        s3_md5_genes = get_s3_file_md5(s3, s3_bucket, s3_key_genes)
+        s3_md5_genes = get_s3_file_md5(s3, omim_dag.s3_bucket, f'{omim_dag.s3_key}/{file_name}')
         logging.info(f'Current OMIM genes imported MD5 hash: {s3_md5_genes}')
 
         # Download file
-        download_md5_genes = download_and_check_md5(url, genes_file, None)
+        download_md5_genes = download_and_check_md5(url, file_name, None)
 
-        # Verify MD5 checksum
-        if download_md5_genes != s3_md5_genes:
-            # Upload file to S3
-            load_to_s3_with_md5(s3, s3_bucket, s3_key_genes, genes_file, download_md5_genes)
-            logging.info(f'New OMIM genes imported MD5 hash: {download_md5_genes}')
-            updated = True
+        omim_dag.is_new_version = s3_md5_genes != download_md5_genes
+        if not omim_dag.is_new_version:
+            logging.info('The file is up to date!')
+        else:
+            logging.info('The file has a new version, saving...')
+            omim_dag.save_file(file_name, check_version=False, save_md5=True)
 
-        # Skip task if up to date
-        skip_if_not_new_version(updated, context)
+        return omim_dag.serialize()
 
        
-    get_file = file()
+    dag_data = file()
 
     table = SparkOperator(
         task_id='table',
@@ -73,8 +67,7 @@ with DAG(
             '--config', config_file,
             '--steps', 'default',
             '--app-name', 'etl_import_omim_table',
-        ],
-        on_execute_callback=Slack.notify_dag_start,
+        ]
     )
 
     trigger_genes = TriggerDagRunOperator(
@@ -83,9 +76,4 @@ with DAG(
         wait_for_completion=False,
     )
 
-    slack = EmptyOperator(
-        task_id="slack",
-        on_success_callback=Slack.notify_dag_completion
-    )
-
-    get_file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task(None, True) >> slack
+    dag_data >> should_continue(dag_data) >> table >> trigger_genes >> update_public_data_info(dag_data)
