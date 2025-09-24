@@ -40,14 +40,14 @@ def stream_upload_to_s3(s3: S3Hook, s3_bucket: str, s3_key: str, url: str, heade
         s3.load_file_obj(response.raw, s3_key, s3_bucket, replace)
 
 
-def stream_upload_or_resume_to_s3(s3: S3Hook, s3_bucket: str, s3_key: str, url: str, partSizeMb: int = 200, md5: str = None) -> None:
+def stream_upload_or_resume_to_s3(s3: S3Hook, s3_bucket: str, s3_key: str, url: str, headers: Any = None, partSizeMb: int = 200, md5: str = None) -> None:
     try:
         s3_client = s3.get_conn()
         parts = []
         part_number = 1
         file_size=0
         uploaded_bytes=0
-        headers = {}
+        headers = headers or {}
 
         # Check if an UploadId already exists to resume download
         upload_id = get_s3_multipart_upload_id(s3, s3_bucket, s3_key)
