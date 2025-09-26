@@ -16,7 +16,6 @@ from airflow.utils.trigger_rule import TriggerRule
 from lib import config
 from lib.config import env
 from lib.slack import Slack
-from lib.tasks.should_continue import IS_NEW_VERSION_KEY
 from lib.utils import http_get
 from lib.utils_s3 import get_s3_file_version, http_get_file, stream_upload_or_resume_to_s3, file_md5
 from multiprocessing import Lock
@@ -235,33 +234,6 @@ def _get_public_data_json() -> list[PublicSourceInfo]:
 
     # Read and return the file content as json
     return _json_to_public_sources(s3.read_key(s3_public_data_file_key, s3_public_bucket))
-
-
-@task
-def update_public_data_entry_task(version, allow_no_version = False, **context):
-    # The lock is automatically acquired and released when the with block is exited
-    dag_id = context['dag'].dag_id
-    with lock:
-        if not version:
-            if allow_no_version:
-                logging.info("no version found")
-            if not context['ti'].xcom_pull(key=IS_NEW_VERSION_KEY):
-                logging.info("this is not a new version, only updating 'lastUpdate'")
-            else:
-                raise Exception("version is missing")
-
-        # Check if the entry already exists
-        public_sources = _get_public_data_json()
-        for entry in public_sources:
-            if entry.dag_id == dag_id:
-                entry.lastUpdate = datetime.now().isoformat()
-                entry.version = version if version else entry.version
-                break
-        else:
-            raise Exception(f"PublicSource entry '{dag_id}' not found")
-
-        # Save to S3
-        s3.load_string(_public_sources_to_json(public_sources), s3_public_data_file_key, s3_public_bucket, replace=True)
 
 
 @task(task_id='update_public_data_info', trigger_rule=TriggerRule.NONE_FAILED, on_success_callback=Slack.notify_dag_completion)

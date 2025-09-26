@@ -8,7 +8,7 @@ from airflow.utils.task_group import TaskGroup
 from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.tasks.public_data import PublicSourceDag, update_public_data_entry_task, should_continue
+from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
 from lib.utils import http_get
 
 topmed_dag = PublicSourceDag(
@@ -87,4 +87,4 @@ with DAG(
     )
 
 
-    files >> table >> update_public_data_entry_task(dag_data)
+    files >> table >> update_public_data_info(dag_data)

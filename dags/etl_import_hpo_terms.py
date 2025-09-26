@@ -5,7 +5,6 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from lib.tasks.should_continue import should_continue
 from lib.config import K8sContext, env, es_url, indexer_context
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
