@@ -85,7 +85,7 @@ with DAG(
                                name='svclustering-somatic-dup')
 
 
-    enrich_cnv_task = enrich.cnv_all(spark_jar=spark_jar(), steps='default', task_id='enrich_cnv')
+    enrich_cnv_task = enrich.cnv_all(spark_jar=spark_jar(), steps='initial', task_id='enrich_cnv')
     prepare_cnv_centric_task = prepare_index.cnv_centric(spark_jar(), task_id='prepare_cnv_centric')
 
 
