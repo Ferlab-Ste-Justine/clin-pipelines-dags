@@ -1,102 +1,65 @@
 import base64
-import logging
 import re
-import tarfile
 from datetime import datetime
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException
-from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib import config
-from lib.config import K8sContext, config_file, env
+from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.public_data import update_public_data_entry_task
-from lib.utils import http_get, http_get_file
-from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
+from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
+from lib.utils import http_get
+
+
+cosmic_dag = PublicSourceDag(
+    name='cosmic',
+    display_name="COSMIC",
+    website="https://www.cosmickb.org/",
+)
 
 with DAG(
-        dag_id='etl_import_cosmic',
+        dag_id=cosmic_dag.dag_id,
         start_date=datetime(2022, 1, 1),
         schedule=None,
-        default_args={
-            'on_failure_callback': Slack.notify_task_failure,
-        },
+        params=PublicSourceDag.params,
+        default_args=PublicSourceDag.default_args,
         catchup=False,
         max_active_runs=1
 ) as dag:
-    def download_file(url, path, ver, file_name, credentials):
-        download_url = http_get(
-            f'{url}/{path}/{ver}/{file_name}',
-            {'Authorization': f'Basic {credentials}'}
-        ).json()['url']
-        http_get_file(download_url, file_name)
-
 
     @task(task_id='files', on_execute_callback=Slack.notify_dag_start)
     def files():
         url = 'https://cancer.sanger.ac.uk/cosmic'
         path = 'file_download/GRCh38/cosmic'
 
-        s3 = S3Hook(config.s3_conn_id)
-        s3_bucket = f'cqgc-{env}-app-datalake'
-
-        # Get latest version
-        html = http_get(url).text
-        latest_ver = re.search('COSMIC (v[0-9]+),', html).group(1)
-        logging.info(f'COSMIC latest version: {latest_ver}')
-
         # TODO: Download Cosmic_CancerGeneCensus_GRCh38.tar when scripted downloads are added to new download page
         # gene_census_file = 'cancer_gene_census.csv'
         mutation_census_file = 'cmc_export.tsv.gz'
         mutation_census_archive = 'CMC.tar'
-        updated = False
+
+        # Get latest version
+        # TODO: Cosmic need an account to access the download page: https://ferlab-crsj.atlassian.net/browse/CLIN-4440
+        cosmic_dag.last_version = cosmic_dag.get_last_version_from_url(url, 'COSMIC (v[0-9]+),')
 
         for file_name in [mutation_census_file]:
-            s3_key = f'raw/landing/cosmic/{file_name}'
-
-            # Get imported version
-            imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
-            logging.info(f'Current file {file_name} imported version: {imported_ver}')
-
-            # Skip task if up to date
-            if imported_ver == latest_ver:
-                f'Skipping import of file {file_name}. Imported version is up to date.'
-                continue
-
             # Encode credentials
-            credentials = base64.b64encode(
-                config.cosmic_credentials.encode()
-            ).decode()
+            headers = {'Authorization': f'Basic {base64.b64encode(config.cosmic_credentials.encode()).decode()}'}
 
-            # Get download url
-            if file_name == mutation_census_file:
-                download_file(url, path, latest_ver, mutation_census_archive, credentials)
-            else:
-                download_file(url, path, latest_ver, file_name, credentials)
+            # Get file url
+            download_url = http_get(
+                f'{url}/{path}/{cosmic_dag.last_version}/{mutation_census_archive if file_name == mutation_census_file else file_name}',
+                headers=headers
+            ).json()['url']
+            
+            # Upload file to S3 (if new)
+            cosmic_dag.upload_file_if_new(download_url, file_name, headers=headers, tar_extract=mutation_census_file if file_name == mutation_census_file else None)
 
-            # Extract mutation census file
-            if file_name == mutation_census_file:
-                with tarfile.open(mutation_census_archive, 'r') as tar:
-                    tar.extract(mutation_census_file)
+        return cosmic_dag.serialize()
 
-            # Upload file to S3
-            load_to_s3_with_version(s3, s3_bucket, s3_key, file_name, latest_ver)
-            logging.info(f'New file {file_name} imported version: {latest_ver}')
-            updated = True
-
-        # If no files have been updated, skip task
-        if not updated:
-            raise AirflowSkipException()
-
-        return latest_ver
-
-
-    version = files()
+    dag_data = files()
 
     gene_table = SparkOperator(
         task_id='gene_table',
@@ -134,9 +97,4 @@ with DAG(
         wait_for_completion=False,
     )
 
-    slack = EmptyOperator(
-        task_id="slack",
-        on_success_callback=Slack.notify_dag_completion
-    )
-
-    version >> [gene_table, mutation_table] >> trigger_genes >> update_public_data_entry_task(version) >> slack
+    dag_data >> should_continue(dag_data) >> [gene_table, mutation_table] >> trigger_genes >> update_public_data_info(dag_data)

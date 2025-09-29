@@ -1,63 +1,46 @@
-import logging
-import re
 from datetime import datetime
+import re
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
-from lib import config
-from lib.config import env, K8sContext, config_file
+from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.tasks.public_data import update_public_data_entry_task
-from lib.utils import http_get, http_get_file
-from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
+from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
+from lib.utils import http_get
+
+
+refseq_annotation_dag = PublicSourceDag(
+    name='refseq_annotation',
+    display_name="NCBI RefSeq",
+    website="https://www.ncbi.nlm.nih.gov/refseq/",
+    raw_folder='refseq'
+)
 
 with DAG(
-    dag_id='etl_import_refseq_annotation',
+    dag_id=refseq_annotation_dag.dag_id,
     start_date=datetime(2022, 1, 1),
     schedule=None,
-    default_args={
-        'on_failure_callback': Slack.notify_task_failure,
-    },
+    params=PublicSourceDag.params,
+    default_args=PublicSourceDag.default_args,
 ) as dag:
 
     @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
     def file():
         url = 'https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/annotation_releases/current'
-        file = 'GCF_GRCh38_genomic.gff.gz'
-
-        s3 = S3Hook(config.s3_conn_id)
-        s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key = f'raw/landing/refseq/{file}'
 
         # Get latest version
-        html = http_get(url).text
-        latest_ver = re.search('>GCF_(.+_GRCh38.+)/<', html).group(1)
-        logging.info(f'RefSeq Annotation latest version: {latest_ver}')
+        match = re.search('GCF_000001405\.([^/]+)/', http_get(url).text)
+        last_folder = match.group()
+        refseq_annotation_dag.set_last_version(match.group(1))
+        file_name = re.search('>(GCF_000001405.+gff.gz)', http_get(f'{url}/{last_folder}').text).group(1)
+        # Upload files to S3 (if new)
+        refseq_annotation_dag.upload_file_if_new(f'{url}/{last_folder}{file_name}', 'GCF_GRCh38_genomic.gff.gz')
 
-        # Get imported version
-        imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
-        logging.info(f'RefSeq Annotation imported version: {imported_ver}')
+        return refseq_annotation_dag.serialize()
 
-        # Skip task if up to date
-        if imported_ver == latest_ver:
-            raise AirflowSkipException()
-
-        # Download file
-        http_get_file(
-            f'{url}/GCF_{latest_ver}/GCF_{latest_ver}_genomic.gff.gz', file
-        )
-
-        # Upload file to S3
-        load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
-        logging.info(f'New RefSeq Annotation imported version: {latest_ver}')
-
-        return latest_ver
-
-    version = file()
+    dag_data = file()
 
     table = SparkOperator(
         task_id='table',
@@ -70,8 +53,7 @@ with DAG(
             '--config', config_file,
             '--steps', 'default',
             '--app-name', 'etl_import_refseq_annotation_table',
-        ],
-        on_success_callback=Slack.notify_dag_completion,
+        ]
     )
 
-    version >> table >> update_public_data_entry_task(version)
+    dag_data >> should_continue(dag_data) >> table >> update_public_data_info(dag_data)

@@ -1,87 +1,65 @@
-import logging
 from datetime import datetime
-from itertools import chain
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException
-from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 
-from lib.config import env, s3_conn_id, basespace_illumina_credentials, K8sContext, config_file
+from lib.config import basespace_illumina_credentials, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.tasks.public_data import update_public_data_entry_task
+from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
 from lib.utils import http_get
-from lib.utils_s3 import stream_upload_to_s3, get_s3_file_version
+
+spliceai_dag = PublicSourceDag(
+    name='spliceai',
+    display_name="SpliceAI",
+    website="https://github.com/Illumina/SpliceAI"
+)
 
 with DAG(
-        dag_id='etl_import_spliceai',
+        dag_id=spliceai_dag.dag_id,
         start_date=datetime(2022, 1, 1),
         schedule=None,
-        max_active_tasks=1,  # Only one task can be scheduled at a time
-        default_args={
-            'on_failure_callback': Slack.notify_task_failure,
-        },
+        params=PublicSourceDag.params,
+        default_args=PublicSourceDag.default_args,
+        max_active_tasks=1
 ) as dag:
     
     @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
     def file():
-        # file_name -> file_id
-        indel = {
-            "spliceai_scores.raw.indel.hg38.vcf.gz": 16525003580,
-            "spliceai_scores.raw.indel.hg38.vcf.gz.tbi": 16525276839
-        }
-        snv = {
-            "spliceai_scores.raw.snv.hg38.vcf.gz": 16525380715,
-            "spliceai_scores.raw.snv.hg38.vcf.gz.tbi": 16525505189
+        headers = {'x-access-token': f'{basespace_illumina_credentials}'}
+        files = {
+            "indel": [{"vcf": 16525003580 , "tbi": 16525276839}],
+            "snv": [{"vcf": 16525380715, "tbi": 16525505189}]
         }
 
-        s3 = S3Hook(s3_conn_id)
-        s3_bucket = f'cqgc-{env}-app-datalake'
-        updated = False
+        for type, files in files.items():
+            for file_data in files:
+                file_name = f"spliceai_scores.raw.{type}.hg38.vcf.gz"
 
-        def s3_key(file_name):
-            return f'raw/landing/spliceai/{file_name}'
+                # Get latest available version
+                latest_ver = http_get(f'https://api.basespace.illumina.com/v1pre3/files/{file_data["vcf"]}', headers).json()['Response']['ETag']
+                spliceai_dag.set_last_version(latest_ver, type)
 
-        def download_url(id):
-            return f'https://api.basespace.illumina.com/v1pre3/files/{id}/content'
+                # Upload file index to S3 (if new)
+                spliceai_dag.upload_file_if_new(
+                    url=f'https://api.basespace.illumina.com/v1pre3/files/{file_data["tbi"]}/content',
+                    file_name=f'{file_name}.tbi',
+                    version_key=type,
+                    headers=headers)
 
-        def ver_url(id):
-            return f'https://api.basespace.illumina.com/v1pre3/files/{id}'
-
-        for file_name, file_id in chain(indel.items(), snv.items()):
-            header = {'x-access-token': f'{basespace_illumina_credentials}'}
-
-            # Get current imported S3 version
-            imported_ver = get_s3_file_version(s3, s3_bucket, s3_key(file_name))
-            logging.info(f'Current file {file_name} imported version: {imported_ver}')
-
-            # Get latest available version
-            latest_ver = http_get(ver_url(file_id), header).json()['Response']['ETag']
-            logging.info(f'File {file_name} latest available version: {latest_ver}')
-
-            # Skip task if up to date
-            if imported_ver == latest_ver:
-                continue
-
-            # Download file
-            stream_upload_to_s3(s3, s3_bucket, s3_key(file_name), download_url(file_id), header, replace=True)
-            logging.info(f'File {file_name} uploaded to S3')
-
-            # Upload version to S3
-            s3.load_string(latest_ver, f'{s3_key(file_name)}.version', s3_bucket, replace=True)
-            updated = True
-
-        # If no files have been updated, skip task
-        if not updated:
-            raise AirflowSkipException()
-        
-        return latest_ver
+                # Upload files to S3 (if new)
+                spliceai_dag.upload_file_if_new(
+                    url=f'https://api.basespace.illumina.com/v1pre3/files/{file_data["vcf"]}/content',
+                    file_name=file_name,
+                    version_key=type,
+                    headers=headers,
+                    stream=True)
+                
+        return spliceai_dag.serialize()
 
     
-    version = file()
+    dag_data = file()
 
     indel_table = SparkOperator(
         task_id='indel_table',
@@ -143,12 +121,7 @@ with DAG(
         trigger_rule=TriggerRule.NONE_FAILED
     )
 
-    slack = EmptyOperator(
-        task_id="slack",
-        on_success_callback=Slack.notify_dag_completion,
-    )
-
-    version >> [indel_table, snv_table]
+    dag_data >> should_continue(dag_data) >> [indel_table, snv_table]
     indel_table >> enrich_indel
     snv_table >> enrich_snv
-    [enrich_snv, enrich_indel] >> update_public_data_entry_task(version) >> slack
+    [enrich_snv, enrich_indel] >> update_public_data_info(dag_data)

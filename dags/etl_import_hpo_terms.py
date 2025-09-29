@@ -1,40 +1,36 @@
 from datetime import datetime
-import logging
 import re
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.utils.trigger_rule import TriggerRule
-from lib import config
-from lib.tasks.should_continue import should_continue
 from lib.config import K8sContext, env, es_url, indexer_context
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 from lib.tasks.params_validate import validate_color
-from lib.tasks.should_continue import should_continue, skip_if_not_new_version
-from lib.utils import http_get, http_get_file
+from lib.tasks.public_data import PublicSourceDag, should_continue
+from lib.utils import http_get
 from lib.utils_etl import (color, obo_parser_spark_jar, spark_jar)
-from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
+
+hpo_terms_dag = PublicSourceDag(
+    name='hpo_terms',
+    schedule='15 7 * * 6',  # every Saturday at 7:15am
+    add_to_file=False,
+    raw_folder='hpo'
+)
 
 with DAG(
     dag_id='etl_import_hpo_terms',
     start_date=datetime(2022, 8, 16),
-    schedule='15 7 * * 6',
+    schedule=hpo_terms_dag.schedule,
     params={
         'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),
-        'obo_parser_spark_jar': Param('', type=['null', 'string']),
-        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
-    },
-    default_args={
-        'trigger_rule': TriggerRule.NONE_FAILED,
-        'on_failure_callback': Slack.notify_task_failure
-    },
+        'obo_parser_spark_jar': Param('', type=['null', 'string'])
+    } | PublicSourceDag.params,
+    default_args=PublicSourceDag.default_args,
     catchup=False,
     max_active_tasks=2,
     max_active_runs=1
@@ -45,48 +41,19 @@ with DAG(
     prefixed_color = ('_' + env_color) if env_color else ''
 
     @task(task_id='download_hpo_terms')
-    def download(file, dest = None, **context):
+    def download():
         url = 'https://github.com/obophenotype/human-phenotype-ontology/releases'
-
-        destFile = file if dest is None else dest
-
-        s3 = S3Hook(config.s3_conn_id)
-        s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key = f'raw/landing/hpo/{destFile}'
-
-        # Get imported version
-        imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
-        logging.info(f'{file} imported version: {imported_ver}')
+        file_name = 'hp-fr.obo'
 
         # Get latest version
-        html = http_get(url).text
-        latest_ver_search = re.search(f'/download/(v?.+)/{file}', html)
+        hpo_terms_dag.set_last_version(re.search(f'/download/(v?.+)/{file_name}', http_get(url).text).group(1))
+        # Upload files to S3 (if new)
+        # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
+        hpo_terms_dag.upload_file_if_new(url=f'{url}/download/{hpo_terms_dag.last_version}/{file_name}', file_name='hp.obo')
 
-        if latest_ver_search is None:
-            logging.error(f'Could not find source latest version for: {file}')
-            context['ti'].xcom_push(key=f'{destFile}.version', value=imported_ver)
-            raise AirflowFailException()
+        return hpo_terms_dag.serialize()
 
-        latest_ver = latest_ver_search.group(1)
-        logging.info(f'{file} latest version: {latest_ver}')
-
-        # share the current version with other tasks
-        context['ti'].xcom_push(key=f'{destFile}.version', value=latest_ver)
-
-        # Skip task if up to date
-        skip_if_not_new_version(imported_ver != latest_ver, context)
-
-        # Download file
-        http_get_file(f'{url}/download/{latest_ver}/{file}', file)
-
-        # Upload file to S3
-        load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
-        logging.info(f'New {file} imported version: {latest_ver}')
-
-        return latest_ver
-
-    # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
-    version = download('hp-fr.obo', 'hp.obo')
+    dag_data = download()
 
     normalized_hpo_terms = SparkOperator(
         task_id='normalized_hpo_terms',
@@ -114,7 +81,7 @@ with DAG(
         arguments=[
             es_url, '', '',
             f'clin_{env}' + prefixed_color + '_hpo', #clin_qa_green_hpo_v2024-01-01
-            '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}',
+            '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="return_value")["last_version"] }}',
             'hpo_terms_template.json',
             'hpo_terms',
             '1900-01-01 00:00:00',
@@ -129,7 +96,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         color=env_color,
         arguments=[
-            'bio.ferlab.clin.etl.PublishHpoTerms', f'clin_{env}' + prefixed_color + '_hpo', '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="hp.obo.version") }}', 'hpo'
+            'bio.ferlab.clin.etl.PublishHpoTerms', f'clin_{env}' + prefixed_color + '_hpo', '{{ ti.xcom_pull(task_ids="download_hpo_terms", key="return_value")["last_version"] }}', 'hpo'
         ],
     )
 
@@ -138,4 +105,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    params_validate >> version >> should_continue() >> normalized_hpo_terms >> index_hpo_terms >> publish_hpo_terms >> slack
+    params_validate >> dag_data >> should_continue(dag_data) >> normalized_hpo_terms >> index_hpo_terms >> publish_hpo_terms >> slack
