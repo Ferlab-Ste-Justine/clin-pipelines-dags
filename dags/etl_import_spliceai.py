@@ -46,6 +46,7 @@ with DAG(
                     url=f'https://api.basespace.illumina.com/v1pre3/files/{file_data["tbi"]}/content',
                     file_name=f'{file_name}.tbi',
                     version_key=type,
+                    save_version=False,
                     headers=headers)
 
                 # Upload files to S3 (if new)

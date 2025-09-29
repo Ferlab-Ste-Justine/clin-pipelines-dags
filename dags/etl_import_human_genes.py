@@ -2,20 +2,18 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from lib import config
-from lib.config import K8sContext, config_file, env
+from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
-from lib.utils_s3 import download_and_check_md5, get_s3_file_md5
 
 
 human_genes_dag = PublicSourceDag(
     name='human_genes',
     display_name="NCBI Gene",
-    website="https://www.ncbi.nlm.nih.gov/gene"
+    website="https://www.ncbi.nlm.nih.gov/gene",
+    raw_folder='refseq'
 )
 
 with DAG(
