@@ -13,7 +13,8 @@ human_genes_dag = PublicSourceDag(
     name='human_genes',
     display_name="NCBI Gene",
     website="https://www.ncbi.nlm.nih.gov/gene",
-    raw_folder='refseq'
+    raw_folder='refseq',
+    schedule='0 8 * * 6',  # every Saturday at 8am
 )
 
 with DAG(
