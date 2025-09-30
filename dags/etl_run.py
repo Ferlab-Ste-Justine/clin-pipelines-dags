@@ -1,9 +1,11 @@
 from datetime import datetime
 
 from airflow import DAG
+from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
+from lib.config import Env, env
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.nextflow.nextflow_germline import nextflow_germline
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
@@ -59,13 +61,20 @@ with DAG(
     get_germline_analysis_ids_task = get_germline_analysis_ids(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task)
     nextflow_germline_task_group = nextflow_germline(analysis_ids=get_germline_analysis_ids_task)
 
+    @task(task_id='check_should_skip_franklin')
+    def check_should_skip_franklin(germline_analysis_ids: list[str]) -> str:
+        return 'yes' if len(germline_analysis_ids) == 0 or env == Env.QA else ''
+
+    check_should_skip_franklin_task = check_should_skip_franklin(get_germline_analysis_ids_task)
+
     trigger_franklin_by_analysis_id_dags = TriggerDagRunOperator(
         task_id='import_franklin',
         trigger_dag_id='etl_import_franklin',
         wait_for_completion=True,
+        skip=check_should_skip_franklin_task,
         conf={
             'batch_ids': None,
-            'analysis_ids': get_all_analysis_ids_task,
+            'analysis_ids': get_germline_analysis_ids_task,
             'color':params_validate_color,
             'import': 'no',
             'spark_jar': spark_jar(),
@@ -91,7 +100,7 @@ with DAG(
         get_sequencing_ids_task >> get_all_analysis_ids_task >>
         detect_batch_types_task >>
         get_germline_analysis_ids_task >> nextflow_germline_task_group >>
-        trigger_franklin_by_analysis_id_dags >>
+        check_should_skip_franklin_task >> trigger_franklin_by_analysis_id_dags >>
         get_ingest_dag_configs_by_analysis_ids_task >> trigger_ingest_by_sequencing_ids_dags >>
         slack
     )
