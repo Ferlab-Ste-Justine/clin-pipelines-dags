@@ -86,7 +86,7 @@ class PublicSourceDag:
         self.s3_key = s3_key if s3_key else f'raw/landing/{raw_folder if raw_folder else name}'
         self.display_name = display_name or name
         self.website = website
-        self.schedule = schedule
+        self.schedule = get_schedule_by_env(schedule)
         self.last_version = last_version
         self.is_new_version = is_new_version
         if add_to_file and "pytest" not in sys.modules: # Disable this section for tests (s3 config does not exist)
@@ -270,3 +270,14 @@ def should_continue(dag_data):
         python_callable=_continue_if_not_new_version,
         op_kwargs={'dag_data': dag_data}
     )
+
+def get_schedule_by_env(schedule: str):
+    if env == 'prod' or not schedule:
+        return schedule
+    splits = schedule.split(' ')
+    hour = int(splits[1])
+    if env == 'qa':
+        return f'{splits[0]} {hour + 4} {splits[2]} {splits[3]} {splits[4]}'
+    if env == 'staging':
+        return f'{splits[0]} {hour + 8} {splits[2]} {splits[3]} {splits[4]}'
+    return schedule
