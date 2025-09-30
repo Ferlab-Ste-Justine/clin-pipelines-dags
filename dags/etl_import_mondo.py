@@ -15,7 +15,8 @@ from lib.utils_etl import (color, obo_parser_spark_jar,
 mondo_dag = PublicSourceDag(
     name='mondo',
     display_name="Mondo Disease Ontology",
-    website="https://mondo.monarchinitiative.org/"
+    website="https://mondo.monarchinitiative.org/",
+    schedule='30 8 * * 6',  # every Saturday at 8:30am
 )
 
 with DAG(
