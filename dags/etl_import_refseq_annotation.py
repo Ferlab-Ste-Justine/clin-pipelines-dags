@@ -15,6 +15,7 @@ refseq_annotation_dag = PublicSourceDag(
     name='refseq_annotation',
     display_name="NCBI RefSeq",
     website="https://www.ncbi.nlm.nih.gov/refseq/",
+    schedule='15 8 0 0 6',  # every Saturday at 8:15am
     raw_folder='refseq'
 )
 
