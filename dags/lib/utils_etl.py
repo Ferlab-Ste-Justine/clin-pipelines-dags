@@ -80,7 +80,6 @@ def get_index_of_alias(alias_name: str):
 
     return index_name
 
-
 def get_color(index_name: str):
     if "blue" in index_name:
         return 'blue'

@@ -1,66 +1,53 @@
-import logging
 import re
 from datetime import datetime
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowSkipException
-from airflow.operators.empty import EmptyOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from lib import config
-from lib.config import K8sContext, config_file, env
+from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.public_data import update_public_data_entry_task
-from lib.utils import http_get_file
-from lib.utils_s3 import get_s3_file_version, load_to_s3_with_version
+from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
+from lib.utils import get_md5_from_url
+from lib.utils import http_get
+
+
+ddd_dag = PublicSourceDag(
+    name='ddd',
+    display_name="Gene2Phenotype",
+    website="https://www.ebi.ac.uk/gene2phenotype/",
+)
 
 with DAG(
-    dag_id='etl_import_ddd',
+    dag_id=ddd_dag.dag_id,
     start_date=datetime(2022, 1, 1),
     schedule=None,
-    default_args={
-        'on_failure_callback': Slack.notify_task_failure,
-    },
+    params=PublicSourceDag.params,
+    default_args=PublicSourceDag.default_args,
     catchup=False,
     max_active_runs=1
 ) as dag:
 
     @task(task_id='file', on_execute_callback=Slack.notify_dag_start)  
     def file():
-        url = 'https://www.ebi.ac.uk/gene2phenotype/downloads'
-        file = 'DDG2P.csv.gz'
-
-        s3 = S3Hook(config.s3_conn_id)
-        s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key = f'raw/landing/ddd/{file}'
-
-        # Download file
-        http_get_file(f'{url}/{file}', file)
+        url = 'https://ftp.ebi.ac.uk/pub/databases/gene2phenotype/G2P_data_downloads'
 
         # Get latest version
-        file = open(file, 'rb')
-        first_line = str(file.readline())
-        file.close()
-        latest_ver = re.search('DDG2P_([0-9_]+)\.csv', first_line).group(1)
-        logging.info(f'DDD latest version: {latest_ver}')
+        versions = re.findall('href="(\d{4}_\d{2}_\d{2})/"', http_get(url).text)
+        ddd_dag.set_last_version(sorted(versions, reverse=True)[0])
 
-        # Get imported version
-        imported_ver = get_s3_file_version(s3, s3_bucket, s3_key)
-        logging.info(f'DDD imported version: {imported_ver}')
+        file_name = f'DDG2P_{ddd_dag.last_version.replace("_", "-")}.csv.gz'
+        md5_file_name = f'{file_name}.md5'
 
-        # Skip task if up to date
-        if imported_ver == latest_ver:
-            raise AirflowSkipException()
+        # Get MD5
+        md5 = get_md5_from_url(f'{url}/{ddd_dag.last_version}/{md5_file_name}')
 
-        # Upload file to S3
-        load_to_s3_with_version(s3, s3_bucket, s3_key, file, latest_ver)
-        logging.info(f'New DDD imported version: {latest_ver}')
+        # Upload file to S3 (if new)
+        ddd_dag.upload_file_if_new(url=f'{url}/{ddd_dag.last_version}/{file_name}', file_name='DDG2P.csv.gz', md5_hash=md5['hash'])
 
-        return latest_ver
+        return ddd_dag.serialize()
 
-    version = file()
+    dag_data = file()
 
     table = SparkOperator(
         task_id='table',
@@ -73,8 +60,7 @@ with DAG(
             '--config', config_file,
             '--steps', 'default',
             '--app-name', 'etl_import_ddd_table',
-        ],
-        on_success_callback=Slack.notify_dag_completion,
+        ]
     )
 
     trigger_genes = TriggerDagRunOperator(
@@ -83,9 +69,4 @@ with DAG(
         wait_for_completion=False,
     )
 
-    slack = EmptyOperator(
-        task_id="slack",
-        on_success_callback=Slack.notify_dag_completion
-    )
-
-    version >> table >> trigger_genes >> update_public_data_entry_task('gene2phenotype-ddd', version) >> slack
+    dag_data >> should_continue(dag_data) >> table >> trigger_genes >> update_public_data_info(dag_data)

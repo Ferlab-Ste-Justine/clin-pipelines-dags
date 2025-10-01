@@ -3,7 +3,7 @@ from datetime import datetime
 from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.tasks.public_data import update_public_data_entry_task
+from lib.tasks.public_data import PublicSourceDag, update_public_data_info
 from datetime import datetime
 
 from airflow import DAG
@@ -12,13 +12,17 @@ from lib.config import env, K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
 
+dbnsfp_dag = PublicSourceDag(
+    name='dbNSFP',
+    website="https://www.dbnsfp.org/"
+)
+
 with DAG(
-    dag_id='etl_import_dbnsfp',
+    dag_id=dbnsfp_dag.dag_id,
     start_date=datetime(2022, 1, 1),
     schedule=None,
-    default_args={
-        'on_failure_callback': Slack.notify_task_failure,
-    },
+    params=PublicSourceDag.params,
+    default_args=PublicSourceDag.default_args,
 ) as dag:
 
     # Following steps explain how to get and clean-up the raw zip files
@@ -36,6 +40,8 @@ with DAG(
     gzip $1
     aws --profile cqgc-qa --endpoint https://s3.cqgc.hsj.rtss.qc.ca s3 cp $1.gz s3://cqgc-qa-app-datalake/raw/landing/dbNSFP/$1.gz
     '''
+
+    dag_data = dbnsfp_dag.serialize()
 
     raw = SparkOperator(
         task_id='raw',
@@ -62,4 +68,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    raw >> enriched >> update_public_data_entry_task('dbnsfp', True)
+    raw >> enriched >> update_public_data_info(dag_data)
