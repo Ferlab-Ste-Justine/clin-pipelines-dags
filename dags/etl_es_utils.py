@@ -61,7 +61,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         skip=skip_if_param_not(delete_release(), "yes"),
         arguments=[
-            '-k', '--location', '--request', 'DELETE', '{es_url}/clin_{env}{under_color}_variant_centric_{release_id}?ignore_unavailable=true'
+            '-k', '--location', '--request', 'DELETE', '{es_url}/clin_{env}{under_color}_gene_suggestions_{release_id},clin_{env}{under_color}_variant_suggestions_{release_id},clin_{env}{under_color}_gene_centric_{release_id},clin_{env}{under_color}_variant_centric_{release_id},clin_{env}{under_color}_cnv_centric_{release_id},clin_{env}{under_color}_coverage_by_gene_centric_{release_id}?ignore_unavailable=true'
             .format(
                 es_url=es_url,
                 env=env,
