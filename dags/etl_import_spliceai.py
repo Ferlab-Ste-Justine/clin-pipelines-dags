@@ -3,11 +3,11 @@ from datetime import datetime
 from airflow import DAG
 from airflow.decorators import task
 from airflow.utils.trigger_rule import TriggerRule
-
-from lib.config import basespace_illumina_credentials, K8sContext, config_file
+from lib.config import K8sContext, basespace_illumina_credentials, config_file
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
-from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
+from lib.tasks.public_data import (PublicSourceDag, should_continue,
+                                   update_public_data_info)
 from lib.utils import http_get
 
 spliceai_dag = PublicSourceDag(
@@ -97,7 +97,7 @@ with DAG(
         name='etl-enrich-spliceai-indel',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='config-etl-turbo',
+        spark_config='config-etl-large',
         arguments=[
             'spliceai_enriched_indel',
             '--config', config_file,
