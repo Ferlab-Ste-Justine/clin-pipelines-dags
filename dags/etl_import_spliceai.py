@@ -97,7 +97,7 @@ with DAG(
         name='etl-enrich-spliceai-indel',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
-        spark_config='config-etl-large',
+        spark_config='config-etl-xlarge',
         arguments=[
             'spliceai_enriched_indel',
             '--config', config_file,
