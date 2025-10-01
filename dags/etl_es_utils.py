@@ -6,7 +6,6 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import K8sContext, env, es_url
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack
@@ -62,7 +61,7 @@ with DAG(
         k8s_context=K8sContext.DEFAULT,
         skip=skip_if_param_not(delete_release(), "yes"),
         arguments=[
-            '-k', '--location', '--request', 'DELETE', '{es_url}/clin_{env}{under_color}_gene_suggestions_{release_id},clin_{env}{under_color}_variant_suggestions_{release_id},clin_{env}{under_color}_gene_centric_{release_id},clin_{env}{under_color}_variant_centric_{release_id},clin_{env}{under_color}_cnv_centric_{release_id},clin_{env}{under_color}_coverage_by_gene_centric_{release_id}?ignore_unavailable=true'
+            '-k', '--location', '--request', 'DELETE', '{es_url}/clin_{env}{under_color}_variant_centric_{release_id}?ignore_unavailable=true'
             .format(
                 es_url=es_url,
                 env=env,
