@@ -1,80 +1,52 @@
-import logging
 from datetime import datetime
+import re
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.operators.empty import EmptyOperator
-from airflow.models.param import Param
-from airflow.operators.python import PythonOperator
-from airflow.providers.amazon.aws.hooks.s3 import S3Hook
-from airflow.utils.trigger_rule import TriggerRule
-from lib import config
-from lib.config import K8sContext, config_file, env
+from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks.public_data import update_public_data_entry_task
-from lib.tasks.should_continue import should_continue, skip_if_not_new_version
-from lib.utils_s3 import (download_and_check_md5, get_s3_file_md5,
-                          load_to_s3_with_md5)
+from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
+from lib.utils import http_get_file
+
+
+orphanet_dag = PublicSourceDag(
+    name='orphanet',
+    website="https://www.orphadata.com/",
+    schedule='15 6 * * 6#1',  # every first Saturday of the month at 6:15am
+)
 
 with DAG(
-    dag_id='etl_import_orphanet',
+    dag_id=orphanet_dag.dag_id,
     start_date=datetime(2025, 9, 6),
-    schedule='15 6 * * 6#1',
-    params={
-        'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
-    },
-    default_args={
-        'trigger_rule': TriggerRule.NONE_FAILED,
-        'on_failure_callback': Slack.notify_task_failure,
-    },
+    schedule=orphanet_dag.schedule,
+    params=PublicSourceDag.params,
+    default_args=PublicSourceDag.default_args,
     catchup=False,
     max_active_runs=1
 ) as dag:
 
     @task(task_id='file', on_execute_callback=Slack.notify_dag_start)
-    def file(**context):
+    def file():
         url = 'https://www.orphadata.com/data/xml'
         genes_file = 'en_product6.xml'
         diseases_file = 'en_product9_ages.xml'
-        updated = False
 
-        s3 = S3Hook(config.s3_conn_id)
-        s3_bucket = f'cqgc-{env}-app-datalake'
-        s3_key_genes = f'raw/landing/orphanet/{genes_file}'
-        s3_key_diseases = f'raw/landing/orphanet/{diseases_file}'
+        # Download gene file to check version
+        http_get_file(f'{url}/{genes_file}', genes_file, None)
+        # Read file to get version
+        with open(genes_file, 'r') as f:
+            lines = f.readlines()
+            orphanet_dag.set_last_version(re.search(r'version="([^"]+)"', lines[1].strip()).group(1))
 
-        # Get latest s3 MD5 checksum
-        s3_md5_genes = get_s3_file_md5(s3, s3_bucket, s3_key_genes)
-        logging.info(f'Current genes imported MD5 hash: {s3_md5_genes}')
+        # Upload files to S3 (if new)
+        orphanet_dag.save_file(genes_file, save_version=False)
+        orphanet_dag.upload_file_if_new(url=f'{url}/{diseases_file}', file_name=diseases_file)
 
-        s3_md5_diseases = get_s3_file_md5(s3, s3_bucket, s3_key_diseases)
-        logging.info(f'Current diseases imported MD5 hash: {s3_md5_diseases}')
+        return orphanet_dag.serialize()
 
-        # Download file
-        download_md5_genes = download_and_check_md5(url, genes_file, None)
-        download_md5_diseases = download_and_check_md5(url, diseases_file, None)
-
-        # Verify MD5 checksum
-        if download_md5_genes != s3_md5_genes:
-            # Upload file to S3
-            load_to_s3_with_md5(s3, s3_bucket, s3_key_genes, genes_file, download_md5_genes)
-            logging.info(f'New genes imported MD5 hash: {download_md5_genes}')
-            updated = True
-
-        # Verify MD5 checksum
-        if download_md5_diseases != s3_md5_diseases:
-            # Upload file to S3
-            load_to_s3_with_md5(s3, s3_bucket, s3_key_diseases, diseases_file, download_md5_diseases)
-            logging.info(f'New diseases imported MD5 hash: {download_md5_diseases}')
-            updated = True
-
-        # Skip task if up to date
-        skip_if_not_new_version(updated, context)
-       
-
-    get_file = file()
+    dag_data = file()
 
     table = SparkOperator(
         task_id='table',
@@ -96,9 +68,4 @@ with DAG(
         wait_for_completion=False,
     )
 
-    slack = EmptyOperator(
-        task_id="slack",
-        on_success_callback=Slack.notify_dag_completion
-    )
-
-    get_file >> should_continue() >> table >> trigger_genes >> update_public_data_entry_task('orphanet', True) >> slack
+    dag_data >> should_continue(dag_data) >> table >> trigger_genes >> update_public_data_info(dag_data)

@@ -6,7 +6,6 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-
 from lib.config import K8sContext, env, es_url
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack

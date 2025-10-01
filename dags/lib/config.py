@@ -45,7 +45,6 @@ slack_hook_url = Variable.get('slack_hook_url', None)
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 cosmic_credentials = Variable.get('cosmic_credentials', None)
 omim_credentials = Variable.get('omim_credentials', None)
-topmed_bravo_credentials = Variable.get('topmed_bravo_credentials', None)
 basespace_illumina_credentials = Variable.get('basespace_illumina_credentials', None)
 svclustering_batch_size = Variable.get('svclustering_batch_size', '100')
 dev_skip_task = Variable.get('dev_skip_task', None) == 'yes'
@@ -85,7 +84,7 @@ elif env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.21.0.jar'
+    spark_jar = 'clin-variant-etl-v3.22.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -100,7 +99,7 @@ elif env == Env.QA:
         '4_data_to_import_somatic_normal',
     ]
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:148f1ce'
+    fhir_image = 'ferlabcrsj/clin-fhir:054ae71'
     pipeline_image = 'ferlabcrsj/clin-pipelines:8e2ce95'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
@@ -114,7 +113,7 @@ elif env == Env.STAGING:
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [] # automatic dags/lib/tasks/batch_type:get_all_batch_ids
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:148f1ce'
+    fhir_image = 'ferlabcrsj/clin-fhir:054ae71'
     pipeline_image = 'ferlabcrsj/clin-pipelines:8e2ce95'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
