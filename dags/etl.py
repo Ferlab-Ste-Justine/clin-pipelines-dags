@@ -17,7 +17,7 @@ from lib.groups.qa import qa
 from lib.operators.notify import NotifyOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import batch_type, enrich, params
+from lib.tasks import batch_type, enrich, es, params
 from lib.tasks.batch_type import skip_if_no_batch_in
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
@@ -58,6 +58,9 @@ with DAG(
 
     def skip_cnv_frequencies() -> str:
         return '{% if params.cnv_frequencies == "yes" %}{% else %}yes{% endif %}'
+    
+    def skip_if_cnv_frequencies() -> str:
+        return '{% if params.cnv_frequencies == "yes" %}yes{% else %}{% endif %}'
     
     def skip_delete_previous_releases() -> str:
         return '{% if params.delete_previous_releases == "yes" %}{% else %}yes{% endif %}'
@@ -137,20 +140,20 @@ with DAG(
             # Run cnv_all if no batch ids are provided. Otherwise, run cnv for each batch_id.
             @task.branch(task_id='run_cnv')
             def run_cnv(batch_ids: List[str]):
-                if not batch_ids:
+                if not batch_ids or env == Env.PROD:
                     return 'enrich.cnv.cnv_all'
                 else:
-                    return 'enrich.cnv.cnv'
+                    return 'enrich.cnv.cnv' # too complex for PROD, cnv_all works fine (for now)
 
             run_cnv_task = run_cnv(batch_ids=get_batch_ids_task)
             cnv_target_types = [ClinAnalysis.GERMLINE, ClinAnalysis.SOMATIC_TUMOR_ONLY]
 
-            cnv_all = enrich.cnv_all(spark_jar=spark_jar(), steps=steps, skip=skip_if_no_batch_in(cnv_target_types))
+            cnv_all = enrich.cnv_all(spark_jar=spark_jar(), steps=steps, skip=skip_if_no_batch_in(cnv_target_types) + skip_if_cnv_frequencies())
             cnv = enrich.cnv(
                 batch_ids=get_batch_ids_task,
                 spark_jar=spark_jar(),
                 steps=steps,
-                skip=skip_if_no_batch_in(cnv_target_types),
+                skip=skip_if_no_batch_in(cnv_target_types) + skip_if_cnv_frequencies(),
                 target_batch_types=cnv_target_types
             )
 
@@ -167,7 +170,7 @@ with DAG(
     prepare_group = prepare_index(
         spark_jar=spark_jar(),
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY])
+                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
     )
 
     qa_group = qa(
@@ -179,21 +182,26 @@ with DAG(
         color=color('_'),
         increment_release_id=True,  # Get new release ID
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY])
+                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
     )
+
+    # for PROD mostly, cause variant_centric is the bigger disk consumer
+    delete_previous_variant_centric = es.delete_previous_release \
+        .override(task_id='delete_previous_variant_centric')(index_name='variant_centric', release_id=release_id('variant_centric'), color=color('_'), skip=skip_delete_previous_releases())
+
 
     index_group = index(
         color=color('_'),
         spark_jar=spark_jar(),
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY])
+                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
     )
 
     publish_group = publish_index(
         color=color('_'),
         spark_jar=spark_jar(),
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
-                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY])
+                                                                 ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
     )
 
     # Use operator directly for dynamic task mapping
@@ -269,5 +277,5 @@ with DAG(
 
     (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> detect_batch_types_task >> 
      [get_ingest_dag_configs_by_batch_id_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
-     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> index_group >>
+     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> delete_previous_variant_centric >> index_group >>
      publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_delete_previous_releases >> trigger_qc_es_dag >> trigger_cnv_frequencies >> trigger_qc_dag)
