@@ -42,7 +42,7 @@ with DAG(
         # Upload files to S3 (if new)
         hpo_genes_dag.upload_file_if_new(url=f'{url}/download/{hpo_genes_dag.last_version}/{file_name}', file_name=file_name)
 
-        return hpo_genes_dag.serialize()
+        return hpo_genes_dag
 
     dag_data = download()
 

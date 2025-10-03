@@ -45,7 +45,7 @@ with DAG(
         # Upload file to S3 (if new)
         ddd_dag.upload_file_if_new(url=f'{url}/{ddd_dag.last_version}/{file_name}', file_name='DDG2P.csv.gz', md5_hash=md5['hash'])
 
-        return ddd_dag.serialize()
+        return ddd_dag
 
     dag_data = file()
 

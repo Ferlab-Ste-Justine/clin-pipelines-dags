@@ -38,7 +38,7 @@ with DAG(
         file_name = f'gnomad.v{gnomad_dag.last_version}.cnv.all.vcf.gz'
         gnomad_dag.upload_file_if_new(url=f'{url}/{file_name}', file_name=f'release/{gnomad_dag.last_version}/exome_cnv/{file_name}', stream=True)
 
-        return gnomad_dag.serialize()
+        return gnomad_dag
 
     dag_data = file_task()
 

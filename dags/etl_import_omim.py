@@ -51,7 +51,7 @@ with DAG(
             logging.info('The file has a new version, saving...')
             omim_dag.save_file(file_name, check_version=False, save_md5=True)
 
-        return omim_dag.serialize()
+        return omim_dag
 
        
     dag_data = file()
