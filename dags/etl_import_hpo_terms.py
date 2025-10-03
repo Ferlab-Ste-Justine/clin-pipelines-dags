@@ -51,7 +51,7 @@ with DAG(
         # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
         hpo_terms_dag.upload_file_if_new(url=f'{url}/download/{hpo_terms_dag.last_version}/{file_name}', file_name='hp.obo')
 
-        return hpo_terms_dag.serialize()
+        return hpo_terms_dag
 
     dag_data = download()
 

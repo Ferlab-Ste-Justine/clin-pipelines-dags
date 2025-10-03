@@ -44,7 +44,7 @@ with DAG(
         orphanet_dag.save_file(genes_file, save_version=False)
         orphanet_dag.upload_file_if_new(url=f'{url}/{diseases_file}', file_name=diseases_file)
 
-        return orphanet_dag.serialize()
+        return orphanet_dag
 
     dag_data = file()
 

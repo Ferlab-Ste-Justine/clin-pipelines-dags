@@ -38,7 +38,7 @@ with DAG(
         # Upload file to S3 (if new)
         clinvar_dag.upload_file_if_new(url=f'{url}/{file_name}', file_name=file_name, md5_hash=md5['hash'])
 
-        return clinvar_dag.serialize()
+        return clinvar_dag
 
     dag_data = file()
 

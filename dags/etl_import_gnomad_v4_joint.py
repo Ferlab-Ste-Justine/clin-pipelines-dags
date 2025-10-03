@@ -42,7 +42,7 @@ with DAG(
                 gnomad_dag.upload_file_if_new(url=presigned_url, file_name=key, stream=True, save_version=False)
 
         gnomad_dag.save_version()
-        return gnomad_dag.serialize()
+        return gnomad_dag
 
     dag_data = download_files()
 

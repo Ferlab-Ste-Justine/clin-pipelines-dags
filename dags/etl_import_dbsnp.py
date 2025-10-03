@@ -45,7 +45,7 @@ with DAG(
         dbsnp_dag.upload_file_if_new(url=f'{url}/{tbiFile}', file_name=tbiFile, save_version=False) # tbi file
         dbsnp_dag.upload_file_if_new(url=f'{url}/{file_name}', file_name=file_name, md5_hash=md5['hash'], stream=True)
     
-        return dbsnp_dag.serialize()
+        return dbsnp_dag
 
     dag_data = file()
 

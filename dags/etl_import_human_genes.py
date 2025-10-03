@@ -33,11 +33,11 @@ with DAG(
         file_name = 'Homo_sapiens.gene_info.gz'
 
         # Get latest version
-        human_genes_dag.get_last_version_from_url(url, 'Homo_sapiens.gene_info.gz</a> (\d{4}-\d{2}-\d{2})')
+        human_genes_dag.set_last_version_from_url(url, 'Homo_sapiens.gene_info.gz</a> (\d{4}-\d{2}-\d{2})')
         # Upload files to S3 (if new)
         human_genes_dag.upload_file_if_new(f'{url}/{file_name}', file_name)
 
-        return human_genes_dag.serialize()
+        return human_genes_dag
     
     dag_data = file()
 

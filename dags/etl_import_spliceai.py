@@ -57,7 +57,7 @@ with DAG(
                     headers=headers,
                     stream=True)
                 
-        return spliceai_dag.serialize()
+        return spliceai_dag
 
     
     dag_data = file()
