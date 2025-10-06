@@ -278,4 +278,4 @@ with DAG(
     (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> detect_batch_types_task >> 
      [get_ingest_dag_configs_by_batch_id_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
      trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> delete_previous_variant_centric >> index_group >>
-     publish_group >> notify_task >> trigger_rolling_dag >> slack >> trigger_delete_previous_releases >> trigger_qc_es_dag >> trigger_cnv_frequencies >> trigger_qc_dag)
+     publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >> notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
