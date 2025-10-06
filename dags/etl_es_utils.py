@@ -55,11 +55,11 @@ with DAG(
 
 
     @task(task_id='params_action_validate')
-    def validate_action_params(_delete_release, _test_duplicated_variants, _release_id):
-        if (_delete_release == 'yes' or _test_duplicated_variants == 'yes') and _release_id == '':
+    def validate_action_params(_delete_release, _delete_variant_release, _test_duplicated_variants, _release_id):
+        if (_delete_release == 'yes' or _delete_variant_release == 'yes' or _test_duplicated_variants == 'yes') and _release_id == '':
             raise AirflowFailException('release_id is required for delete_release')
 
-    params_action_validate = validate_action_params(delete_release(), test_duplicated_variants(), release_id())
+    params_action_validate = validate_action_params(delete_release(), delete_variant_release(), test_duplicated_variants(), release_id())
 
     es_delete_release = CurlOperator(
         task_id='es_delete_release',
