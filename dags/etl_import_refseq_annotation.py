@@ -15,14 +15,15 @@ refseq_annotation_dag = PublicSourceDag(
     name='refseq_annotation',
     display_name="NCBI RefSeq",
     website="https://www.ncbi.nlm.nih.gov/refseq/",
-    schedule='15 8 0 0 6',  # every Saturday at 8:15am
+    schedule='15 8 * * 6',  # every Saturday at 8:15am
     raw_folder='refseq'
 )
 
 with DAG(
     dag_id=refseq_annotation_dag.dag_id,
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule=refseq_annotation_dag.schedule,
+    catchup=False,
     params=PublicSourceDag.params,
     default_args=PublicSourceDag.default_args,
 ) as dag:
