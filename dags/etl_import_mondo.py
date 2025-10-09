@@ -22,7 +22,8 @@ mondo_dag = PublicSourceDag(
 with DAG(
     dag_id=mondo_dag.dag_id,
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule=mondo_dag.schedule,
+    catchup=False,
     params={
         'color': Param('', type=['null', 'string']),
         'spark_jar': Param('', type=['null', 'string']),

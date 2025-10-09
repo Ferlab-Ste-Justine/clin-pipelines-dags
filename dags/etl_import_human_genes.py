@@ -20,7 +20,7 @@ human_genes_dag = PublicSourceDag(
 with DAG(
     dag_id=human_genes_dag.dag_id,
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule=human_genes_dag.schedule,
     params=PublicSourceDag.params,
     default_args=PublicSourceDag.default_args,
     catchup=False,
