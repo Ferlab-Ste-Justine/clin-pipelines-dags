@@ -42,12 +42,12 @@ with DAG(
         file_name = 'mondo-base.obo'
 
         # Get latest version
-        mondo_dag.get_last_version_from_url(url, f'/download/(v?.+)/{file_name}')
+        mondo_dag.set_last_version_from_url(url, f'/download/(v?.+)/{file_name}')
         # Upload files to S3 (if new)
         # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
         mondo_dag.upload_file_if_new(url=f'{url}/download/{mondo_dag.last_version}/{file_name}', file_name='mondo.obo')
 
-        return mondo_dag.serialize()
+        return mondo_dag
 
     dag_data = download()
 
