@@ -186,10 +186,34 @@ with DAG(
                                                                  ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
     )
 
-    # for PROD mostly, cause variant_centric is the bigger disk consumer
-    delete_previous_variant_centric = es.delete_previous_release \
-        .override(task_id='delete_previous_variant_centric')(index_name='variant_centric', release_id=release_id('variant_centric'), color=color('_'), skip=skip_delete_previous_releases())
 
+    @task_group(group_id='delete_previous_variant_centric')
+    def delete_previous_variant_centric_group():
+
+        @task(task_id='get_previous_variant_centric_release')
+        def get_previous_variant_centric_release(release_id: str) -> str:
+            return es.get_previous_release(release_id),
+
+        get_previous_variant_centric_release_task = get_previous_variant_centric_release(release_id('variant_centric'))
+
+        # for PROD mostly, cause variant_centric is the bigger disk consumer
+        delete_previous_variant_centric_index = TriggerDagRunOperator(
+            task_id='delete_previous_index',
+            trigger_dag_id='etl_es_utils',
+            wait_for_completion=True,
+            skip=skip_delete_previous_releases(),
+            conf={
+                "delete_release": "no",
+                "delete_variant_release": "yes",
+                "test_duplicated_variants": "no",
+                "show_indexes": "yes",
+                "test_disk_usage": "yes",
+                "release_id": get_previous_variant_centric_release_task,
+                "color": color('_')
+            }
+        )
+
+        get_previous_variant_centric_release_task >> delete_previous_variant_centric_index
 
     index_group = index(
         color=color('_'),
@@ -278,5 +302,6 @@ with DAG(
 
     (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> detect_batch_types_task >> 
      [get_ingest_dag_configs_by_batch_id_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
-     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> delete_previous_variant_centric >> index_group >>
+     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> 
+     delete_previous_variant_centric_group() >> index_group >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >> notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
