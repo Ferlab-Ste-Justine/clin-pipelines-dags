@@ -198,7 +198,7 @@ with DAG(
 
         # for PROD mostly, cause variant_centric is the bigger disk consumer
         delete_previous_variant_centric_index = TriggerDagRunOperator(
-            task_id='delete_previous_index',
+            task_id='delete_previous_variant_centric_index',
             trigger_dag_id='etl_es_utils',
             wait_for_completion=True,
             skip=skip_delete_previous_releases(),
