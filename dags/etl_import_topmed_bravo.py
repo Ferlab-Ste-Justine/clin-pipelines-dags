@@ -21,6 +21,7 @@ topmed_dag = PublicSourceDag(
 with DAG(
     dag_id=topmed_dag.dag_id,
     start_date=datetime(2022, 1, 1),
+    schedule=None,
     catchup=False,
     params= {
         'credential': Param('', type=['null', 'string'], description='A TOPMed Bravo valid cookie'),
@@ -76,8 +77,7 @@ with DAG(
             '--config', config_file,
             '--steps', 'default',
             '--app-name', 'etl_import_topmed_bravo_table'
-        ],
-        on_success_callback=Slack.notify_dag_completion,
+        ]
     )
 
 
