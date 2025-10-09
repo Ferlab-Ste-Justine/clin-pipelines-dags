@@ -28,7 +28,8 @@ from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
 with DAG(
         dag_id='etl',
         start_date=datetime(2022, 1, 1),
-        schedule=None,
+        schedule='0 12 * * 6' if env == Env.QA else None,  # every Saturday at 12:00pm
+        catchup=False,
         params={
             'batch_ids': Param([], type=['null', 'array'],
                                description='Put a single batch id per line. Leave empty to skip ingest.'),
