@@ -209,7 +209,7 @@ with DAG(
                 "show_indexes": "yes",
                 "test_disk_usage": "yes",
                 "release_id": get_previous_variant_centric_release_task,
-                "color": color('_')
+                "color": color()
             }
         )
 
