@@ -192,7 +192,7 @@ with DAG(
 
         @task(task_id='get_previous_variant_centric_release')
         def get_previous_variant_centric_release(release_id: str) -> str:
-            return es.get_previous_release(release_id),
+            return es.get_previous_release(release_id)
 
         get_previous_variant_centric_release_task = get_previous_variant_centric_release(release_id('variant_centric'))
 
