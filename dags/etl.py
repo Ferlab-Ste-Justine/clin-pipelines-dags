@@ -37,7 +37,7 @@ with DAG(
                                description='Put a single id per line. Leave empty to skip ingest.'),
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
-            'import': Param('yes', enum=['yes', 'no']),
+            'import': Param('no', enum=['yes', 'no']),
             'cnv_frequencies': Param('yes', enum=['yes', 'no']),
             'delete_previous_releases': Param('yes', enum=['yes', 'no']),
             'notify': Param('no', enum=['yes', 'no']),
