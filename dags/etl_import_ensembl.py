@@ -18,7 +18,7 @@ ensembl_dag = PublicSourceDag(
 with DAG(
     dag_id=ensembl_dag.dag_id,
     start_date=datetime(2022, 1, 1),
-    schedule=ensembl_dag.schedule,
+    schedule=None,
     params={
         "version": Param(None, type=['null', 'integer'], description="Version to use. If not set, the latest version will be used."),
     } | PublicSourceDag.params,

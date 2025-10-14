@@ -44,7 +44,7 @@ def validate_release(release_id: str):
 
 
 @task(task_id='params_validate', on_execute_callback=Slack.notify_dag_start)
-def validate_color(color: str, **context):
+def validate_color(color: str):
     env_color = color
     # If the DAG is triggered via scheduler or API request, we need to get the current color from Elasticsearch
     if not env_color and env == Env.QA:
