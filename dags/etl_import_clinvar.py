@@ -12,7 +12,7 @@ from lib.utils import get_md5_from_url
 
 clinvar_dag = PublicSourceDag(
     name='clinvar',
-    display_name="NCBI Gene",
+    display_name="NCBI Clinvar",
     website="https://www.ncbi.nlm.nih.gov/clinvar/",
     schedule='0 6 * * 6',  # every Saturday at 6am
 )
@@ -38,7 +38,7 @@ with DAG(
         # Upload file to S3 (if new)
         clinvar_dag.upload_file_if_new(url=f'{url}/{file_name}', file_name=file_name, md5_hash=md5['hash'])
 
-        return clinvar_dag.serialize()
+        return clinvar_dag
 
     dag_data = file()
 

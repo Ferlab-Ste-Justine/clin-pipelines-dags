@@ -1,5 +1,4 @@
 import base64
-import re
 from datetime import datetime
 
 from airflow import DAG
@@ -42,7 +41,7 @@ with DAG(
 
         # Get latest version
         # TODO: Cosmic need an account to access the download page: https://ferlab-crsj.atlassian.net/browse/CLIN-4440
-        cosmic_dag.last_version = cosmic_dag.get_last_version_from_url(url, 'COSMIC (v[0-9]+),')
+        cosmic_dag.set_last_version_from_url(url, 'COSMIC (v[0-9]+),')
 
         for file_name in [mutation_census_file]:
             # Encode credentials
@@ -57,7 +56,7 @@ with DAG(
             # Upload file to S3 (if new)
             cosmic_dag.upload_file_if_new(download_url, file_name, headers=headers, tar_extract=mutation_census_file if file_name == mutation_census_file else None)
 
-        return cosmic_dag.serialize()
+        return cosmic_dag
 
     dag_data = files()
 

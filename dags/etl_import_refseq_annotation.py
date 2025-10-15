@@ -40,7 +40,7 @@ with DAG(
         # Upload files to S3 (if new)
         refseq_annotation_dag.upload_file_if_new(f'{url}/{last_folder}{file_name}', 'GCF_GRCh38_genomic.gff.gz')
 
-        return refseq_annotation_dag.serialize()
+        return refseq_annotation_dag
 
     dag_data = file()
 

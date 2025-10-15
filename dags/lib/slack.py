@@ -38,13 +38,13 @@ class Slack:
     def notify_dag_start(context):
         dag_id = context['dag'].dag_id
         dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
-        dag_params = Slack._dag_params(context['params'])
+        dag_params = Slack._dag_params(context['params'], context['params_to_obfuscate'] if 'params_to_obfuscate' in context else [])
         Slack.notify(f'DAG {dag_link} started.{dag_params}', Slack.INFO)
 
     def notify_dag_completion(context):
         dag_id = context['dag'].dag_id
         dag_link = Slack._dag_link(dag_id, dag_id, context['run_id'])
-        dag_params = Slack._dag_params(context['params'])
+        dag_params = Slack._dag_params(context['params'], context['params_to_obfuscate'] if 'params_to_obfuscate' in context else [])
         Slack.notify(f'DAG {dag_link} completed.{dag_params}', Slack.SUCCESS)
     
     def notify_dag_message(context, message):
@@ -67,8 +67,13 @@ class Slack:
             return f'```{message}```'
         return ''
 
-    def _dag_params(params: dict):
+    def _dag_params(params: dict, params_to_obfuscate: list[str] = []):
         if params:
-            params_json = json.dumps(params, indent=4)
+            params_to_display = params.copy()
+            for p in ['credential', 'cookie', 'password', 'token'] + params_to_obfuscate:
+                if p in params:
+                    params_to_display[p] = '*****'
+            params_json = json.dumps(params_to_display, indent=4)
             return f'```{params_json}```'
         return ''
+
