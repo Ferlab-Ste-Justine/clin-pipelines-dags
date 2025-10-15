@@ -41,7 +41,7 @@ with DAG(
     aws --profile cqgc-qa --endpoint https://s3.cqgc.hsj.rtss.qc.ca s3 cp $1.gz s3://cqgc-qa-app-datalake/raw/landing/dbNSFP/$1.gz
     '''
 
-    dag_data = dbnsfp_dag.serialize()
+    dag_data = dbnsfp_dag
 
     raw = SparkOperator(
         task_id='raw',

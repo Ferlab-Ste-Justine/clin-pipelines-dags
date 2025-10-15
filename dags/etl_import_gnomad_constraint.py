@@ -33,7 +33,7 @@ with DAG(
         file = f'gnomad.v{gnomad_dag.last_version}.lof_metrics.by_gene.txt.bgz'
         gnomad_dag.upload_file_if_new(url=f'{url}/{file}', file_name=file)
 
-        return gnomad_dag.serialize()
+        return gnomad_dag
 
     dag_data = file()
 

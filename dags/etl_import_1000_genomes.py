@@ -33,7 +33,7 @@ with DAG(
         # Upload file to S3 (if new)
         genomes_dag.upload_file_if_new(url=f'{url}/{file_name}', file_name=file_name, stream=True)
 
-        return genomes_dag.serialize()
+        return genomes_dag
 
     dag_data = file()
 

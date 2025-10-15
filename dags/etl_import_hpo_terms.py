@@ -22,7 +22,7 @@ hpo_terms_dag = PublicSourceDag(
 )
 
 with DAG(
-    dag_id='etl_import_hpo_terms',
+    dag_id=hpo_terms_dag.dag_id,
     start_date=datetime(2022, 8, 16),
     schedule=hpo_terms_dag.schedule,
     params={
@@ -51,7 +51,7 @@ with DAG(
         # not used for now but we could maybe update obo-parser to use that file as input instead of downloading the obo file
         hpo_terms_dag.upload_file_if_new(url=f'{url}/download/{hpo_terms_dag.last_version}/{file_name}', file_name='hp.obo')
 
-        return hpo_terms_dag.serialize()
+        return hpo_terms_dag
 
     dag_data = download()
 
