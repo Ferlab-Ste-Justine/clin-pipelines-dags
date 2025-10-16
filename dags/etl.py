@@ -74,6 +74,9 @@ with DAG(
 
 
     params_validate_task = validate_color(color=color())
+    env_color = params_validate_task.__str__()
+    underscore_color = ('_' + env_color) if env_color else ''
+    dash_color = ('-' + env_color) if env_color else ''
 
     get_batch_ids_task = params.get_batch_ids()
     get_analysis_ids_task = params.get_analysis_ids()
@@ -180,7 +183,7 @@ with DAG(
 
     get_release_ids_group = get_release_ids(
         release_id=release_id(),
-        color=color('_'),
+        color=underscore_color,
         increment_release_id=True,  # Get new release ID
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
                                                                  ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
@@ -209,21 +212,21 @@ with DAG(
                 "show_indexes": "yes",
                 "test_disk_usage": "yes",
                 "release_id": get_previous_variant_centric_release_task,
-                "color": color()
+                "color": env_color
             }
         )
 
         get_previous_variant_centric_release_task >> delete_previous_variant_centric_index
 
     index_group = index(
-        color=color('_'),
+        color=underscore_color,
         spark_jar=spark_jar(),
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
                                                                  ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
     )
 
     publish_group = publish_index(
-        color=color('_'),
+        color=underscore_color,
         spark_jar=spark_jar(),
         skip_cnv_centric=skip_if_no_batch_in(target_batch_types=[ClinAnalysis.GERMLINE,
                                                                  ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
@@ -234,7 +237,7 @@ with DAG(
         task_id='notify',
         name='notify',
         k8s_context=K8sContext.DEFAULT,
-        color=color(),
+        color=env_color,
         skip=skip_notify(batch_param_name='batch_ids')
     ).expand(
         batch_id=get_batch_ids_task
@@ -269,7 +272,7 @@ with DAG(
             'variant_suggestions_release_id': release_id('variant_suggestions'),
             'coverage_by_gene_centric_release_id': release_id('coverage_by_gene_centric'),
             'cnv_centric_release_id': release_id('cnv_centric'),
-            'color': color()
+            'color': env_color
         }
     )
 
@@ -280,7 +283,7 @@ with DAG(
         skip=skip_delete_previous_releases(),
         conf={
             'release_id': release_id(),
-            'color': color(),
+            'color': env_color,
         }
     )
 
@@ -290,7 +293,7 @@ with DAG(
         wait_for_completion=True,
         skip=skip_cnv_frequencies(),
         conf={
-            'color': color(),
+            'color': env_color,
             'spark_jar': spark_jar()
         }
     )
