@@ -10,7 +10,7 @@ def get_batch_ids() -> List[str]:
     params = context["params"]
     ids = params.get('batch_ids', []) if isinstance(params, dict) else []
     # try to keep the somatic_normal imported last
-    return sorted(set(ids), key=lambda x: (x.endswith("somatic_normal"), x))
+    return sorted(set(ids), key=lambda x: (x.endswith("somatic_normal"), x)) if ids and len(ids) > 0 else []
 
 
 @task(task_id='get_sequencing_ids')
