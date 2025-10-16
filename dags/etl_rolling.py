@@ -49,13 +49,10 @@ if env == Env.QA:
 
 
         params_validate = validate_color(color())
-        env_color = params_validate.__str__()
-        underscore_color = ('_' + env_color) if env_color else ''
-        dash_color = ('-' + env_color) if env_color else ''
 
         get_release_ids_group = get_release_ids(
             release_id=release_id(),
-            color=underscore_color,
+            color=color('_'),
             gene_centric_release_id=resolve_release_id('gene_centric'),
             gene_suggestions_release_id=resolve_release_id('gene_suggestions'),
             variant_centric_release_id=resolve_release_id('variant_centric'),
@@ -93,8 +90,8 @@ if env == Env.QA:
                 }}
                 '''.format(
                     env=env,
-                    dash_color=dash_color,
-                    underscore_color=underscore_color,
+                    dash_color=color('-'),
+                    underscore_color=color('_'),
                     # Release IDs returned by get_release_ids
                     gene_centric_release_id=release_id('gene_centric'),
                     gene_suggestions_release_id=release_id('gene_suggestions'),
@@ -122,8 +119,8 @@ if env == Env.QA:
             '''.format(
                 env=env,
                 cnv_centric_release_id=release_id('cnv_centric'),  # Release ID returned by get_release_ids
-                dash_color=dash_color,
-                underscore_color=underscore_color,
+                dash_color=color('-'),
+                underscore_color=color('_'),
             ),
         ],
         skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
