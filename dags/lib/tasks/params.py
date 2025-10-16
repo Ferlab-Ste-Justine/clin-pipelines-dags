@@ -8,7 +8,7 @@ from airflow.operators.python import get_current_context
 def get_batch_ids() -> List[str]:
     context = get_current_context()
     params = context["params"]
-    ids = params.get('batch_ids', [])
+    ids = params.get('batch_ids', []) if isinstance(params, dict) else []
     # try to keep the somatic_normal imported last
     return sorted(set(ids), key=lambda x: (x.endswith("somatic_normal"), x))
 
@@ -17,13 +17,13 @@ def get_batch_ids() -> List[str]:
 def get_sequencing_ids() -> list:
     context = get_current_context()
     params = context["params"]
-    return params.get('sequencing_ids', [])
+    return params.get('sequencing_ids', []) if isinstance(params, dict) else []
 
 @task(task_id='get_analysis_ids')
 def get_analysis_ids() -> list:
     context = get_current_context()
     params = context["params"]
-    return params.get('analysis_ids', [])
+    return params.get('analysis_ids', []) if isinstance(params, dict) else []
 
 @task(task_id='prepare_expand_batch_ids')
 def prepare_expand_batch_ids(batch_ids: List[str], skip: bool):
