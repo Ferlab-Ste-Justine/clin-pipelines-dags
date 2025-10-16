@@ -217,7 +217,7 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
         'batch_id': None,
         'analysis_ids': analysis_ids_compatible_with_type,
         'color': params['color'],
-        'import': params['import'] if params['import'] is not None else 'no',
+        'import': params.get('import', 'no'),
         'spark_jar': params['spark_jar'],
     }
     
