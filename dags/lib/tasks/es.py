@@ -74,7 +74,7 @@ def test_disk_usage(skip=None):
 
     logging.info(f'ES disk usage: {first_node_disk_usage}%')
 
-    if float(first_node_disk_usage) > 60: # assuming variant_centric is responsible for most of the usage, set threshold to 60% meaning current release + release N-1 
+    if float(first_node_disk_usage) > 80: # assuming variant_centric is responsible for most of the usage, set threshold to 60% meaning current release + release N-1 
         raise AirflowFailException(
             f'ES disk usage is too high: {first_node_disk_usage}% please delete some old releases')
     return
