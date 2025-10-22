@@ -74,7 +74,7 @@ with DAG(
 
 
     params_validate_task = validate_color(color=color())
-    env_color = params_validate_task.__str__()
+    env_color = params_validate_task.__str__() if params_validate_task.__str__() != "None" else None
     underscore_color = ('_' + env_color) if env_color else ''
     dash_color = ('-' + env_color) if env_color else ''
 

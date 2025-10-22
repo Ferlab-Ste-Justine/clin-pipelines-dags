@@ -37,7 +37,7 @@ with DAG(
     ) as dag:
 
     params_validate = validate_color(color())
-    env_color = params_validate.__str__()
+    env_color = params_validate.__str__() if params_validate.__str__() != "None" else None
     prefixed_color = ('_' + env_color) if env_color else ''
 
     @task(task_id='download_hpo_terms')
