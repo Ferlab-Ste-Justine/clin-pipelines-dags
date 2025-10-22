@@ -5,6 +5,7 @@ from typing import Dict, List, Optional
 
 from airflow.decorators import task
 from airflow.models import DagRun
+from airflow.operators.python import get_current_context
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 import requests
 from lib import config
@@ -180,14 +181,15 @@ def build_etl_job_arguments(
 
 
 @task(task_id='get_ingest_dag_configs_by_batch_id')
-def get_ingest_dag_configs_by_batch_id(batch_id: str, ti=None) -> dict:
-    dag_run: DagRun = ti.dag_run
+def get_ingest_dag_configs_by_batch_id(batch_id: str) -> dict:
+    context = get_current_context()
+    params = context["params"]
     return {
         'batch_id': batch_id,
         'analysis_ids': None,
-        'color': dag_run.conf['color'],
-        'import': dag_run.conf['import'],
-        'spark_jar': dag_run.conf['spark_jar']
+        'color': params['color'],
+        'import': params['import'],
+        'spark_jar': params['spark_jar']
     }
 
 
@@ -201,8 +203,9 @@ def get_germline_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: Lis
 
 
 @task(task_id='get_ingest_dag_configs_by_analysis_ids')
-def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str, ti=None) -> dict:
-    dag_run: DagRun = ti.dag_run
+def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str) -> dict:
+    context = get_current_context()
+    params = context["params"]
 
     # try regroup analysis ids and generate a config of etl_ingest for each analysis type
     analysis_ids_compatible_with_type = _get_analysis_ids_compatible_with_type(all_batch_types, analysis_ids, analysisType)
@@ -213,11 +216,11 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
     return {
         'batch_id': None,
         'analysis_ids': analysis_ids_compatible_with_type,
-        'color': dag_run.conf.get('color', None),
-        'import': dag_run.conf.get('import', 'no'),
-        'spark_jar': dag_run.conf.get('spark_jar', None),
+        'color': params['color'],
+        'import': params.get('import', 'no'),
+        'spark_jar': params['spark_jar'],
     }
-
+    
 
 def _get_analysis_ids_compatible_with_type(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str) -> List[str]:
     analysis_ids_compatible_with_type = []

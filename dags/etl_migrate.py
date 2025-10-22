@@ -5,6 +5,7 @@ from airflow.decorators import task
 from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
+from airflow.operators.python import get_current_context
 from airflow.utils.trigger_rule import TriggerRule
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
@@ -54,24 +55,25 @@ with DAG(
     )
 
     @task(task_id='get_migrate_batch_dag_config')
-    def get_migrate_batch_dag_config(batch_id: str, ti=None) -> dict:
-        dag_run: DagRun = ti.dag_run
+    def get_migrate_batch_dag_config(batch_id: str) -> dict:
+        context = get_current_context()
+        params = context["params"]
         return {
             'batch_id': batch_id,
             'export_fhir': 'no', # export already done here, required if etl_migrate_batch is launch manually
-            'color': dag_run.conf['color'],
-            'snv': dag_run.conf['snv'],
-            'snv_somatic': dag_run.conf['snv_somatic'],
-            'cnv': dag_run.conf['cnv'],
-            'cnv_somatic_tumor_only': dag_run.conf['cnv_somatic_tumor_only'],
-            'variants': dag_run.conf['variants'],
-            'consequences':dag_run.conf['consequences'],
-            'exomiser':dag_run.conf['exomiser'],
-            'exomiser_cnv': dag_run.conf['exomiser_cnv'],
-            'coverage_by_gene':dag_run.conf['coverage_by_gene'],
-            'franklin':dag_run.conf['franklin'],
-            'nextflow':dag_run.conf['nextflow'],
-            'spark_jar': dag_run.conf['spark_jar'],
+            'color': params['color'],
+            'snv': params['snv'],
+            'snv_somatic': params['snv_somatic'],
+            'cnv': params['cnv'],
+            'cnv_somatic_tumor_only': params['cnv_somatic_tumor_only'],
+            'variants': params['variants'],
+            'consequences': params['consequences'],
+            'exomiser': params['exomiser'],
+            'exomiser_cnv': params['exomiser_cnv'],
+            'coverage_by_gene': params['coverage_by_gene'],
+            'franklin': params['franklin'],
+            'nextflow': params['nextflow'],
+            'spark_jar': params['spark_jar'],
         }
 
     get_all_batch_ids_task = batch_type.get_all_batch_ids()
