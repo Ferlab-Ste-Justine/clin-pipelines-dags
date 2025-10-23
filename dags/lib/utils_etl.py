@@ -8,6 +8,7 @@ from airflow.models import DagRun
 from airflow.operators.python import get_current_context
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 import requests
+from lib.tasks.params import get_param
 from lib import config
 from lib.config import clin_import_bucket, config_file, env, Env, es_url
 
@@ -217,7 +218,7 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
         'batch_id': None,
         'analysis_ids': analysis_ids_compatible_with_type,
         'color': params['color'],
-        'import': params.get('import', 'no'),
+        'import': get_param(params, 'import', 'no'),
         'spark_jar': params['spark_jar'],
     }
     
