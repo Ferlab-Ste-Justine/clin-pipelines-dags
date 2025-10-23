@@ -83,7 +83,7 @@ elif env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.23.1.jar'
+    spark_jar = 'clin-variant-etl-v3.23.2.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -96,6 +96,8 @@ elif env == Env.QA:
         '2_data_to_import_germinal',
         '3_data_to_import_somatic',
         '4_data_to_import_somatic_normal',
+        '4_data_to_import_somatic_normal',
+        '5_data_to_import_etl_run',
     ]
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:91cca31'
