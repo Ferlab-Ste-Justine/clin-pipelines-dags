@@ -5,7 +5,7 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from lib.config import K8sContext, env, es_url, indexer_context
+from lib.config import K8sContext, Env, env, es_url, indexer_context
 from lib.operators.pipeline import PipelineOperator
 from lib.operators.spark import SparkOperator
 from lib.slack import Slack
@@ -37,7 +37,7 @@ with DAG(
     ) as dag:
 
     params_validate = validate_color(color())
-    env_color = params_validate.__str__() if params_validate.__str__() != "None" else None
+    env_color = params_validate.__str__() if env == Env.QA else None
     prefixed_color = ('_' + env_color) if env_color else ''
 
     @task(task_id='download_hpo_terms')
