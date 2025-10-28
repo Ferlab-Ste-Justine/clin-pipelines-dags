@@ -21,6 +21,7 @@ def snv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis
         analysis_ids=analysis_ids,
         target_batch_types=target_batch_types,
         detect_batch_type_task_id=detect_batch_type_task_id,
+        batch_id_deprecated=True
     )
 
 
@@ -78,7 +79,7 @@ def cnv_somatic_tumor_only(batch_id: str, analysis_ids: list, target_batch_types
     )
 
 
-def variants(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
+def variants(batch_id:str, analysis_ids: list, bioinfo_analysis_code: str, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='variants',
         task_id='variants',
@@ -91,12 +92,14 @@ def variants(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAna
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
+        bioinfo_analysis_code=bioinfo_analysis_code,
         target_batch_types=target_batch_types,
         detect_batch_type_task_id=detect_batch_type_task_id,
+        batch_id_deprecated=True,
     )
 
 
-def consequences(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
+def consequences(batch_id:str, analysis_ids: list, bioinfo_analysis_code: str, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='consequences',
         task_id='consequences',
@@ -109,8 +112,10 @@ def consequences(batch_id: str, analysis_ids: list, target_batch_types: List[Cli
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
+        bioinfo_analysis_code=bioinfo_analysis_code,
         target_batch_types=target_batch_types,
         detect_batch_type_task_id=detect_batch_type_task_id,
+        batch_id_deprecated=True
     )
 
 

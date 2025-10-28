@@ -30,7 +30,7 @@ class SparkETLOperator(SparkOperator):
          **kwargs: Additional arguments for `SparkOperator`.
      """
 
-    template_fields = SparkOperator.template_fields + ('batch_id', 'analysis_ids', 'steps',)
+    template_fields = SparkOperator.template_fields + ('batch_id', 'analysis_ids', 'bioinfo_analysis_code', 'steps',)
 
     def __init__(self,
                  steps: str,
@@ -40,6 +40,7 @@ class SparkETLOperator(SparkOperator):
                  entrypoint: str = '',
                  batch_id: str = '',
                  analysis_ids: str = '',
+                 bioinfo_analysis_code: str = '',
                  chromosome: str = '',
                  target_batch_types: List[ClinAnalysis] = None,
                  detect_batch_type_task_id: str = 'detect_batch_type',
@@ -62,6 +63,7 @@ class SparkETLOperator(SparkOperator):
         self.batch_id = batch_id
         self.batch_id_deprecated = batch_id_deprecated
         self.analysis_ids = analysis_ids
+        self.bioinfo_analysis_code = bioinfo_analysis_code
         self.chromosome = chromosome
         self.target_batch_types = [target.value for target in (target_batch_types or [])]
         self.detect_batch_type_task_id = detect_batch_type_task_id
@@ -99,6 +101,7 @@ class SparkETLOperator(SparkOperator):
             batch_id=self.batch_id,
             batch_id_deprecated=self.batch_id_deprecated,
             analysis_ids=self.analysis_ids,
+            bioinfo_analysis_code=self.bioinfo_analysis_code,
             chromosome=self.chromosome
         )
 
