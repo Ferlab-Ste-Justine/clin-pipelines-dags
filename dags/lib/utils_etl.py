@@ -163,6 +163,7 @@ def build_etl_job_arguments(
         batch_id: Optional[str] = None,
         batch_id_deprecated: Optional[bool] = False,
         analysis_ids: Optional[list[str]] = None,
+        bioinfo_analysis_code: Optional[str] = None,
         chromosome: Optional[str] = None) -> List[str]:
     arguments = [
             '--config', config_file,
@@ -176,6 +177,8 @@ def build_etl_job_arguments(
     if batch_id_deprecated and analysis_ids:
         for analysis_id in analysis_ids:
             arguments += ['--analysisId', analysis_id]
+        if bioinfo_analysis_code:
+            arguments = arguments + ['--bioinfoAnalysisCode', bioinfo_analysis_code]
     if chromosome:
         arguments = arguments + ['--chromosome', f'chr{chromosome}']
     return arguments

@@ -28,11 +28,11 @@ def migrate_somatic_tumor_only(
     )
 
     get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=[], batch_id=batch_id, skip=skip_all)
-    get_analysis_ids_related_batch_task = clinical.get_analysis_ids_related_batch(bioinfo_analysis_code=BioinfoAnalysisCode.GEBA, analysis_ids=get_all_analysis_ids, batch_id=batch_id, skip=skip_all)
+    get_analysis_ids_related_batch_task = clinical.get_analysis_ids_related_batch(bioinfo_analysis_code=BioinfoAnalysisCode.TEBA, analysis_ids=get_all_analysis_ids, batch_id=batch_id, skip=skip_all)
 
     normalize_somatic_tumor_only_group = normalize_somatic_tumor_only(
-        batch_id=batch_id,
-        analysis_ids=[],
+        batch_id=get_analysis_ids_related_batch_task,
+        analysis_ids=get_all_analysis_ids,
         skip_all=skip_all,
         skip_snv_somatic=skip_snv_somatic,
         skip_cnv_somatic_tumor_only=skip_cnv_somatic_tumor_only,
