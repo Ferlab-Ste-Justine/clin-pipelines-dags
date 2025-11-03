@@ -95,7 +95,7 @@ def variants(batch_id:str, analysis_ids: list, bioinfo_analysis_code: str, targe
         bioinfo_analysis_code=bioinfo_analysis_code,
         target_batch_types=target_batch_types,
         detect_batch_type_task_id=detect_batch_type_task_id,
-        batch_id_deprecated=False, # temporary to debug performance issues
+        batch_id_deprecated=True
     )
 
 
