@@ -36,7 +36,7 @@ def normalize_germline(
     consequences = normalize.consequences(batch_id, analysis_ids, BioinfoAnalysisCode.GEBA.value, target_batch_types, spark_jar, skip(skip_all, skip_consequences), detect_batch_type_task_id)
     exomiser = normalize.exomiser(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser), detect_batch_type_task_id)
     exomiser_cnv = normalize.exomiser_cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser_cnv), detect_batch_type_task_id)
-    coverage_by_gene = normalize.coverage_by_gene(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene), detect_batch_type_task_id)
+    coverage_by_gene = normalize.coverage_by_gene(batch_id, analysis_ids, BioinfoAnalysisCode.GEBA.value, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene), detect_batch_type_task_id)
 
     franklin_update_task = franklin_update(
         analysis_ids=analysis_ids,
