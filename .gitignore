@@ -1,5 +1,6 @@
 __pycache__
 .env
+!configs/**/.env
 logs
 plugins
 venv
