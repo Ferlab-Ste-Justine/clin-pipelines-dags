@@ -43,7 +43,7 @@ def run(batch_id: str, skip: str = '', **kwargs):
         )
 
 
-def normalize(batch_id: str, spark_jar: str, skip: str = '', **kwargs) -> SparkETLOperator:
+def normalize(batch_id: str, analysis_ids: list, spark_jar: str, skip: str = '', **kwargs) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='normalize_svclustering_parental_origin',
         task_id='normalize_svclustering_parental_origin',
@@ -55,5 +55,7 @@ def normalize(batch_id: str, spark_jar: str, skip: str = '', **kwargs) -> SparkE
         spark_jar=spark_jar,
         skip=skip,
         batch_id=batch_id,
+        analysis_ids=analysis_ids,
+        batch_id_deprecated=True,
         **kwargs
     )
