@@ -7,7 +7,7 @@ from lib.config_nextflow import (
 from lib.groups.franklin.franklin_update import franklin_update
 from lib.tasks import normalize
 from lib.tasks.nextflow import svclustering_parental_origin
-from lib.utils_etl import ClinAnalysis, skip
+from lib.utils_etl import BioinfoAnalysisCode, ClinAnalysis, skip
 
 
 @task_group(group_id='normalize')
@@ -32,11 +32,11 @@ def normalize_germline(
 
     snv = normalize.snv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_snv), detect_batch_type_task_id)
     cnv = normalize.cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_cnv), detect_batch_type_task_id)
-    variants = normalize.variants(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_variants), detect_batch_type_task_id)
-    consequences = normalize.consequences(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_consequences), detect_batch_type_task_id)
+    variants = normalize.variants(batch_id, analysis_ids, BioinfoAnalysisCode.GEBA.value, target_batch_types, spark_jar, skip(skip_all, skip_variants), detect_batch_type_task_id)
+    consequences = normalize.consequences(batch_id, analysis_ids, BioinfoAnalysisCode.GEBA.value, target_batch_types, spark_jar, skip(skip_all, skip_consequences), detect_batch_type_task_id)
     exomiser = normalize.exomiser(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser), detect_batch_type_task_id)
     exomiser_cnv = normalize.exomiser_cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_exomiser_cnv), detect_batch_type_task_id)
-    coverage_by_gene = normalize.coverage_by_gene(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene), detect_batch_type_task_id)
+    coverage_by_gene = normalize.coverage_by_gene(batch_id, analysis_ids, BioinfoAnalysisCode.GEBA.value, target_batch_types, spark_jar, skip(skip_all, skip_coverage_by_gene), detect_batch_type_task_id)
 
     franklin_update_task = franklin_update(
         analysis_ids=analysis_ids,
