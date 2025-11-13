@@ -87,7 +87,7 @@ with DAG(
                 downloaded_tabix_file = "tabix-0.2.6-ha92aebf_0.tar.bz2"
                 downloaded_tabix_path = f"{tabix_dir}/{downloaded_tabix_file}"
 
-                http_get_file(f"https://anaconda.org/bioconda/tabix/0.2.6/download/linux-64/{downloaded_tabix_file}", downloaded_tabix_path)
+                http_get_file(url=f"https://anaconda.org/bioconda/tabix/0.2.6/download/linux-64/{downloaded_tabix_file}", path=downloaded_tabix_path, stream=False)
 
                 logger.info(f"Downloaded tabix archive: {os.path.getsize(downloaded_tabix_path)} bytes")
 
