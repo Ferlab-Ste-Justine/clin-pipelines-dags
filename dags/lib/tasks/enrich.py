@@ -9,9 +9,28 @@ ENRICHED_MAIN_CLASS = 'bio.ferlab.clin.etl.enriched.RunEnriched'
 
 def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-enrich-snv',
         app_name: str = 'etl_enrich_snv', skip: str = '', **kwargs) -> SparkETLOperator:
+    
+    # we dont have the resources in PROD to enrich all chromosomes at once, we have to split
+    '''
+    if env == Env.PROD:
+        return SparkETLOperator.partial(
+            entrypoint='snv',
+            task_id=task_id,
+            name=name,
+            steps='default',
+            app_name=app_name,
+            spark_class=ENRICHED_MAIN_CLASS,
+            spark_config='config-etl-large',
+            spark_jar=spark_jar,
+            skip=skip,
+             max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
+            **kwargs
+        ).expand(chromosome=chromosomes)
+    else :
+    '''
     return SparkETLOperator(
         entrypoint='snv',
-        task_id=task_id,
+        task_id=task_id + '_all',
         name=name,
         steps=steps,
         app_name=app_name,
