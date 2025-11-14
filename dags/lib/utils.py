@@ -22,8 +22,8 @@ def http_get(url: str, headers: Any = None) -> requests.Response:
         return response
 
 
-def http_get_file(url: str, path: str, headers: Any = None, chunk_size: int = 8192, md5: str = None, stream=True, **kwargs) -> None:
-    with requests.get(url, headers=headers, stream=stream, **kwargs) as response:
+def http_get_file(url: str, path: str, headers: Any = None, chunk_size: int = 8192, md5: str = None, **kwargs) -> None:
+    with requests.get(url, headers=headers, stream=True, **kwargs) as response:
         response.raise_for_status()
         with open(path, 'wb') as file:
             for chunk in response.iter_content(chunk_size):

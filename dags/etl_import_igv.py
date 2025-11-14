@@ -52,11 +52,11 @@ with DAG(
     '''
 
     @task.bash(task_id='download', cwd=work_dir())
-    def download(url: str, ) -> str:
+    def download(url: str) -> str:
         return f"curl -f -O {url}"
     
     @task.bash(task_id='sanitize', cwd=work_dir())
-    def sanitize(file_name: str, ) -> str:
+    def sanitize(file_name: str) -> str:
         # the files, even being .gz need to be bzipped explicitly for tabix
         unzip = f"gzip -d {file_name}" # note: that command delete the original file, perfeclty fine
         bzip = f"{bgzip_path} -f {file_name.removesuffix('.gz')}"
@@ -87,7 +87,7 @@ with DAG(
                 downloaded_tabix_file = "tabix-0.2.6-ha92aebf_0.tar.bz2"
                 downloaded_tabix_path = f"{tabix_dir}/{downloaded_tabix_file}"
 
-                http_get_file(url=f"https://anaconda.org/bioconda/tabix/0.2.6/download/linux-64/{downloaded_tabix_file}", path=downloaded_tabix_path, stream=False)
+                http_get_file(url=f"https://anaconda.org/bioconda/tabix/0.2.6/download/linux-64/{downloaded_tabix_file}", path=downloaded_tabix_path)
 
                 logger.info(f"Downloaded tabix archive: {os.path.getsize(downloaded_tabix_path)} bytes")
 
