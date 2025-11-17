@@ -16,6 +16,7 @@ ddd_dag = PublicSourceDag(
     name='ddd',
     display_name="Gene2Phenotype",
     website="https://www.ebi.ac.uk/gene2phenotype/",
+    schedule='45 8 * * 6',  # every Saturday at 8:45am
 )
 
 with DAG(
