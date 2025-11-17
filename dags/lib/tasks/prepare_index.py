@@ -40,7 +40,7 @@ def variant_centric(spark_jar: str, skip: str = '', task_id: str = 'variant_cent
         steps='initial',
         app_name='etl_prepare_variant_centric',
         spark_class=PREPARE_INDEX_MAIN_CLASS,
-        spark_config='config-etl-xlarge',
+        spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
         **kwargs
