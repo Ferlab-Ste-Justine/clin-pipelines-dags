@@ -6,7 +6,7 @@ from lib.config_operators import nextflow_svclustering_base_config
 from lib.datasets import enriched_clinical
 from lib.operators.nextflow import NextflowOperator
 from lib.operators.spark_etl import SparkETLOperator
-from lib.config import Env, env
+
 
 
 @task.virtualenv(task_id='prepare_svclustering', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
@@ -23,6 +23,7 @@ def prepare():
     from lib.datasets import enriched_clinical
     from lib.utils_etl_tables import to_pandas
     from pandas import DataFrame
+    from lib.config import Env, env
 
     s3 = S3Hook(s3_conn_id)
     df: DataFrame = to_pandas(enriched_clinical.uri)
