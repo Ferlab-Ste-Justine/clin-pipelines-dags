@@ -58,7 +58,7 @@ def normalize_germline(
         run_svclustering_parental_origin = svclustering_parental_origin.run(batch_id, skip(skip_all, skip_nextflow))
 
         # Will still run if no input file but the normalization task is resilient
-        normalize_svclustering_parental_origin_task = svclustering_parental_origin.normalize(batch_id, spark_jar, skip(skip_all, skip_nextflow))
+        normalize_svclustering_parental_origin_task = svclustering_parental_origin.normalize(batch_id, analysis_ids, spark_jar, skip(skip_all, skip_nextflow))
 
         (prepare_svclustering_parental_origin_task >> check_svclustering_parental_origin_input_file_exists >>
          run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task)

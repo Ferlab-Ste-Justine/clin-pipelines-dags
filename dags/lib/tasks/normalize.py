@@ -25,7 +25,7 @@ def snv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis
     )
 
 
-def snv_somatic(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
+def snv_somatic(batch_id: str, analysis_ids: list, bioinfo_analysis_code: str, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
     return SparkETLOperator(
         entrypoint='snv_somatic',
         task_id='snv_somatic',
@@ -38,8 +38,10 @@ def snv_somatic(batch_id: str, analysis_ids: list, target_batch_types: List[Clin
         skip=skip,
         batch_id=batch_id,
         analysis_ids=analysis_ids,
+        bioinfo_analysis_code=bioinfo_analysis_code,
         target_batch_types=target_batch_types,
         detect_batch_type_task_id=detect_batch_type_task_id,
+        batch_id_deprecated=True
     )
 
 
@@ -58,6 +60,7 @@ def cnv(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis
         analysis_ids=analysis_ids,
         target_batch_types=target_batch_types,
         detect_batch_type_task_id=detect_batch_type_task_id,
+        batch_id_deprecated=True
     )
 
 
@@ -76,6 +79,7 @@ def cnv_somatic_tumor_only(batch_id: str, analysis_ids: list, target_batch_types
         analysis_ids=analysis_ids,
         target_batch_types=target_batch_types,
         detect_batch_type_task_id=detect_batch_type_task_id,
+        batch_id_deprecated=True
     )
 
 

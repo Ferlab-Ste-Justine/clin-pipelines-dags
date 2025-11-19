@@ -8,11 +8,13 @@ from lib.operators.nextflow import NextflowOperator
 from lib.operators.spark_etl import SparkETLOperator
 
 
+
 @task.virtualenv(task_id='prepare_svclustering', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
 def prepare():
     import io
     import logging
 
+    from airflow.exceptions import AirflowFailException
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from lib.config import s3_conn_id
     from lib.config_nextflow import (nextflow_bucket,
@@ -21,6 +23,7 @@ def prepare():
     from lib.datasets import enriched_clinical
     from lib.utils_etl_tables import to_pandas
     from pandas import DataFrame
+    from lib.config import Env, env
 
     s3 = S3Hook(s3_conn_id)
     df: DataFrame = to_pandas(enriched_clinical.uri)
@@ -37,6 +40,16 @@ def prepare():
         )[['sample', 'familyId', 'germline_vcf', 'somatic_vcf']]
         .drop_duplicates()
     )
+
+    duplicate_samples = prepared_df[prepared_df.duplicated(subset=['sample'], keep=False)]
+    if len(duplicate_samples) > 0:
+        duplicate_samples_log = f"Duplicate aliquot_ids: {sorted(duplicate_samples['sample'].unique())}"
+        if env == Env.QA:
+            logging.warning(duplicate_samples_log)
+            prepared_df = prepared_df.drop_duplicates(subset=['sample'], keep='first')
+        else:
+            raise AirflowFailException(duplicate_samples_log)
+
 
     germline_df = (
         prepared_df
