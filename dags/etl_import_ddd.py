@@ -22,7 +22,7 @@ ddd_dag = PublicSourceDag(
 with DAG(
     dag_id=ddd_dag.dag_id,
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule=ddd_dag.schedule,
     params=PublicSourceDag.params,
     default_args=PublicSourceDag.default_args,
     catchup=False,
