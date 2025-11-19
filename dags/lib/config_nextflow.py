@@ -40,7 +40,7 @@ nextflow_cnv_post_processing_params_file = f"{nextflow_cnv_post_processing_confi
 ##################################
 # Define nextflow revisions here #
 ##################################
-nextflow_svclustering_revision = 'v1.3.2-clin'
+nextflow_svclustering_revision = 'v1.3.3-clin'
 nextflow_svclustering_parental_origin_revision = 'v1.1.1-clin'
 nextflow_post_processing_revision = 'v2.8.0'
 nextflow_cnv_post_processing_revision = 'v1.0.0'
