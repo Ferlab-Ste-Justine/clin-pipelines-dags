@@ -16,12 +16,13 @@ ddd_dag = PublicSourceDag(
     name='ddd',
     display_name="Gene2Phenotype",
     website="https://www.ebi.ac.uk/gene2phenotype/",
+    schedule='45 8 * * 6',  # every Saturday at 8:45am
 )
 
 with DAG(
     dag_id=ddd_dag.dag_id,
     start_date=datetime(2022, 1, 1),
-    schedule=None,
+    schedule=ddd_dag.schedule,
     params=PublicSourceDag.params,
     default_args=PublicSourceDag.default_args,
     catchup=False,
