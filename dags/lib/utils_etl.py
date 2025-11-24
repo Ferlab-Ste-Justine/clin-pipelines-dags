@@ -1,10 +1,10 @@
 import json
 from enum import Enum
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from airflow.decorators import task
-from airflow.models import DagRun
+from airflow.exceptions import AirflowSkipException
 from airflow.operators.python import get_current_context
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 import requests
@@ -82,6 +82,7 @@ def get_index_of_alias(alias_name: str):
 
     return index_name
 
+
 def get_color(index_name: str):
     if "blue" in index_name:
         return 'blue'
@@ -93,7 +94,7 @@ def get_color(index_name: str):
 def get_current_color() -> str:
     if env != Env.QA:
         raise Exception('get_current_color should only be used in QA environment')
-    
+
     gene_centric_index = get_index_of_alias('clin_qa_gene_centric')
     color = get_color(gene_centric_index)
 
@@ -102,6 +103,7 @@ def get_current_color() -> str:
     else:
         logging.info('No current color found')
     return color
+
 
 def skip_import(batch_param_name: str = 'batch_id') -> str:
     return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.import == "yes" %}}{{% else %}}yes{{% endif %}}'
@@ -224,7 +226,18 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
         'import': get_param(params, 'import', 'no'),
         'spark_jar': params['spark_jar'],
     }
-    
+
+
+@task(task_id='get_job_hash')
+def get_job_hash(analysis_ids: Set[str], skip: str) -> str:
+    """
+    Generate a unique hash for the job using the analysis IDs associated to the input sequencing IDs. The hash is used to name the input samplesheet file and the output directory in the nextflow post-processing pipeline.
+    """
+    if skip:
+        raise AirflowSkipException("Skipping job hash generation task.")
+    from lib.utils import urlsafe_hash
+    return urlsafe_hash(analysis_ids, length=14)  # 14 is safe for up to 1B hashes
+
 
 def _get_analysis_ids_compatible_with_type(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str) -> List[str]:
     analysis_ids_compatible_with_type = []
