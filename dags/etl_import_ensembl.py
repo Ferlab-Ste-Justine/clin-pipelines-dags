@@ -40,13 +40,22 @@ with DAG(
     dag_data = get_version()
 
     @task_group(group_id='download_files')
-    def download_files(dag_data: PublicSourceDag):        
+    def download_files(dag_data: PublicSourceDag): 
+        file_name_base = 'Homo_sapiens.GRCh38'
+
         @task(task_id='download_file')
         def download_file(dag_data: PublicSourceDag, type: str):
-            file_name_base = 'Homo_sapiens.GRCh38'
             dag_data.upload_file_if_new(
                 url=f'{ftp_url}/release-{dag_data.last_version}/tsv/homo_sapiens/{file_name_base}.{dag_data.last_version}.{type}.tsv.gz',
                 file_name=f'{file_name_base}.{type}.tsv.gz',
+                save_version=False
+            )
+
+        @task(task_id='download_gff_file')
+        def download_gff_file(dag_data: PublicSourceDag):
+            dag_data.upload_file_if_new(
+                url=f'{ftp_url}/release-{dag_data.last_version}/gff3/homo_sapiens/{file_name_base}.{dag_data.last_version}.gff3.gz',
+                file_name=f'{file_name_base}.gff3.gz',
                 save_version=False
             )
 
@@ -54,7 +63,7 @@ with DAG(
         def save_version(dag_data: PublicSourceDag):
             dag_data.save_version()
 
-        download_file.partial(dag_data=dag_data).expand(type=['ena', 'entrez', 'refseq', 'uniprot']) >> save_version(dag_data)
+        download_file.partial(dag_data=dag_data).expand(type=['ena', 'entrez', 'refseq', 'uniprot']) >> download_gff_file(dag_data) >> save_version(dag_data)
 
     table = SparkOperator(
         task_id='table',
