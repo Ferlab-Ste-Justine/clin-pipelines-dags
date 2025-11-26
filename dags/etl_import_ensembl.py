@@ -55,7 +55,7 @@ with DAG(
         def download_gff_file(dag_data: PublicSourceDag):
             dag_data.upload_file_if_new(
                 url=f'{ftp_url}/release-{dag_data.last_version}/gff3/homo_sapiens/{file_name_base}.{dag_data.last_version}.gff3.gz',
-                file_name=f'{file_name_base}.gff3.gz',
+                file_name=f'{file_name_base}.gff.gz',
                 save_version=False
             )
 
