@@ -44,7 +44,7 @@ with DAG(
 
     table = SparkOperator(
         task_id='table',
-        name='etl_import_gnomad_v4_cnv',
+        name='etl_import_gnomad_v4_sv',
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.datalake.spark3.publictables.ImportPublicTable',
         spark_config='config-etl-small',
