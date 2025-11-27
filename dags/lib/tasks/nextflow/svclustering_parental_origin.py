@@ -1,5 +1,4 @@
 from typing import Set
-import io
 
 from airflow.decorators import task
 from lib.config_nextflow import (
@@ -21,12 +20,16 @@ from lib.utils import SKIP_EXIT_CODE
 
 @task.virtualenv(skip_on_exit_code=SKIP_EXIT_CODE, task_id='prepare_svclustering_parental_origin', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
 def prepare(analysis_ids: Set[str], job_hash: str, skip: str = ''):
+    import io
     import sys
     import logging
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from pandas import DataFrame
 
     from lib.config import s3_conn_id
+    from lib.config_nextflow import nextflow_bucket, nextflow_svclustering_parental_origin_input_key
+    from lib.datasets import enriched_clinical
+    from lib.utils import SKIP_EXIT_CODE
     from lib.utils_etl_tables import to_pandas
 
     if skip:
