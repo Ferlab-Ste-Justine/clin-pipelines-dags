@@ -11,7 +11,7 @@ from lib.datasets import enriched_clinical
 from lib.operators.pipeline import PipelineOperator
 from lib.tasks.nextflow import cnv_post_processing, exomiser, post_processing
 from lib.utils import SKIP_EXIT_CODE
-from lib.utils_etl import color
+from lib.utils_etl import color, get_job_hash
 
 
 @task_group(group_id='nextflow_germline')
@@ -70,16 +70,6 @@ def nextflow_germline(analysis_ids: List[str]):
                                                               (filtered_df["clinical_signs"].str.len() == 0)), "sequencing_id"])
         if missing_clinical_signs_seq_ids:
             raise AirflowFailException(f"Some proband sequencing IDs don't have at least one associated clinical sign: {missing_clinical_signs_seq_ids}")
-
-    @task(task_id='get_job_hash')
-    def get_job_hash(analysis_ids: Set[str], skip: str) -> str:
-        """
-        Generate a unique hash for the job using the analysis IDs associated to the input sequencing IDs. The hash is used to name the input samplesheet file and the output directory in the nextflow post-processing pipeline.
-        """
-        if skip:
-            raise AirflowSkipException("Skipping job hash generation task.")
-        from lib.utils import urlsafe_hash
-        return urlsafe_hash(analysis_ids, length=14)  # 14 is safe for up to 1B hashes
 
     @task(task_id='prepare_exomiser_references_analysis_ids')
     def prepare_exomiser_references_analysis_ids(analysis_ids: Set[str], skip: str) -> str:

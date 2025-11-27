@@ -4,6 +4,8 @@ import json
 from typing import Any, List
 import re
 
+from airflow.decorators import task
+from airflow.exceptions import AirflowSkipException
 import requests
 
 
@@ -47,12 +49,12 @@ def file_md5(path: str, chunk_size: int = 8192) -> str:
         for chunk in iter(lambda: file.read(chunk_size), b''):
             md5.update(chunk)
         return md5.hexdigest()
-    
+
 
 def get_md5_from_url(url: str) -> dict:
     md5_text = http_get(url).text
     md5_hash = re.search('^([0-9a-f]+)', md5_text).group(1)
-    return { 'hash': md5_hash, 'text': md5_text }
+    return {'hash': md5_hash, 'text': md5_text}
 
 
 def urlsafe_hash(obj: Any, length: int) -> str:
@@ -60,3 +62,13 @@ def urlsafe_hash(obj: Any, length: int) -> str:
     hash_obj = hashlib.sha256(utf8_str).digest()
     base64_str = base64.urlsafe_b64encode(hash_obj).decode('utf-8').rstrip('=')  # Encoding to base64 allows for more compact representation (more bits per character)
     return base64_str[:length]
+
+
+@task.short_circuit(ignore_downstream_trigger_rules=False)
+def check_task_output_exists(task_output: str, skip: str):
+    """
+    Check if the task output is set. If not, the next task will be skipped.
+    """
+    if skip:
+        raise AirflowSkipException()
+    return bool(task_output)
