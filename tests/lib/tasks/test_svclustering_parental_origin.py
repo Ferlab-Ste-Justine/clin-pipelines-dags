@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from unittest.mock import patch
 
+from airflow.exceptions import AirflowFailException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 import pandas as pd
 import pytest
@@ -20,10 +21,6 @@ def test_prepare_should_include_expected_data(prepare, nextflow_bucket, clin_min
         {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '1',  'is_proband': True,  'father_aliquot_id': '2', 'mother_aliquot_id': '3', 'cnv_vcf_germline_urls': ['s3a://1.vcf']},
         {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '2',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://2.vcf']},
         {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '3',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://3.vcf']},
-
-        # (BAT1, SRA2) duplicated aliquot id (also in SRA1)
-        # note: this case apply only to QA
-        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '3',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://3.vcf']},
 
         # (BAT1, SRA2) trio analysis with siblings
         {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '11',  'is_proband': True,  'father_aliquot_id': '22', 'mother_aliquot_id': "33", 'cnv_vcf_germline_urls': ['s3a://11.vcf']},
@@ -56,7 +53,7 @@ def test_prepare_should_include_expected_data(prepare, nextflow_bucket, clin_min
         assert output_url == expected_url
 
         uploaded_data = _read_samplesheet(expected_key, nextflow_bucket, clin_minio)
-        assert len(uploaded_data) == 11
+        assert len(uploaded_data) == 10
 
         # aliquot_id, analysis_id, vcf
         expected_data = sorted([
@@ -64,9 +61,6 @@ def test_prepare_should_include_expected_data(prepare, nextflow_bucket, clin_min
             SampleEntry(sample='1', familyId='SRA1', vcf='s3://1.vcf'),
             SampleEntry(sample='2', familyId='SRA1', vcf='s3://2.vcf'),
             SampleEntry(sample='3', familyId='SRA1', vcf='s3://3.vcf'),
-
-            # duplicated aliquot id (also in SRA1)
-            SampleEntry(sample='3', familyId='SRA2', vcf='s3://3.vcf'),
 
             # (BAT1, SRA2) trio analysis with siblings
             SampleEntry(sample='11', familyId='SRA2', vcf='s3://11.vcf'),
@@ -80,6 +74,72 @@ def test_prepare_should_include_expected_data(prepare, nextflow_bucket, clin_min
             SampleEntry(sample='222', familyId='SRA3', vcf='s3://222.vcf')
         ])
         assert uploaded_data == expected_data
+
+
+def test_prepare_should_remove_duplicated_samples_in_qa(clean_up_clin_minio, clin_minio, mock_clinical):
+    clinical_df = pd.DataFrame([
+        # (BAT1, SRA1, trio)
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '1',  'is_proband': True,  'father_aliquot_id': '2', 'mother_aliquot_id': '3', 'cnv_vcf_germline_urls': ['s3a://1.vcf']},
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '2',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://2.vcf']},
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '3',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://3.vcf']},
+
+        # (BAT1, SRA2) duplicated aliquot id (also in SRA1):
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '3',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://3.vcf']},
+
+        # (BAT1, SRA2): trio to make sure analysis SRA2 is retained
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '11',  'is_proband': True,  'father_aliquot_id': '22', 'mother_aliquot_id': "33", 'cnv_vcf_germline_urls': ['s3a://11.vcf']},
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '22',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://22.vcf']},
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '33',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://33.vcf']}
+    ])
+
+    with (
+        mock_clinical(clinical_df),
+        patch("lib.config.env", "qa"),  # simulating that we are in qa environment
+    ):
+        from dags.lib.tasks.nextflow.svclustering_parental_origin import prepare
+        from lib.config_nextflow import nextflow_bucket
+
+        output_url = prepare.function({'SRA1', 'SRA2'}, 'testhash')
+
+        expected_key = 'svclustering_parental_origin/input/testhash.samplesheet.csv'
+        expected_url = f"s3://{nextflow_bucket}/{expected_key}"
+        assert output_url == expected_url
+
+        uploaded_data = _read_samplesheet(expected_key, nextflow_bucket, clin_minio)
+        assert len(uploaded_data) == 6
+        expected_data = sorted([
+            # analysis SRA1, including aliquot 3 (kept)
+            SampleEntry(sample='1', familyId='SRA1', vcf='s3://1.vcf'),
+            SampleEntry(sample='2', familyId='SRA1', vcf='s3://2.vcf'),
+            SampleEntry(sample='3', familyId='SRA1', vcf='s3://3.vcf'),
+
+            # analysis SRA2 without aliquot 3 (drop because duplicated)
+            SampleEntry(sample='11', familyId='SRA2', vcf='s3://11.vcf'),
+            SampleEntry(sample='22', familyId='SRA2', vcf='s3://22.vcf'),
+            SampleEntry(sample='33', familyId='SRA2', vcf='s3://33.vcf'),
+        ])
+        assert uploaded_data == expected_data
+
+
+def test_prepare_should_throw_exception_if_duplicated_samples_outside_qa(prepare, mock_clinical):
+    clinical_df = pd.DataFrame([
+        # (BAT1, SRA1, trio)
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '1',  'is_proband': True,  'father_aliquot_id': '2', 'mother_aliquot_id': '3', 'cnv_vcf_germline_urls': ['s3a://1.vcf']},
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '2',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://2.vcf']},
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA1', 'aliquot_id': '3',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://3.vcf']},
+
+        # (BAT1, SRA2) duplicated aliquot id (also in SRA1):
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '3',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://3.vcf']},
+
+        # (BAT1, SRA2): trio to make sure analysis SRA2 is retained
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '11',  'is_proband': True,  'father_aliquot_id': '22', 'mother_aliquot_id': "33", 'cnv_vcf_germline_urls': ['s3a://11.vcf']},
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '22',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://22.vcf']},
+        {'batch_id': 'BAT1', 'bioinfo_analysis_code': 'GEBA', 'analysis_id': 'SRA2', 'aliquot_id': '33',  'is_proband': False, 'father_aliquot_id': None, 'mother_aliquot_id': None, 'cnv_vcf_germline_urls': ['s3a://33.vcf']}
+
+    ])
+    with mock_clinical(clinical_df):
+        with pytest.raises(AirflowFailException, match=r"Duplicate aliquot_ids: \['3'\]"):
+            prepare.function({'SRA1', 'SRA2'}, 'testhash')
 
 
 def test_prepare_should_not_write_file_if_no_cnv_urls(nextflow_bucket, prepare, clin_minio, mock_clinical):
