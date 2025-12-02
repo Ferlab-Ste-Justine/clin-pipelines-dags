@@ -20,7 +20,7 @@ def get_all_analysis_ids(analysis_ids: Optional[Set[str]] = None, sequencing_ids
     from lib.utils import SKIP_EXIT_CODE
     from lib.utils_etl_tables import get_analysis_ids, to_pandas
 
-    if skip:
+    if skip or (not analysis_ids and not sequencing_ids and not batch_ids and not batch_id):
         sys.exit(SKIP_EXIT_CODE)
 
     batch_ids = batch_ids if batch_ids else [batch_id] if batch_id and batch_id != "" else []
