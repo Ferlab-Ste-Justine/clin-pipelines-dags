@@ -9,7 +9,7 @@ ENRICHED_MAIN_CLASS = 'bio.ferlab.clin.etl.enriched.RunEnriched'
 
 def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-enrich-snv',
         app_name: str = 'etl_enrich_snv', skip: str = '', **kwargs) -> SparkETLOperator:
-    
+
     # we dont have the resources in PROD to enrich all chromosomes at once, we have to split
     '''
     if env == Env.PROD:
@@ -59,10 +59,10 @@ def snv_somatic_all(steps: str, spark_jar: str = '', task_id: str = 'snv_somatic
     )
 
 
-def snv_somatic(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: str = 'snv_somatic',
+def snv_somatic(analysis_ids: List[str], steps: str, spark_jar: str = '', task_id: str = 'snv_somatic',
                 name: str = 'etl-enrich-snv-somatic', app_name: str = 'etl_enrich_snv_somatic', skip: str = '',
                 target_batch_types: List[ClinAnalysis] = None, **kwargs):
-    return SparkETLOperator.partial(
+    return SparkETLOperator(
         entrypoint='snv_somatic',
         task_id=task_id,
         name=name,
@@ -70,12 +70,14 @@ def snv_somatic(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: 
         app_name=app_name,
         spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-medium',
+        analysis_ids=analysis_ids,
         spark_jar=spark_jar,
         skip=skip,
         target_batch_types=target_batch_types,
+        batch_id_deprecated=True,
         max_active_tis_per_dag=1,  # Prevent multiple executions at the same time
         **kwargs
-    ).expand(batch_id=batch_ids)
+    )
 
 
 def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'variants', name: str = 'etl-enrich-variants',
@@ -95,7 +97,7 @@ def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'varian
             max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
             **kwargs
         ).expand(chromosome=chromosomes)
-    else :
+    else:
         return SparkETLOperator(
             entrypoint='variants',
             task_id=task_id + '_all',
@@ -143,9 +145,9 @@ def cnv_all(steps: str, spark_jar: str = '', task_id: str = 'cnv_all', name: str
     )
 
 
-def cnv(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: str = 'cnv', name: str = 'etl-enrich-cnv',
+def cnv(analysis_ids: List[str], steps: str, spark_jar: str = '', task_id: str = 'cnv', name: str = 'etl-enrich-cnv',
         app_name: str = 'etl_enrich_cnv', skip: str = '', target_batch_types: List[ClinAnalysis] = None, **kwargs):
-    return SparkETLOperator.partial(
+    return SparkETLOperator(
         entrypoint='cnv',
         task_id=task_id,
         name=name,
@@ -153,12 +155,14 @@ def cnv(batch_ids: List[str], steps: str, spark_jar: str = '', task_id: str = 'c
         app_name=app_name,
         spark_class=ENRICHED_MAIN_CLASS,
         spark_config='config-etl-medium',
+        analysis_ids=analysis_ids,
         spark_jar=spark_jar,
         skip=skip,
         target_batch_types=target_batch_types,
+        batch_id_deprecated=True,
         max_active_tis_per_dag=1,  # Prevent multiple executions at the same time
         **kwargs
-    ).expand(batch_id=batch_ids)
+    )
 
 
 def coverage_by_gene(steps: str, spark_jar: str = '', task_id: str = 'coverage_by_gene',

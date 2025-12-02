@@ -1,14 +1,11 @@
 from datetime import datetime
-from typing import Dict, List
 
 from airflow import DAG
 from airflow.decorators import task, task_group
-from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
 from lib.config import Env, K8sContext, env
-from lib.groups.index.delete_previous_releases import delete_previous_releases
 from lib.groups.index.get_release_ids import get_release_ids
 from lib.groups.index.index import index
 from lib.groups.index.prepare_index import prepare_index
@@ -17,7 +14,7 @@ from lib.groups.qa import qa
 from lib.operators.notify import NotifyOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import batch_type, enrich, es, params
+from lib.tasks import batch_type, clinical, enrich, es, params
 from lib.tasks.batch_type import skip_if_no_batch_in
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
@@ -34,7 +31,7 @@ with DAG(
             'batch_ids': Param([], type=['null', 'array'],
                                description='Put a single batch id per line. Leave empty to skip ingest.'),
             'analysis_ids': Param([], type=['null', 'array'],
-                               description='Put a single id per line. Leave empty to skip ingest.'),
+                                  description='Put a single id per line. Leave empty to skip ingest.'),
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'import': Param('no', enum=['yes', 'no']),
@@ -59,10 +56,10 @@ with DAG(
 
     def skip_cnv_frequencies() -> str:
         return '{% if params.cnv_frequencies == "yes" %}{% else %}yes{% endif %}'
-    
+
     def skip_if_cnv_frequencies() -> str:
         return '{% if params.cnv_frequencies == "yes" %}yes{% else %}{% endif %}'
-    
+
     def skip_delete_previous_releases() -> str:
         return '{% if params.delete_previous_releases == "yes" %}{% else %}yes{% endif %}'
 
@@ -103,6 +100,17 @@ with DAG(
 
     @task_group(group_id='enrich')
     def enrich_group():
+        @task(task_id='skip_per_analysis_enrich')
+        def get_enrich_all(batch_ids, analysis_ids):
+            return not (batch_ids or analysis_ids)
+
+        # Whether to run enrich tasks on all data or only on provided analysis ids / batch ids
+        # Note that for now, only snv_somatic and cnv use this info as other enrich tasks always run on all data
+        get_enrich_all_task = get_enrich_all(get_batch_ids_task, get_analysis_ids_task)
+
+        # Applicable analysis ids (if batch ids or analysis ids provided)
+        get_all_analysis_ids_task = clinical.get_all_analysis_ids(analysis_ids=get_analysis_ids_task, batch_ids=get_batch_ids_task, skip=get_enrich_all_task)
+
         # Only run snv if at least one germline batch
         snv = enrich.snv(
             steps=steps,
@@ -113,28 +121,27 @@ with DAG(
         @task_group(group_id='snv_somatic')
         def snv_somatic_group():
             # Only run snv_somatic if at least one somatic tumor only or somatic tumor normal batch
-            # Run snv_somatic_all if no batch ids are provided. Otherwise, run snv_somatic for each batch_id.
+            # Run snv_somatic_all if no batch ids or analysis ids are provided. Otherwise, run snv_somatic on applicable analysis ids.
             @task.branch(task_id='run_snv_somatic')
-            def run_snv_somatic(batch_ids: List[str]):
-                if not batch_ids:
+            def run_snv_somatic(enrich_all: bool):
+                if enrich_all:
                     return 'enrich.snv_somatic.snv_somatic_all'
                 else:
                     return 'enrich.snv_somatic.snv_somatic'
 
-            run_snv_somatic_task = run_snv_somatic(batch_ids=get_batch_ids_task)
+            run_snv_somatic_task = run_snv_somatic(get_enrich_all_task)
             snv_somatic_target_types = [ClinAnalysis.SOMATIC_TUMOR_ONLY, ClinAnalysis.SOMATIC_TUMOR_NORMAL]
 
             snv_somatic_all = enrich.snv_somatic_all(
                 spark_jar=spark_jar(),
-                steps=steps,
-                skip=skip_if_no_batch_in(target_batch_types=snv_somatic_target_types)
+                steps=steps
             )
 
             snv_somatic = enrich.snv_somatic(
-                batch_ids=get_batch_ids_task,
+                analysis_ids=get_all_analysis_ids_task,
                 spark_jar=spark_jar(),
                 steps=steps,
-                target_batch_types=snv_somatic_target_types
+                skip=skip_if_no_batch_in(target_batch_types=snv_somatic_target_types)
             )
 
             run_snv_somatic_task >> [snv_somatic_all, snv_somatic]
@@ -142,24 +149,23 @@ with DAG(
         @task_group(group_id='cnv')
         def cnv_group():
             # Only run cnv if at least one germline or somatic tumor only batch
-            # Run cnv_all if no batch ids are provided. Otherwise, run cnv for each batch_id.
+            # Run cnv_all if no batch ids or analysis ids are provided. Otherwise, run cnv on applicable analysis ids.
             @task.branch(task_id='run_cnv')
-            def run_cnv(batch_ids: List[str]):
-                if not batch_ids or env == Env.PROD:
+            def run_cnv(enrich_all: bool):
+                if enrich_all or env == Env.PROD:
                     return 'enrich.cnv.cnv_all'
                 else:
-                    return 'enrich.cnv.cnv' # too complex for PROD, cnv_all works fine (for now)
+                    return 'enrich.cnv.cnv'  # too complex for PROD, cnv_all works fine (for now)
 
-            run_cnv_task = run_cnv(batch_ids=get_batch_ids_task)
+            run_cnv_task = run_cnv(get_enrich_all_task)
             cnv_target_types = [ClinAnalysis.GERMLINE, ClinAnalysis.SOMATIC_TUMOR_ONLY]
 
-            cnv_all = enrich.cnv_all(spark_jar=spark_jar(), steps=steps, skip=skip_if_no_batch_in(cnv_target_types) + skip_if_cnv_frequencies())
+            cnv_all = enrich.cnv_all(spark_jar=spark_jar(), steps=steps, skip=skip_if_cnv_frequencies())
             cnv = enrich.cnv(
-                batch_ids=get_batch_ids_task,
+                analysis_ids=get_all_analysis_ids_task,
                 spark_jar=spark_jar(),
                 steps=steps,
                 skip=skip_if_no_batch_in(cnv_target_types) + skip_if_cnv_frequencies(),
-                target_batch_types=cnv_target_types
             )
 
             run_cnv_task >> [cnv_all, cnv]
@@ -169,7 +175,7 @@ with DAG(
         consequences = enrich.consequences(spark_jar=spark_jar(), steps=steps)
         coverage_by_gene = enrich.coverage_by_gene(spark_jar=spark_jar(), steps=steps)
 
-        snv >> snv_somatic_group() >> variants >> consequences >> cnv_group() >> coverage_by_gene
+        get_all_analysis_ids_task >> snv >> snv_somatic_group() >> variants >> consequences >> cnv_group() >> coverage_by_gene
 
 
     prepare_group = prepare_index(
@@ -304,8 +310,8 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> detect_batch_types_task >> 
+    (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> detect_batch_types_task >>
      [get_ingest_dag_configs_by_batch_id_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
-     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >> 
+     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
      delete_previous_variant_centric_group() >> index_group >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >> notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
