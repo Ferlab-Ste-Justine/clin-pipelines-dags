@@ -23,6 +23,7 @@ def prepare(analysis_ids: Set[str], job_hash: str, skip: str = ''):
     import io
     import sys
     import logging
+    from airflow.exceptions import AirflowFailException
     from airflow.providers.amazon.aws.hooks.s3 import S3Hook
     from pandas import DataFrame
 
@@ -31,6 +32,7 @@ def prepare(analysis_ids: Set[str], job_hash: str, skip: str = ''):
     from lib.datasets import enriched_clinical
     from lib.utils import SKIP_EXIT_CODE
     from lib.utils_etl_tables import to_pandas
+    from lib.config import Env, env
 
     if skip:
         sys.exit(SKIP_EXIT_CODE)
@@ -52,9 +54,19 @@ def prepare(analysis_ids: Set[str], job_hash: str, skip: str = ''):
     }
     samples = df.rename(columns=column_map)[[*column_map.values()]]
     samples['vcf'] = samples['vcf'].str[0].str.replace('s3a://', 's3://', 1)
+    samples = samples.sort_values(by=['familyId', 'sample', 'vcf'])
     if samples.empty:
         logging.info(f"No applicable samples found for analyses {analysis_ids}, skipping svclustering_parental_origin preparation.")
         return ""
+
+    duplicate_samples = samples[samples.duplicated(subset=['sample'], keep=False)]
+    if len(duplicate_samples) > 0:
+        duplicate_samples_log = f"Duplicate aliquot_ids: {sorted(duplicate_samples['sample'].unique())}"
+        if env == Env.QA:
+            logging.warning(duplicate_samples_log)
+            samples = samples.drop_duplicates(subset=['sample'], keep='first')
+        else:
+            raise AirflowFailException(duplicate_samples_log)
 
     # Upload samplesheet CSV file to S3
     s3_key = nextflow_svclustering_parental_origin_input_key(job_hash)
