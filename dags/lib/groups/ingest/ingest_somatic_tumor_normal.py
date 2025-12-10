@@ -13,7 +13,7 @@ def ingest_somatic_tumor_normal(
         batch_type_detected: bool,
         color: str,
         skip_import: str,
-        skip_batch: str,
+        skip_post_import: str,
         skip_snv_somatic: str,
         skip_variants: str,
         skip_consequences: str,
@@ -34,7 +34,7 @@ def ingest_somatic_tumor_normal(
         color=color,
         skip_all=skip_all,
         skip_import=skip_import,
-        skip_batch=skip_batch,
+        skip_post_import=skip_post_import,
         spark_jar=spark_jar,
         import_main_class='bio.ferlab.clin.etl.SomaticNormalImport'
     )

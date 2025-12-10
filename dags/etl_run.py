@@ -49,7 +49,7 @@ with DAG(
         color=params_validate_color,
         skip_all=False,
         skip_import=True,  # Skipping because the data is already imported via the prescription API
-        skip_batch=False,
+        skip_post_import=False,
         spark_jar=spark_jar()
     )
 

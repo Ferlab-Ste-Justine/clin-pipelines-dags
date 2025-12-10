@@ -44,7 +44,7 @@ with DAG(
         color=color(),
         skip_all=False,
         skip_import=True,  # Skipping because we only want to run enrich_clinical
-        skip_batch=False,
+        skip_post_import=False,
         spark_jar=spark_jar()
     )
 

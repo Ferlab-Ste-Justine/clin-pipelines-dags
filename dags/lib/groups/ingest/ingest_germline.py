@@ -12,7 +12,7 @@ def ingest_germline(
         batch_type_detected: bool,
         color: str,
         skip_import: str,
-        skip_batch: str,
+        skip_post_import: str,
         skip_snv: str,
         skip_cnv: str,
         skip_variants: str,
@@ -38,7 +38,7 @@ def ingest_germline(
         color=color,
         skip_all=skip_all,
         skip_import=skip_import,
-        skip_batch=skip_batch,
+        skip_post_import=skip_post_import,
         spark_jar=spark_jar
     )
 

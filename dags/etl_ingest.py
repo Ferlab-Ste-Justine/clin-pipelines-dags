@@ -51,7 +51,7 @@ with DAG(
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
-        skip_batch='',  # always compute this batch (purpose of this dag)
+        skip_post_import='',  # always regenerate enrich clinical table
         skip_snv='',
         skip_cnv='',
         skip_variants='',
@@ -70,7 +70,7 @@ with DAG(
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
-        skip_batch='',  # always compute this batch (purpose of this dag)
+        skip_post_import='',  # always regenerate enrich clinical table
         skip_snv_somatic='',
         skip_cnv_somatic_tumor_only='',
         skip_variants='',
@@ -85,7 +85,7 @@ with DAG(
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
-        skip_batch='',  # always compute this batch (purpose of this dag)
+        skip_post_import='',  # always regenerate enrich clinical table
         skip_snv_somatic='',
         skip_variants='',
         skip_consequences='',
