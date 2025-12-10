@@ -3,7 +3,7 @@ from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.normalize.normalize_somatic_tumor_only import \
     normalize_somatic_tumor_only
 from lib.tasks import batch_type, clinical
-from lib.utils_etl import BioinfoAnalysisCode, ClinAnalysis
+from lib.utils_etl import BioinfoAnalysisCode, ClinAnalysis, skip
 
 
 @task_group(group_id='ingest_somatic_tumor_only')
@@ -19,6 +19,7 @@ def ingest_somatic_tumor_only(
         skip_variants: str,
         skip_consequences: str,
         skip_coverage_by_gene: str,
+        skip_batch: str,
         spark_jar: str
 ):
     skip_all = batch_type.skip(ClinAnalysis.SOMATIC_TUMOR_ONLY, batch_type_detected)
@@ -40,7 +41,12 @@ def ingest_somatic_tumor_only(
     )
 
     get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_id=batch_id, skip=skip_all)
-    get_analysis_ids_related_batch_task = clinical.get_analysis_ids_related_batch(bioinfo_analysis_code=BioinfoAnalysisCode.TEBA, analysis_ids=get_all_analysis_ids, batch_id=batch_id, skip=skip_all)
+    get_analysis_ids_related_batch_task = clinical.get_analysis_ids_related_batch(
+        bioinfo_analysis_code=BioinfoAnalysisCode.TEBA,
+        analysis_ids=get_all_analysis_ids,
+        batch_id=batch_id,
+        skip=skip(skip_all, skip_batch)
+    )
 
     normalize_somatic_tumor_only_group = normalize_somatic_tumor_only(
         batch_id=get_analysis_ids_related_batch_task,

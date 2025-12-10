@@ -75,13 +75,13 @@ with DAG(
         conf={
             'batch_ids': None,
             'analysis_ids': get_germline_analysis_ids_task,
-            'color':params_validate_color,
+            'color': params_validate_color,
             'import': 'no',
             'spark_jar': spark_jar(),
         }
     )
 
-    get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
+    get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task, skip_batch="yes").expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
 
     trigger_ingest_by_sequencing_ids_dags = TriggerDagRunOperator.partial(
         task_id='ingest_sequencing_ids',

@@ -13,7 +13,7 @@ from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params import get_analysis_ids
 from lib.tasks.params_validate import validate_batch_analysis_ids_color
-from lib.utils_etl import batch_id, color, skip_import, spark_jar
+from lib.utils_etl import batch_id, color, skip_batch, skip_import, spark_jar
 
 with DAG(
         dag_id='etl_ingest',
@@ -24,6 +24,7 @@ with DAG(
             'analysis_ids': Param([], type=['null', 'array']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
+            'skip_batch': Param('no', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         default_args={
@@ -61,6 +62,7 @@ with DAG(
         skip_coverage_by_gene='',
         skip_franklin='',
         skip_nextflow='',
+        skip_batch=skip_batch(),
         spark_jar=spark_jar()
     )
 
@@ -76,6 +78,7 @@ with DAG(
         skip_variants='',
         skip_consequences='',
         skip_coverage_by_gene='',
+        skip_batch=skip_batch(),
         spark_jar=spark_jar()
     )
 
@@ -90,6 +93,7 @@ with DAG(
         skip_variants='',
         skip_consequences='',
         skip_coverage_by_gene='',
+        skip_batch=skip_batch(),
         spark_jar=spark_jar()
     )
 
