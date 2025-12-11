@@ -98,7 +98,7 @@ with DAG(
         wait_for_completion=True,
     ).expand(conf=get_ingest_dag_configs_by_analysis_ids_task)
 
-    steps = default_or_initial(batch_param_name='batch_ids')
+    steps = default_or_initial(batch_param_name='batch_ids', analysis_param_name='analysis_ids')
 
     @task_group(group_id='enrich')
     def enrich_group():
