@@ -229,3 +229,369 @@ echo "Generated browser-ready files:"
 echo "1. Data file: ${SORTED_GFF3_GZ}"
 echo "2. Index file: ${SORTED_GFF3_GZ}.tbi"
 """
+
+ucsc_chainself = """#!/bin/bash
+
+# ==============================================================================
+# Script to download, convert, compress, and index the UCSC hg38 chainSelf file.
+#
+# This script performs the following steps:
+# 1. Checks for required dependencies (curl, awk, bgzip, tabix).
+# 2. Downloads the hg38 chainSelf.txt.gz file using curl.
+# 3. Streams the uncompressed data directly to an awk script for conversion
+#    to GFF3 format. This avoids writing the huge intermediate text file to disk.
+# 4. Compresses the resulting GFF3 file using bgzip.
+# 5. Creates a tabix index (.tbi) for the compressed GFF3 file.
+# 6. Cleans up the intermediate GFF3 file.
+# ==============================================================================
+
+# --- Configuration ---
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error when substituting.
+set -u
+# Pipes will fail if any command in the pipe fails, not just the last one.
+set -o pipefail
+
+# --- Variables ---
+URL="https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/chainSelf.txt.gz"
+GZ_FILE="chainSelf.txt.gz"
+GFF_FILE="hg38.chainSelf.gff3"
+
+# 2. Download the source file using curl
+echo -e "\n--> Step 1 of 4: Downloading source file..."
+if [ ! -f "$GZ_FILE" ]; then
+    # -L: Follow redirects
+    # -C -: Continue/resume a previously interrupted download
+    # -o: Write output to a file with the specified name
+    curl -L -C - -o "$GZ_FILE" "$URL"
+else
+    echo "File '$GZ_FILE' already exists. Skipping download."
+    echo "To re-download, please delete the existing file first."
+fi
+echo "Download complete."
+
+# 3. Uncompress, Convert to GFF3, and Save
+# We stream directly from gunzip to awk to avoid creating a massive intermediate file.
+# The source file is already sorted by chromosome and start position,
+# which is a requirement for tabix, so no extra sorting step is needed.
+echo -e "\n--> Step 2 of 4: Converting to GFF3 format (streaming)..."
+gunzip -c "$GZ_FILE" | awk '
+BEGIN {
+    # Set the output field separator to a tab
+    OFS="\t";
+
+    # Print the mandatory GFF3 header
+    print "##gff-version 3";
+}
+{
+    # Column mapping based on the provided SQL schema:
+    # $1: bin, $2: score, $3: tName, $4: tSize, $5: tStart, $6: tEnd
+    # $7: qName, $8: qSize, $9: qStrand, $10: qStart, $11: qEnd, $12: id, $13: normScore
+
+    # GFF3 Columns:
+    # 1. seqid:       Chromosome name ($3)
+    # 2. source:      A name for the tool/database.
+    # 3. type:        The type of feature.
+    # 4. start:       Start coordinate (1-based). UCSC is 0-based, so add 1.
+    # 5. end:         End coordinate (1-based).
+    # 6. score:       The alignment score ($2).
+    # 7. strand:      Use "." as the feature strand is not intrinsically defined.
+    #                 The query strand ($9) is stored in the attributes.
+    # 8. phase:       "." for non-coding features.
+    # 9. attributes:  Key-value pairs with extra info.
+
+    seqid = $3;
+    source = "UCSC_chainSelf";
+    type = "self_chain_alignment";
+    start = $5 + 1; # Convert 0-based start to 1-based
+    end = $6;
+    score = $2;
+    strand = ".";
+    phase = ".";
+
+    # Create a detailed attributes string
+    attributes = sprintf("ID=chainSelf_%s;score=%.f;normScore=%.2f;Target=%s %d %d;target_strand=%s", $12, $2, $13, $7, $10+1, $11, $9);
+
+    # Print the formatted GFF3 line
+    print seqid, source, type, start, end, score, strand, phase, attributes;
+}' > "$GFF_FILE"
+
+echo "Conversion to GFF3 complete. Output is in '$GFF_FILE'."
+"""
+
+ucsc_genomic_superdups = """#!/bin/bash
+
+# ==============================================================================
+# Script to download, convert, compress, and index the UCSC hg38
+# genomicSuperDups file.
+#
+# This script performs the following steps:
+# 1. Checks for required dependencies (curl, awk, bgzip, tabix).
+# 2. Downloads the hg38 genomicSuperDups.txt.gz file using curl.
+# 3. Streams the uncompressed data directly to an awk script for conversion
+#    to GFF3 format, avoiding a large intermediate file on disk.
+# 4. Compresses the resulting GFF3 file using bgzip.
+# 5. Creates a tabix index (.tbi) for the compressed GFF3 file.
+# ==============================================================================
+
+# --- Configuration ---
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error when substituting.
+set -u
+# Pipes will fail if any command in the pipe fails, not just the last one.
+set -o pipefail
+
+# --- Variables ---
+URL="https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/genomicSuperDups.txt.gz"
+GZ_FILE="genomicSuperDups.txt.gz"
+GFF_FILE="hg38.genomicSuperDups.gff3"
+
+# 2. Download the source file using curl
+echo -e "\n--> Step 1 of 4: Downloading source file..."
+if [ ! -f "$GZ_FILE" ]; then
+    # -L: Follow redirects
+    # -C -: Continue/resume a previously interrupted download
+    # -o: Write output to a file with the specified name
+    curl -L -C - -o "$GZ_FILE" "$URL"
+else
+    echo "File '$GZ_FILE' already exists. Skipping download."
+    echo "To re-download, please delete the existing file first."
+fi
+echo "Download complete."
+
+# 3. Uncompress, Convert to GFF3, and Save
+# We stream directly from gunzip to awk to avoid creating a massive intermediate file.
+# The source file is already sorted by chromosome and start position, a requirement
+# for tabix, so no extra sorting step is needed.
+echo -e "\n--> Step 2 of 4: Converting to GFF3 format (streaming)..."
+gunzip -c "$GZ_FILE" | awk '
+BEGIN {
+    # Set the output field separator to a tab
+    OFS="\t";
+
+    # Print the mandatory GFF3 header
+    print "##gff-version 3";
+}
+{
+    # Column mapping based on the provided SQL schema for genomicSuperDups:
+    # $2: chrom, $3: chromStart, $4: chromEnd, $5: name, $6: score, $7: strand
+    # $8: otherChrom, $9: otherStart, $10: otherEnd, $12: uid
+    # $19: alignL, $23: matchB, $24: mismatchB, $27: fracMatch, $28: fracMatchIndel
+
+    # GFF3 Columns:
+    # 1. seqid:       Chromosome name ($2)
+    # 2. source:      A name for the tool/database.
+    # 3. type:        The type of feature.
+    # 4. start:       Start coordinate (1-based). UCSC is 0-based, so add 1.
+    # 5. end:         End coordinate (1-based).
+    # 6. score:       The score ($6).
+    # 7. strand:      The strand ($7).
+    # 8. phase:       "." for non-coding features.
+    # 9. attributes:  Key-value pairs with extra info.
+
+    seqid = $2;
+    source = "UCSC_SuperDups";
+    type = "";
+    start = $3 + 1; # Convert 0-based start to 1-based
+    end = $4;
+    score = $6;
+    strand = $7;
+    phase = ".";
+
+    # Create a detailed attributes string with info about the duplicated region
+    # Note: otherStart ($9) is also 0-based, so we add 1 for a 1-based GFF representation.
+    # The ID is a unique, incrementing integer using awks NR (record number).
+    attributes = sprintf("ID=gsd_%d;Name=%s;Target=%s %d %d;frac_match=%.6f;frac_match_indel=%.6f;align_length=%d;match_bases=%d;mismatch_bases=%d", NR, $5, $8, $9+1, $10, $27, $28, $19, $23, $24);
+
+    # Print the formatted GFF3 line
+    print seqid, source, type, start, end, score, strand, phase, attributes;
+}' > "$GFF_FILE"
+
+echo "Conversion to GFF3 complete. Output is in '$GFF_FILE'."
+"""
+
+ucsc_repeat_masker = """#!/bin/bash
+
+# ==============================================================================
+# Script to download, convert, compress, and index the UCSC hg38 rmsk
+# (RepeatMasker) file.
+#
+# This script performs the following steps:
+# 1. Checks for required dependencies (curl, awk, bgzip, tabix).
+# 2. Downloads the hg38 rmsk.txt.gz file using curl.
+# 3. Streams the uncompressed data directly to an awk script for conversion
+#    to GFF3 format, avoiding a large intermediate file on disk.
+# 4. Compresses the resulting GFF3 file using bgzip.
+# 5. Creates a tabix index (.tbi) for the compressed GFF3 file.
+# ==============================================================================
+
+# --- Configuration ---
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error when substituting.
+set -u
+# Pipes will fail if any command in the pipe fails, not just the last one.
+set -o pipefail
+
+# --- Variables ---
+URL="https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/rmsk.txt.gz"
+GZ_FILE="rmsk.txt.gz"
+GFF_FILE="hg38.rmsk.gff3"
+
+# 2. Download the source file using curl
+echo -e "\n--> Step 1 of 4: Downloading source file..."
+if [ ! -f "$GZ_FILE" ]; then
+    # -L: Follow redirects
+    # -C -: Continue/resume a previously interrupted download
+    # -o: Write output to a file with the specified name
+    curl -L -C - -o "$GZ_FILE" "$URL"
+else
+    echo "File '$GZ_FILE' already exists. Skipping download."
+    echo "To re-download, please delete the existing file first."
+fi
+echo "Download complete."
+
+# 3. Uncompress, Convert to GFF3, and Save
+# We stream directly from gunzip to awk to avoid creating a massive intermediate file.
+# The source file is already sorted, so no extra sorting step is needed.
+echo -e "\n--> Step 2 of 4: Converting to GFF3 format (streaming)..."
+gunzip -c "$GZ_FILE" | awk '
+BEGIN {
+    # Set the output field separator to a tab
+    OFS="\t";
+
+    # Print the mandatory GFF3 header
+    print "##gff-version 3";
+}
+{
+    # Column mapping based on the provided SQL schema for rmsk:
+    # $2: swScore, $3: milliDiv, $4: milliDel, $5: milliIns
+    # $6: genoName, $7: genoStart, $8: genoEnd, $10: strand
+    # $11: repName, $12: repClass, $13: repFamily, $17: id
+
+    # GFF3 Columns:
+    # 1. seqid:       Chromosome name ($6)
+    # 2. source:      A name for the tool/database that generated the annotation.
+    # 3. type:        The type of feature, here we use the repeat class.
+    # 4. start:       Start coordinate (1-based). UCSC is 0-based, so add 1.
+    # 5. end:         End coordinate (1-based).
+    # 6. score:       The Smith-Waterman score ($2).
+    # 7. strand:      The strand ($10).
+    # 8. phase:       "." for non-coding features.
+    # 9. attributes:  Key-value pairs with extra info.
+
+    seqid = $6;
+    source = "RepeatMasker";
+    type = $12;
+    start = $7 + 1; # Convert 0-based start to 1-based
+    end = $8;
+    score = $2;
+    strand = $10;
+    phase = ".";
+
+    # Create a unique ID and a detailed attributes string
+    # ID is a simple auto-incrementing integer (NR)
+    attributes = sprintf("ID=rmsk_%d;Name=%s;rep_family=%s;milli_div=%d;milli_del=%d;milli_ins=%d", NR, $11, $13, $3, $4, $5);
+
+    # Print the formatted GFF3 line
+    print seqid, source, type, start, end, score, strand, phase, attributes;
+}' > "$GFF_FILE"
+
+echo "Conversion to GFF3 complete. Output is in '$GFF_FILE'."
+"""
+
+ucsc_simple_repeat ="""#!/bin/bash
+
+# ==============================================================================
+# Script to download, convert, compress, and index the UCSC hg38 simpleRepeat
+# (TRF) file.
+#
+# This script performs the following steps:
+# 1. Checks for required dependencies (curl, awk, bgzip, tabix).
+# 2. Downloads the hg38 simpleRepeat.txt.gz file using curl.
+# 3. Streams the uncompressed data directly to an awk script for conversion
+#    to GFF3 format, avoiding a large intermediate file on disk.
+# 4. Compresses the resulting GFF3 file using bgzip.
+# 5. Creates a tabix index (.tbi) for the compressed GFF3 file.
+# ==============================================================================
+
+# --- Configuration ---
+# Exit immediately if a command exits with a non-zero status.
+set -e
+# Treat unset variables as an error when substituting.
+set -u
+# Pipes will fail if any command in the pipe fails, not just the last one.
+set -o pipefail
+
+# --- Variables ---
+URL="https://hgdownload.soe.ucsc.edu/goldenPath/hg38/database/simpleRepeat.txt.gz"
+GZ_FILE="simpleRepeat.txt.gz"
+GFF_FILE="hg38.simpleRepeat.gff3"
+
+# 2. Download the source file using curl
+echo -e "\n--> Step 1 of 4: Downloading source file..."
+if [ ! -f "$GZ_FILE" ]; then
+    # -L: Follow redirects
+    # -C -: Continue/resume a previously interrupted download
+    # -o: Write output to a file with the specified name
+    curl -L -C - -o "$GZ_FILE" "$URL"
+else
+    echo "File '$GZ_FILE' already exists. Skipping download."
+    echo "To re-download, please delete the existing file first."
+fi
+echo "Download complete."
+
+# 3. Uncompress, Convert to GFF3, and Save
+# We stream directly from gunzip to awk to avoid creating a massive intermediate file.
+# The source file is already sorted, so no extra sorting step is needed.
+echo -e "\n--> Step 2 of 4: Converting to GFF3 format (streaming)..."
+gunzip -c "$GZ_FILE" | awk '
+BEGIN {
+    # Set the output field separator to a tab
+    OFS="\t";
+
+    # Print the mandatory GFF3 header
+    print "##gff-version 3";
+
+    # Initialize a counter for unique IDs
+    id_counter = 0;
+}
+{
+    # Column mapping based on the provided SQL schema for simpleRepeat:
+    # $2: chrom, $3: chromStart, $4: chromEnd, $5: name, $6: period, $7: copyNum
+    # $11: score, $16: entropy, $17: sequence
+
+    # GFF3 Columns:
+    # 1. seqid:       Chromosome name ($2)
+    # 2. source:      Tool that generated the annotation ($5, usually "trf").
+    # 3. type:        The type of feature. "tandem_repeat" is appropriate.
+    # 4. start:       Start coordinate (1-based). UCSC is 0-based, so add 1.
+    # 5. end:         End coordinate (1-based).
+    # 6. score:       The TRF score ($11).
+    # 7. strand:      Not defined for this feature type, so use ".".
+    # 8. phase:       "." for non-coding features.
+    # 9. attributes:  Key-value pairs with extra info.
+
+    seqid = $2;
+    source = $5; # Usually "trf" for Tandem Repeats Finder
+    type = "";
+    start = $3 + 1; # Convert 0-based start to 1-based
+    end = $4;
+    score = $11;
+    strand = ".";
+    phase = ".";
+
+    # Increment the counter for a new unique ID
+    id_counter++;
+
+    # Create a unique ID and a detailed attributes string
+    attributes = sprintf("ID=trf_%d;period=%d;copy_num=%.1f;entropy=%.2f;consensus_sequence=%s", id_counter, $6, $7, $16, $17);
+
+    # Print the formatted GFF3 line
+    print seqid, source, type, start, end, score, strand, phase, attributes;
+}' > "$GFF_FILE"
+
+echo "Conversion to GFF3 complete. Output is in '$GFF_FILE'."
+"""

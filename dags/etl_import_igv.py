@@ -174,6 +174,50 @@ with DAG(
         
         download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
 
+    @task_group(group_id='ucsc_chainself')
+    def ucsc_chainself():
+
+        file = "hg38.chainSelf.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.ucsc_chainself
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
+    @task_group(group_id='ucsc_genomic_superdups')
+    def ucsc_genomic_superdups():
+
+        file = "hg38.genomicSuperDups.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.ucsc_genomic_superdups
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
+    @task_group(group_id='ucsc_repeat_masker')
+    def ucsc_repeat_masker():
+
+        file = "hg38.rmsk.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.ucsc_repeat_masker
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
+    @task_group(group_id='ucsc_simple_repeat')
+    def ucsc_simple_repeat():
+
+        file = "hg38.simpleRepeat.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.ucsc_simple_repeat
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
     @task.bash(task_id='cleanup')
     def cleanup(work_dir: str) -> str:
         # mostly for debuging purpose but could be useful for monitoring
@@ -188,4 +232,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    start_task >> prepare_group() >> [dgv_gold_standard_group(), clinvar_nstd102_group(), clinvar_snv_group(), gnomad_4_1_structural_variants(), gnomad_4_1_cnv(), clingen_gene_dosage_sensitivity(), clingen_region_dosage_sensitivity()] >> cleanup(work_dir=work_dir()) >> end_task
+    start_task >> prepare_group() >> [dgv_gold_standard_group(), clinvar_nstd102_group(), clinvar_snv_group(), gnomad_4_1_structural_variants(), gnomad_4_1_cnv(), clingen_gene_dosage_sensitivity(), clingen_region_dosage_sensitivity(), ucsc_chainself(), ucsc_genomic_superdups(), ucsc_repeat_masker(), ucsc_simple_repeat()] >> cleanup(work_dir=work_dir()) >> end_task
