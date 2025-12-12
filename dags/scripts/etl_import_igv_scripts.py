@@ -127,3 +127,105 @@ head -n 5 "${OUTPUT_FILE}.gff3"
 
 (grep '^#' "${OUTPUT_FILE}.gff3"; grep -v '^#' "${OUTPUT_FILE}.gff3" | sort -k1,1 -k4,4n) > "${OUTPUT_FILE}.sorted.gff3"
 """
+
+clingen_region_dosage_sensitivity = """#!/bin/bash
+
+# A script to download and convert the ClinGen Region Curation list (GRCh38)
+# into a sorted, indexed GFF3 file.
+#
+# This prepares the file for client-side coloring in IGV.js via the `colorBy`
+# option, creating a 'haploinsufficiency_description' attribute. It does NOT
+# embed color information directly into the file.
+
+# --- Script Configuration ---
+set -e
+set -u
+#set -o pipefail
+
+# --- File Configuration ---
+URL="ftp.clinicalgenome.org/ClinGen_region_curation_list_GRCh38.tsv"
+BASE_FILENAME="ClinGen_region_curation_list_GRCh38"
+UNSORTED_GFF3="${BASE_FILENAME}.unsorted.gff3"
+SORTED_GFF3_GZ="${BASE_FILENAME}.sorted.gff3.gz"
+
+echo "### Starting ClinGen Region TSV to GFF3 conversion..."
+
+# --- Main Logic: Download and Convert to Unsorted GFF3 ---
+curl -sL "${URL}" | grep -v '^#' | awk '
+BEGIN {
+    FS="\t";
+    OFS="\t";
+    print "##gff-version 3";
+    print "# Converted from ClinGen Region Curation List (GRCh38)";
+    print "# Original file: ftp.clinicalgenome.org/ClinGen_region_curation_list_GRCh38.tsv";
+}
+# Process every non-empty line
+NF > 0 {
+    # The input columns from the TSV file are:
+    # $1: ISCA ID
+    # $2: ISCA Region Name
+    # $3: cytoBand
+    # $4: Genomic Location (e.g., "chr16:16762939-18071284" or "tbd")
+    # $5: Haploinsufficiency Score
+    # $6: Haploinsufficiency Description
+    # ... and so on
+
+    # --- Parse required GFF3 columns ---
+    split($4, location, /[:-]/);
+    seqid = location[1];
+    start = location[2];
+    end   = location[3];
+
+    # Basic validation: Skip line if location is "tbd" or malformed.
+    # The regex check `!~ /^[0-9]+$/` correctly fails for "tbd".
+    if (seqid == "" || start !~ /^[0-9]+$/ || end !~ /^[0-9]+$/) {
+        print "WARNING: Skipping line with invalid or missing location data: " $0 > "/dev/stderr";
+        next;
+    }
+
+    # --- Build the GFF3 attributes column (column 9) ---
+
+    # ID must be unique. ISCA ID ($1) is perfect for this.
+    # Name is the human-readable name. ISCA Region Name ($2) is best.
+    # We must sanitize the name for use as an attribute value.
+    name_attr = $2;
+    gsub(/ /, "_", name_attr);      # Replace spaces with underscores
+    gsub(/[();,]/, "", name_attr); # Remove common problematic characters
+
+    attributes = "ID=" $1 ";Name=" name_attr;
+
+    # Sanitize the description fields for use as attribute values.
+    haplo_desc_attr = $6; gsub(/ /, "_", haplo_desc_attr);
+    triplo_desc_attr = $14; gsub(/ /, "_", triplo_desc_attr);
+
+    # Add other relevant TSV fields as custom attributes, only if they have a value.
+    attributes = attributes ";isca_id=" $1;
+    if ($3 != "") { attributes = attributes ";cytoband=" $3; }
+    if ($5 != "") { attributes = attributes ";haploinsufficiency_score=" $5; }
+    if ($6 != "") { attributes = attributes ";haploinsufficiency_description=" haplo_desc_attr; }
+    if ($13 != "") { attributes = attributes ";triplosensitivity_score=" $13; }
+    if ($14 != "") { attributes = attributes ";triplosensitivity_description=" triplo_desc_attr; }
+    if ($21 != "") { attributes = attributes ";date_last_evaluated=" $21; }
+    if ($22 != "") { attributes = attributes ";haploinsufficiency_disease_id=" $22; }
+    if ($23 != "") { attributes = attributes ";triplosensitivity_disease_id=" $23; }
+
+    # --- Print the final GFF3 line ---
+    # The feature type (column 3) is now "region".
+    print seqid, "ClinGen", "region", start, end, ".", ".", ".", attributes;
+}
+' > "${UNSORTED_GFF3}"
+
+echo "### Conversion complete. Now sorting and indexing..."
+
+# Sort, compress with bgzip, and index with tabix
+(grep '^#' "${UNSORTED_GFF3}"; grep -v '^#' "${UNSORTED_GFF3}" | sort -k1,1 -k4,4n) > "${BASE_FILENAME}.sorted.gff3"
+
+# Cleanup
+rm "${UNSORTED_GFF3}"
+
+echo
+echo "### Success!"
+echo "Generated browser-ready files:"
+echo "1. Data file: ${SORTED_GFF3_GZ}"
+echo "2. Index file: ${SORTED_GFF3_GZ}.tbi"
+"""
