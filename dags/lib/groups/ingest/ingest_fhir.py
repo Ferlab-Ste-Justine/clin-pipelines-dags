@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from airflow.decorators import task_group
 from lib.config import K8sContext, config_file, env
@@ -15,11 +15,11 @@ def ingest_fhir(
         color: str,
         skip_all: str,
         skip_import: str,
-        skip_batch: str,
+        skip_post_import: str,
         spark_jar: str,
         import_main_class: str = 'bio.ferlab.clin.etl.FileImport'
 ):
-    
+
     prepare_expand_batch_ids_task = prepare_expand_batch_ids(batch_ids, skip(skip_all, skip_import))
 
     fhir_import = PipelineFhirImportOperator.partial(
@@ -37,7 +37,7 @@ def ingest_fhir(
         k8s_context=K8sContext.DEFAULT,
         aws_bucket=f'cqgc-{env}-app-datalake',
         color=color,
-        skip=skip(skip_all, skip_batch),
+        skip=skip(skip_all, skip_post_import),
         arguments=[
             'bio.ferlab.clin.etl.FhirExport', 'all',
         ],
@@ -49,7 +49,7 @@ def ingest_fhir(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.fhir.FhirRawToNormalized',
         spark_config='config-etl-large',
-        skip=skip(skip_all, skip_batch),
+        skip=skip(skip_all, skip_post_import),
         spark_jar=spark_jar,
         arguments=[
             '--config', config_file,
@@ -65,7 +65,7 @@ def ingest_fhir(
         k8s_context=K8sContext.ETL,
         spark_class='bio.ferlab.clin.etl.fhir.EnrichedClinical',
         spark_config='config-etl-large',
-        skip=skip(skip_all, skip_batch),
+        skip=skip(skip_all, skip_post_import),
         spark_jar=spark_jar,
         arguments=[
             '--config', config_file,

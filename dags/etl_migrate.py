@@ -2,7 +2,6 @@ from datetime import datetime
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.models import DagRun
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import get_current_context
@@ -50,7 +49,7 @@ with DAG(
         color=color(),
         skip_all='',
         skip_import='yes',  # always skip import, not the purpose of that dag
-        skip_batch='',  # we want to do fhir normalized once
+        skip_post_import='',  # we want to do fhir normalized once
         spark_jar=spark_jar(),
     )
 
@@ -60,7 +59,7 @@ with DAG(
         params = context["params"]
         return {
             'batch_id': batch_id,
-            'export_fhir': 'no', # export already done here, required if etl_migrate_batch is launch manually
+            'export_fhir': 'no',  # export already done here, required if etl_migrate_batch is launch manually
             'color': params['color'],
             'snv': params['snv'],
             'snv_somatic': params['snv_somatic'],
