@@ -12,6 +12,7 @@ from lib.slack import Slack
 from lib.utils_s3 import http_get_file
 from lib.tasks.public_data import s3, s3_public_bucket
 from lib.utils import http_get_file
+from scripts import etl_import_igv_scripts
 import tarfile
 
 logger = logging.getLogger(__name__)
@@ -56,9 +57,9 @@ with DAG(
         return f"curl -f -O {url}"
     
     @task.bash(task_id='sanitize', cwd=work_dir())
-    def sanitize(file_name: str) -> str:
+    def sanitize(file_name: str, unzip: bool = True) -> str:
         # the files, even being .gz need to be bzipped explicitly for tabix
-        unzip = f"gzip -d {file_name}" # note: that command delete the original file, perfeclty fine
+        unzip = f"gzip -d {file_name}" if (unzip) else "echo \"unzip=False\"" # note: that command delete the original file, perfeclty fine
         bzip = f"{bgzip_path} -f {file_name.removesuffix('.gz')}"
         tabix = f"{tabix_path} -p gff {file_name}"
         return unzip + " && " + bzip + " && " + tabix
@@ -151,6 +152,72 @@ with DAG(
         
         download(url=f"https://storage.googleapis.com/gcp-public-data--gnomad/release/4.1/exome_cnv/{file}") >> sanitize(file_name=file) >> save(file_name=file, work_dir=work_dir())
 
+    @task_group(group_id='clingen_gene_dosage_sensitivity')
+    def clingen_gene_dosage_sensitivity():
+
+        file = "ClinGen_gene_curation_list_GRCh38.sorted.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.clingen_gene_dosage_sensitivity
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
+    @task_group(group_id='clingen_region_dosage_sensitivity')
+    def clingen_region_dosage_sensitivity():
+
+        file = "ClinGen_region_curation_list_GRCh38.sorted.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.clingen_region_dosage_sensitivity
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
+    @task_group(group_id='ucsc_chainself')
+    def ucsc_chainself():
+
+        file = "hg38.chainSelf.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.ucsc_chainself
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
+    @task_group(group_id='ucsc_genomic_superdups')
+    def ucsc_genomic_superdups():
+
+        file = "hg38.genomicSuperDups.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.ucsc_genomic_superdups
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
+    @task_group(group_id='ucsc_repeat_masker')
+    def ucsc_repeat_masker():
+
+        file = "hg38.rmsk.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.ucsc_repeat_masker
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
+    @task_group(group_id='ucsc_simple_repeat')
+    def ucsc_simple_repeat():
+
+        file = "hg38.simpleRepeat.gff3.gz"
+
+        @task.bash(task_id='download_and_convert', cwd=work_dir())
+        def download_and_convert() -> str:
+            return etl_import_igv_scripts.ucsc_simple_repeat
+        
+        download_and_convert() >> sanitize(file_name=file, unzip=False) >> save(file_name=file, work_dir=work_dir())
+
     @task.bash(task_id='cleanup')
     def cleanup(work_dir: str) -> str:
         # mostly for debuging purpose but could be useful for monitoring
@@ -165,4 +232,4 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion
     )
 
-    start_task >> prepare_group() >> [dgv_gold_standard_group(), clinvar_nstd102_group(), clinvar_snv_group(), gnomad_4_1_structural_variants(), gnomad_4_1_cnv()] >> cleanup(work_dir=work_dir()) >> end_task
+    start_task >> prepare_group() >> [dgv_gold_standard_group(), clinvar_nstd102_group(), clinvar_snv_group(), gnomad_4_1_structural_variants(), gnomad_4_1_cnv(), clingen_gene_dosage_sensitivity(), clingen_region_dosage_sensitivity(), ucsc_chainself(), ucsc_genomic_superdups(), ucsc_repeat_masker(), ucsc_simple_repeat()] >> cleanup(work_dir=work_dir()) >> end_task
