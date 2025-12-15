@@ -110,11 +110,11 @@ def skip_import(batch_param_name: str = 'batch_id') -> str:
 
 
 def skip_batch() -> str:
-    return '{% if params.batch_id and params.batch_id|length %}{% else %}yes{% endif %}'
+    return '{% if params.skip_batch == "yes" %}yes{% else %}{% endif %}'
 
 
-def default_or_initial(batch_param_name: str = 'batch_id') -> str:
-    return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length %}}default{{% else %}}initial{{% endif %}}'
+def default_or_initial(batch_param_name: str = 'batch_ids', analysis_param_name: str = 'analysis_ids') -> str:
+    return f'{{% if (params.{batch_param_name} and params.{batch_param_name}|length) or (params.{analysis_param_name} and params.{analysis_param_name}|length)%}}default{{% else %}}initial{{% endif %}}'
 
 
 def skip_notify(batch_param_name: str = 'batch_id') -> str:
@@ -209,7 +209,7 @@ def get_germline_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: Lis
 
 
 @task(task_id='get_ingest_dag_configs_by_analysis_ids')
-def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str) -> dict:
+def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str, skip_batch: str = 'no') -> dict:
     context = get_current_context()
     params = context["params"]
 
@@ -224,6 +224,7 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
         'analysis_ids': analysis_ids_compatible_with_type,
         'color': params['color'],
         'import': get_param(params, 'import', 'no'),
+        'skip_batch': skip_batch,
         'spark_jar': params['spark_jar'],
     }
 

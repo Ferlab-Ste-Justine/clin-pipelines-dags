@@ -1,12 +1,9 @@
 from datetime import datetime
 
 from airflow import DAG
-from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
-from airflow.utils.task_group import TaskGroup
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import batch_ids
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.migrate.migrate_germline import migrate_germline
 from lib.groups.migrate.migrate_somatic_tumor_normal import \
@@ -16,7 +13,7 @@ from lib.groups.migrate.migrate_somatic_tumor_only import \
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import batch_id, color, get_group_id, spark_jar
+from lib.utils_etl import batch_id, color, spark_jar
 
 with DAG(
         dag_id='etl_migrate_batch',
@@ -51,7 +48,7 @@ with DAG(
 
     def skip_export_fhir() -> str:
         return format_skip_condition('export_fhir')
-    
+
     def skip_snv() -> str:
         return format_skip_condition('snv')
 
@@ -78,11 +75,11 @@ with DAG(
 
     def skip_exomiser() -> str:
         return format_skip_condition('exomiser')
-    
-    
+
+
     def skip_exomiser_cnv() -> str:
         return format_skip_condition('exomiser_cnv')
-    
+
 
     def skip_coverage_by_gene() -> str:
         return format_skip_condition('coverage_by_gene')
@@ -105,7 +102,7 @@ with DAG(
         color=color(),
         skip_all=skip_export_fhir(),
         skip_import='yes',  # always skip import, not the purpose of that dag
-        skip_batch='',  # we want to do fhir normalized once
+        skip_post_import='',  # always regenerate enrich clinical table
         spark_jar=spark_jar(),
     )
 
@@ -145,8 +142,8 @@ with DAG(
     )
 
     detect_batch_type_task >> [migrate_germline_group,
-                                migrate_somatic_tumor_only_group,
-                                migrate_somatic_tumor_normal_group]
+                               migrate_somatic_tumor_only_group,
+                               migrate_somatic_tumor_normal_group]
 
     slack = EmptyOperator(
         task_id="slack",

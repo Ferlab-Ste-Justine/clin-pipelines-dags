@@ -3,7 +3,7 @@ from typing import List
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowFailException, AirflowSkipException
+from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
@@ -13,7 +13,7 @@ from lib.groups.franklin.franklin_update import franklin_update
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.slack import Slack
 from lib.tasks import batch_type, clinical, params, params_validate
-from lib.utils_etl import (ClinAnalysis, ClinSchema, color, skip_import,
+from lib.utils_etl import (ClinAnalysis, color, skip_import,
                            spark_jar)
 
 with DAG(
@@ -48,7 +48,7 @@ with DAG(
         color=color,
         skip_all='',  # Always run
         skip_import=skip_import(batch_param_name='batch_ids'),
-        skip_batch='',  # Always compute these batches
+        skip_post_import='',  # Always run enrich clinical steps
         spark_jar=spark_jar()
     )
 
