@@ -40,10 +40,13 @@ nextflow_cnv_post_processing_params_file = f"{nextflow_cnv_post_processing_confi
 ##################################
 # Define nextflow revisions here #
 ##################################
-nextflow_svclustering_revision = 'v1.3.3-clin'
-nextflow_svclustering_parental_origin_revision = 'v1.1.1-clin'
+nextflow_svclustering_revision = 'v1.3.4-clin'
+
+nextflow_svclustering_parental_origin_revision = 'v1.1.3-clin'
+
 nextflow_post_processing_revision = 'v2.8.0'
 nextflow_cnv_post_processing_revision = 'v1.0.0'
+
 
 #######################################
 # Define nextflow pipeline names here #
@@ -65,10 +68,10 @@ nextflow_svclustering_somatic_input_key = 'svclustering/input/somatic.sampleshee
 nextflow_svclustering_germline_output_key = 'svclustering/output/germline'
 nextflow_svclustering_somatic_output_key = 'svclustering/output/somatic'
 
-nextflow_svclustering_parental_origin_input_key = lambda batch_id: \
-    f'svclustering_parental_origin/input/{batch_id}/{batch_id}.csv'
-nextflow_svclustering_parental_origin_output_key = lambda batch_id: \
-    f'svclustering_parental_origin/output/{batch_id}'
+nextflow_svclustering_parental_origin_input_key = lambda _hash: f'svclustering_parental_origin/input/{_hash}.samplesheet.csv'
+nextflow_svclustering_parental_origin_info_output_key = lambda _hash: f'svclustering_parental_origin/output/runs/{_hash}'  # _hash here can be a template
+nextflow_svclustering_parental_origin_dup_output_key = 'svclustering_parental_origin/output/svclusteringdup'
+nextflow_svclustering_parental_origin_del_output_key = 'svclustering_parental_origin/output/svclusteringdel'
 
 nextflow_post_processing_input_key = lambda _hash: f'post_processing/input/{_hash}.samplesheet.csv'
 nextflow_post_processing_info_output_key = lambda _hash: f'post_processing/output/runs/{_hash}'  # _hash here can be a template

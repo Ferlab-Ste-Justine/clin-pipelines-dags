@@ -1,13 +1,9 @@
-from typing import List
-
 from airflow.decorators import task_group
-from lib import utils_nextflow
-from lib.config_nextflow import (
-    nextflow_bucket, nextflow_svclustering_parental_origin_input_key)
 from lib.groups.franklin.franklin_update import franklin_update
 from lib.tasks import normalize
 from lib.tasks.nextflow import svclustering_parental_origin
-from lib.utils_etl import BioinfoAnalysisCode, ClinAnalysis, skip
+from lib.utils import check_task_output_exists
+from lib.utils_etl import BioinfoAnalysisCode, ClinAnalysis, get_job_hash, skip
 
 
 @task_group(group_id='normalize')
@@ -20,14 +16,14 @@ def normalize_germline(
         skip_variants: str,
         skip_consequences: str,
         skip_exomiser: str,
-        skip_exomiser_cnv: str ,
+        skip_exomiser_cnv: str,
         skip_coverage_by_gene: str,
         skip_franklin: str,
         skip_nextflow: str,
         spark_jar: str,
         detect_batch_type_task_id: str = None,
 ):
-    
+
     target_batch_types = [ClinAnalysis.GERMLINE]
 
     snv = normalize.snv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_snv), detect_batch_type_task_id)
@@ -48,19 +44,18 @@ def normalize_germline(
     @task_group(group_id="nextflow")
     def nextflow_group():
 
-        prepare_svclustering_parental_origin_task = svclustering_parental_origin.prepare(batch_id, spark_jar, skip(skip_all, skip_nextflow))
-        check_svclustering_parental_origin_input_file_exists = utils_nextflow.check_input_file_exists.override(task_id='check_svclustering_parental_origin_input_file_exists')(
-            bucket=nextflow_bucket,
-            key=nextflow_svclustering_parental_origin_input_key(batch_id),
-            skip=skip(skip_all, skip_nextflow))
+        get_job_hash_task = get_job_hash(analysis_ids=analysis_ids, skip=skip(skip_all, skip_nextflow))
+
+        prepare_svclustering_parental_origin_task = svclustering_parental_origin.prepare(analysis_ids, get_job_hash_task, skip(skip_all, skip_nextflow))
+        check_should_run_svclustering_parental_origin = check_task_output_exists.override(task_id='check_should_run_svclustering_parental_origin')(prepare_svclustering_parental_origin_task, skip(skip_all, skip_nextflow))
 
         # Skipped if no input file
-        run_svclustering_parental_origin = svclustering_parental_origin.run(batch_id, skip(skip_all, skip_nextflow))
+        run_svclustering_parental_origin = svclustering_parental_origin.run(get_job_hash_task, skip(skip_all, skip_nextflow))
 
         # Will still run if no input file but the normalization task is resilient
         normalize_svclustering_parental_origin_task = svclustering_parental_origin.normalize(batch_id, analysis_ids, spark_jar, skip(skip_all, skip_nextflow))
 
-        (prepare_svclustering_parental_origin_task >> check_svclustering_parental_origin_input_file_exists >>
+        (get_job_hash_task >> prepare_svclustering_parental_origin_task >> check_should_run_svclustering_parental_origin >>
          run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task)
 
     snv >> cnv >> variants >> consequences >> exomiser >> exomiser_cnv >> coverage_by_gene >> franklin_update_task >> franklin >> nextflow_group()

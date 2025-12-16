@@ -13,7 +13,7 @@ from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params import get_analysis_ids
 from lib.tasks.params_validate import validate_batch_analysis_ids_color
-from lib.utils_etl import batch_id, color, skip_import, spark_jar
+from lib.utils_etl import batch_id, color, skip_batch, skip_import, spark_jar
 
 with DAG(
         dag_id='etl_ingest',
@@ -24,6 +24,7 @@ with DAG(
             'analysis_ids': Param([], type=['null', 'array']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
+            'skip_batch': Param('no', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         default_args={
@@ -51,7 +52,7 @@ with DAG(
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
-        skip_batch='',  # always compute this batch (purpose of this dag)
+        skip_post_import='',  # always regenerate enrich clinical table
         skip_snv='',
         skip_cnv='',
         skip_variants='',
@@ -61,6 +62,7 @@ with DAG(
         skip_coverage_by_gene='',
         skip_franklin='',
         skip_nextflow='',
+        skip_batch=skip_batch(),
         spark_jar=spark_jar()
     )
 
@@ -70,12 +72,13 @@ with DAG(
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
-        skip_batch='',  # always compute this batch (purpose of this dag)
+        skip_post_import='',  # always regenerate enrich clinical table
         skip_snv_somatic='',
         skip_cnv_somatic_tumor_only='',
         skip_variants='',
         skip_consequences='',
         skip_coverage_by_gene='',
+        skip_batch=skip_batch(),
         spark_jar=spark_jar()
     )
 
@@ -85,11 +88,12 @@ with DAG(
         batch_type_detected=True,
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
-        skip_batch='',  # always compute this batch (purpose of this dag)
+        skip_post_import='',  # always regenerate enrich clinical table
         skip_snv_somatic='',
         skip_variants='',
         skip_consequences='',
         skip_coverage_by_gene='',
+        skip_batch=skip_batch(),
         spark_jar=spark_jar()
     )
 

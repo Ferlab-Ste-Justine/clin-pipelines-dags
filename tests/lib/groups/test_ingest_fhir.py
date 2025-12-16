@@ -10,7 +10,7 @@ def test_group_has_all_tasks():
             color='',
             skip_all='',
             skip_import='',
-            skip_batch='',
+            skip_post_import='',
             spark_jar=''
         )
 
