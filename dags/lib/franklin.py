@@ -351,9 +351,11 @@ def extract_from_name_aliquot_id(name):
 
 def extract_from_name_analysis_id(name):
     _id = name.split(name_separator)[1].strip()  # cf build_sample_name(),
-    if _id == 'None' or _id.startswith('None_'):  # for some reason franklin can add suffix like None_1
-        return None
-    return _id
+    if '_' in _id:
+        _id = _id.split('_')[0] # remove possible suffix added by franklin due to re-analysing or reset
+    if _id == 'None':
+        _id = None
+    return _id 
 
 
 def get_family_relation(aliquot_id: str, proband_aliquot_id: str, father_aliquot_id: str,
