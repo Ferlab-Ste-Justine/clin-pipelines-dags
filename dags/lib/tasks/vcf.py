@@ -1,6 +1,6 @@
 from airflow.decorators import task, task_group
 
-from lib.config import K8sContext
+from lib.config import K8sContext, env
 from lib.operators.pipeline import PipelineOperator
 from lib.utils_etl import color
 
@@ -24,6 +24,7 @@ def convert_vcf_header(analysis_ids: list, skip: str):
         task_id='run_convert_vcf_header',
         name='convert-vcf-header',
         k8s_context=K8sContext.DEFAULT,
+        aws_bucket=f'cqgc-{env}-app-files-import',
         color=color(),
         arguments=[
             'bio.ferlab.clin.etl.ConvertVCFHeader',
