@@ -324,6 +324,26 @@ def get_s3_analyses_keys(clin_s3: S3Hook, analysis_ids: List[str]) -> List[str]:
     return keys
 
 
+def delete_franklin_s3_data(clin_s3: S3Hook, analysis_ids: List[str]) -> None:
+    logging.info(f'About to delete Franklin data for {len(analysis_ids)} analysis IDs: {analysis_ids}')
+    
+    total_deleted = 0
+    
+    for analysis_id in analysis_ids:
+        prefix = build_s3_analyses_root_key(analysis_id)
+        keys = clin_s3.list_keys(clin_datalake_bucket, prefix)
+        
+        if keys:
+            clin_s3.delete_objects(clin_datalake_bucket, keys)
+            deleted_count = len(keys)
+            total_deleted += deleted_count
+            logging.info(f'Deleted {deleted_count} objects for analysis_id {analysis_id} at {prefix}')
+        else:
+            logging.warning(f'No S3 objects found for analysis_id {analysis_id} at {prefix}')
+    
+    logging.info(f'Successfully deleted {total_deleted} objects across {len(analysis_ids)} analysis IDs')
+
+
 # extract_param_from_s3_key('raw/landing/franklin/analysis_id=foo' ,'analysis_id') -> foo
 def extract_param_from_s3_key(key, param_name):
     for param in key.split('/'):

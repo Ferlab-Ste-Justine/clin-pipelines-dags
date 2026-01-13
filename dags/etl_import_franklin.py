@@ -3,11 +3,14 @@ from typing import List
 
 from airflow import DAG
 from airflow.decorators import task
-from airflow.exceptions import AirflowFailException
+from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.models.param import Param
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
+from lib import config
 from lib.doc import franklin as doc
+from lib.franklin import delete_franklin_s3_data
 from lib.groups.franklin.franklin_create import franklin_create
 from lib.groups.franklin.franklin_update import franklin_update
 from lib.groups.ingest.ingest_fhir import ingest_fhir
@@ -31,6 +34,7 @@ with DAG(
             'analysis_ids': Param([], type=['null', 'array'], description='Put a single sequencing id per line.'),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
+            'reset': Param('no', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         max_active_tasks=1,
@@ -40,6 +44,9 @@ with DAG(
     batch_ids: List[str] = params.get_batch_ids()
     analysis_ids: List[str] = params.get_analysis_ids()
     color: str = color()
+
+    def reset() -> str:
+        return '{{ params.reset or "" }}'
 
     params_validate_task = params_validate.validate_batch_ids_analysis_ids_color(batch_ids, analysis_ids, color)
 
@@ -62,6 +69,16 @@ with DAG(
 
     get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=analysis_ids, batch_ids=batch_ids)
 
+    @task
+    def reset_franklin_data(_analysis_ids: List[str], _reset: str):
+        if _reset != 'yes':
+            raise AirflowSkipException('Reset not requested')
+        
+        s3 = S3Hook(config.s3_conn_id)
+        delete_franklin_s3_data(s3, _analysis_ids)
+
+    reset_task = reset_franklin_data(get_all_analysis_ids, reset())
+
     create = franklin_create(
         analysis_ids=get_all_analysis_ids,
         skip=''
@@ -78,4 +95,4 @@ with DAG(
     )
 
     ([batch_ids, analysis_ids] >> params_validate_task >> ingest_fhir_group >> identifier_to_type >>
-     franklin_validate(identifier_to_type) >> get_all_analysis_ids >> create >> update >> slack)
+     franklin_validate(identifier_to_type) >> get_all_analysis_ids >> reset_task >> create >> update >> slack)
