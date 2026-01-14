@@ -24,6 +24,7 @@ def test_dag_has_all_tasks(dag_bag):
         'detect_batch_type',
         'franklin_validate',
         'get_all_analysis_ids',
+        'reset_franklin_data',
         'create.create_analyses',
         'create.vcf_to_analyses',
         'create.group_families',
