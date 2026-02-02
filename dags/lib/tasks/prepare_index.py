@@ -45,6 +45,7 @@ def variant_centric(spark_jar: str, skip: str = '', task_id: str = 'variant_cent
             spark_class=PREPARE_INDEX_MAIN_CLASS,
             spark_config='config-etl-large',
             spark_jar=spark_jar,
+             max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
             skip=skip,
             **kwargs
         ).expand(chromosome=chromosomes)
