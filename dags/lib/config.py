@@ -101,7 +101,7 @@ elif env == Env.QA:
     ]
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:49ccd0c'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:0ab3006'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:f177514'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'clin-variant-etl-v3.33.4.jar'
@@ -115,7 +115,7 @@ elif env == Env.STAGING:
     batch_ids = [] # automatic dags/lib/tasks/batch_type:get_all_batch_ids
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:49ccd0c'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:0ab3006'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:f177514'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
     spark_jar = 'clin-variant-etl-v3.33.4-with-fixes.jar'
