@@ -54,6 +54,8 @@ clin_nextflow_bucket = f'cqgc-{env}-app-nextflow'
 clin_scratch_bucket = f'cqgc-{env}-app-files-scratch'
 all_qlin_buckets = [clin_import_bucket, clin_datalake_bucket, clin_nextflow_bucket, clin_scratch_bucket]
 
+etl_run_pending_folder = '.etl-run'
+
 arranger_image = 'ferlabcrsj/clin-arranger:1.3.3'
 aws_image = 'amazon/aws-cli'
 curl_image = 'curlimages/curl'
