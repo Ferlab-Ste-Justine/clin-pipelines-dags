@@ -1,4 +1,5 @@
 from lib.operators.spark_etl import SparkETLOperator
+from lib.config import Env, chromosomes, env
 
 PREPARE_INDEX_MAIN_CLASS = 'bio.ferlab.clin.etl.es.PrepareIndex'
 
@@ -33,18 +34,34 @@ def gene_suggestions(spark_jar: str, skip: str = '', task_id: str = 'gene_sugges
 
 
 def variant_centric(spark_jar: str, skip: str = '', task_id: str = 'variant_centric', **kwargs) -> SparkETLOperator:
-    return SparkETLOperator(
-        entrypoint='variant_centric',
-        task_id=task_id,
-        name='etl-prepare-variant-centric',
-        steps='initial',
-        app_name='etl_prepare_variant_centric',
-        spark_class=PREPARE_INDEX_MAIN_CLASS,
-        spark_config='config-etl-large',
-        spark_jar=spark_jar,
-        skip=skip,
-        **kwargs
-    )
+    # we dont have the resources in PROD to prepare all chromosomes at once, we have to split
+    if env == Env.PROD:
+        return SparkETLOperator.partial(
+            entrypoint='variant_centric',
+            task_id=task_id,
+            name='etl-prepare-variant-centric',
+            steps='default',
+            app_name='etl_prepare_variant_centric',
+            spark_class=PREPARE_INDEX_MAIN_CLASS,
+            spark_config='config-etl-large',
+            spark_jar=spark_jar,
+             max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
+            skip=skip,
+            **kwargs
+        ).expand(chromosome=chromosomes)
+    else:
+        return SparkETLOperator(
+            entrypoint='variant_centric',
+            task_id=task_id,
+            name='etl-prepare-variant-centric',
+            steps='initial',
+            app_name='etl_prepare_variant_centric',
+            spark_class=PREPARE_INDEX_MAIN_CLASS,
+            spark_config='config-etl-large',
+            spark_jar=spark_jar,
+            skip=skip,
+            **kwargs
+        )
 
 
 def variant_suggestions(spark_jar: str, skip: str = '', task_id: str = 'variant_suggestions', **kwargs) -> SparkETLOperator:
