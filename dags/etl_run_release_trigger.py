@@ -3,7 +3,6 @@ from datetime import datetime
 from airflow import DAG
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
-from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
 from lib.config import clin_datalake_bucket, etl_run_pending_folder, s3_conn_id

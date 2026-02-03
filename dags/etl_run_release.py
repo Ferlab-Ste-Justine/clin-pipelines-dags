@@ -13,10 +13,8 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.clinical import get_all_analysis_ids
-from lib.tasks.params import get_sequencing_ids
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import (ClinAnalysis, color, get_germline_analysis_ids,
-                           get_ingest_dag_configs_by_analysis_ids, spark_jar)
+from lib.utils_etl import (color, get_germline_analysis_ids, spark_jar)
 
 with DAG(
         dag_id='etl_run_release',

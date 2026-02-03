@@ -6,17 +6,9 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import Env, env, clin_datalake_bucket, etl_run_pending_folder, s3_conn_id
-from lib.groups.ingest.ingest_fhir import ingest_fhir
-from lib.groups.nextflow.nextflow_germline import nextflow_germline
-from lib.operators.trigger_dagrun import TriggerDagRunOperator
+from lib.config import clin_datalake_bucket, etl_run_pending_folder, s3_conn_id
 from lib.slack import Slack
-from lib.tasks import batch_type
-from lib.tasks.clinical import get_all_analysis_ids
 from lib.tasks.params import get_sequencing_ids
-from lib.tasks.params_validate import validate_color
-from lib.utils_etl import (ClinAnalysis, color, get_germline_analysis_ids,
-                           get_ingest_dag_configs_by_analysis_ids, spark_jar)
 
 with DAG(
         dag_id='etl_run',
