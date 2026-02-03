@@ -4,8 +4,9 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
+from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import Env, env
+from lib.config import Env, env, clin_datalake_bucket, etl_run_pending_folder, s3_conn_id
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.nextflow.nextflow_germline import nextflow_germline
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
@@ -24,7 +25,6 @@ with DAG(
         catchup=False,
         params={
             'sequencing_ids': Param([], type=['null', 'array']),
-            'color': Param('', type=['null', 'string']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         render_template_as_native_obj=True,
@@ -32,8 +32,7 @@ with DAG(
             'trigger_rule': TriggerRule.NONE_FAILED,
             'on_failure_callback': Slack.notify_task_failure,
         },
-        max_active_tasks=1,
-        max_active_runs=1
+        max_active_runs=10 # Allow multiple concurrent runs, we are just writing files to S3
 ) as dag:
 
     start = EmptyOperator(
@@ -41,66 +40,30 @@ with DAG(
         on_success_callback=Slack.notify_dag_start
     )
 
-    # Disabling callback as the start task already perform the slack notification
-    params_validate_color = validate_color.override(on_execute_callback=None)(color=color())
+    @task(task_id='save_sequencing_ids_to_s3')
+    def save_sequencing_ids_to_s3(sequencing_ids: list) -> str:
+        """
+        Save sequencing IDs to S3 in the .etl-run folder for later processing by etl_run_pending.
+        Each sequencing ID is saved as a separate file named with the sequencing ID.
+        """
+        if not sequencing_ids or len(sequencing_ids) == 0:
+            return "No sequencing IDs to save"
+        
+        s3 = S3Hook(s3_conn_id)
 
-    ingest_fhir_group = ingest_fhir(
-        batch_ids=[],  # No associated "batch"
-        color=params_validate_color,
-        skip_all=False,
-        skip_import=True,  # Skipping because the data is already imported via the prescription API
-        skip_post_import=False,
-        spark_jar=spark_jar()
-    )
-
-    get_sequencing_ids_task = get_sequencing_ids()
-    get_all_analysis_ids_task = get_all_analysis_ids(sequencing_ids=get_sequencing_ids_task)
-
-    detect_batch_types_task = batch_type.detect(analysis_ids=get_all_analysis_ids_task, allowMultipleIdentifierTypes=True)
-
-    get_germline_analysis_ids_task = get_germline_analysis_ids(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task)
-    nextflow_germline_task_group = nextflow_germline(analysis_ids=get_germline_analysis_ids_task)
-
-    @task(task_id='check_should_skip_franklin')
-    def check_should_skip_franklin(germline_analysis_ids: list[str]) -> str:
-        return 'yes' if len(germline_analysis_ids) == 0 or env == Env.QA else ''
-
-    check_should_skip_franklin_task = check_should_skip_franklin(get_germline_analysis_ids_task)
-
-    trigger_franklin_by_analysis_id_dags = TriggerDagRunOperator(
-        task_id='import_franklin',
-        trigger_dag_id='etl_import_franklin',
-        wait_for_completion=True,
-        skip=check_should_skip_franklin_task,
-        conf={
-            'batch_ids': None,
-            'analysis_ids': get_germline_analysis_ids_task,
-            'color': params_validate_color,
-            'import': 'no',
-            'spark_jar': spark_jar(),
-        }
-    )
-
-    get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_all_analysis_ids_task, skip_batch="yes").expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
-
-    trigger_ingest_by_sequencing_ids_dags = TriggerDagRunOperator.partial(
-        task_id='ingest_sequencing_ids',
-        trigger_dag_id='etl_ingest',
-        wait_for_completion=True,
-    ).expand(conf=get_ingest_dag_configs_by_analysis_ids_task)
+        for seq_id in sequencing_ids:
+            # Create a file for each sequencing ID in the .etl-run folder
+            s3_key = f'{etl_run_pending_folder}/{seq_id}.txt'
+            # in the future we might want to save more info in the file, for now just create an empty file
+            s3.load_string("", s3_key, clin_datalake_bucket, replace=True)
+        
+        return f"Saved {len(sequencing_ids)} sequencing IDs to S3 in .etl-run/"
+    
+    save_task = save_sequencing_ids_to_s3(get_sequencing_ids())
 
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion
     )
 
-    (
-        start >> params_validate_color >>
-        ingest_fhir_group >>
-        get_sequencing_ids_task >> get_all_analysis_ids_task >>
-        detect_batch_types_task >>
-        get_germline_analysis_ids_task >> nextflow_germline_task_group >>
-        check_should_skip_franklin_task >> trigger_franklin_by_analysis_id_dags >>
-        get_ingest_dag_configs_by_analysis_ids_task >> trigger_ingest_by_sequencing_ids_dags >>
-        slack
-    )
+    start >> save_task >> slack
