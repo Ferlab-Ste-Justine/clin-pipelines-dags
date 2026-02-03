@@ -14,7 +14,7 @@ from lib.tasks import batch_type
 from lib.tasks.clinical import get_all_analysis_ids
 from lib.tasks.params import get_sequencing_ids
 from lib.tasks.params_validate import validate_color
-from lib.tasks.run_sequencings import cleanup_pending_sequencing_ids, get_pending_sequencing_ids
+from lib.tasks.run_sequencings import cleanup_pending_sequencing_ids
 from lib.utils_etl import (color, get_germline_analysis_ids, spark_jar)
 
 with DAG(

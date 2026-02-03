@@ -26,7 +26,7 @@ def save_sequencing_ids_to_s3(sequencing_ids: list) -> str:
 
 
 @task(task_id='get_pending_sequencing_ids')
-def get_pending_sequencing_ids() -> list:
+def get_pending_sequencing_ids(skipIfEmpty: bool = False) -> list:
     """
     Read sequencing IDs from all .txt filenames in the .etl-run folder on S3.
     """
@@ -36,6 +36,8 @@ def get_pending_sequencing_ids() -> list:
     keys = s3.list_keys(bucket_name=clin_datalake_bucket, prefix=f'{etl_run_pending_folder}/')
     
     if not keys:
+        if skipIfEmpty:
+            raise AirflowSkipException("No pending files found in .etl-run folder")
         return []
     
     # Filter only .txt files and extract sequencing IDs from filenames
@@ -47,30 +49,10 @@ def get_pending_sequencing_ids() -> list:
             if filename:
                 sequencing_ids.append(filename)
     
-    return sequencing_ids
-
-
-@task(task_id='check_pending_sequencing_ids')
-def check_pending_sequencing_ids() -> str:
-    """
-    Check if there are any pending .txt files in the .etl-run folder on S3.
-    Returns a message if files exist, raises AirflowSkipException otherwise.
-    """
-    s3 = S3Hook(s3_conn_id)
-    
-    # List all files in the .etl-run folder
-    keys = s3.list_keys(bucket_name=clin_datalake_bucket, prefix=f'{etl_run_pending_folder}/')
-    
-    if not keys:
-        raise AirflowSkipException("No pending files found in .etl-run folder")
-    
-    # Filter only .txt files
-    txt_files = [key for key in keys if key.endswith('.txt')]
-    
-    if not txt_files:
+    if not sequencing_ids and skipIfEmpty:
         raise AirflowSkipException("No pending .txt files found in .etl-run folder")
     
-    return f"Found {len(txt_files)} pending file(s) to process"
+    return sequencing_ids
 
 
 @task(task_id='cleanup_pending_sequencing_ids')
