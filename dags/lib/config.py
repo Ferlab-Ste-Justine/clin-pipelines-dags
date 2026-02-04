@@ -64,7 +64,20 @@ postgres_image = 'ferlabcrsj/postgres-backup:9bb43092f76e95f17cd09f03a27c65d8411
 spark_image = 'ferlabcrsj/spark:65d1946780f97a8acdd958b89b64fad118c893ee'
 spark_service_account = 'spark'
 batch_ids = []
-chromosomes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', 'X', 'Y']
+
+# group of chromosomes to reduce load of treatment in PROD
+chromosomes_2 = [
+    ["chr1, chr4, chr5, chr8, chr11, chr12, chr15, chr18, chr21, chrY"],
+    ["chr2, chr3, chr6, chr7, chr9, chr10, chr13, chr14, chr16, chr17, chr19, chr20, chr22, chrX"],
+]
+
+# another grouping option with 4 groups (to be used in the future if needed)
+chromosomes_4 = [
+    ["chr1, chr11, chr18, chr21, chrY"],
+    ["chr2, chr8, chr15, chr19, chr22"],
+    ["chr3, chr6, chr12, chr17, chr20"],
+    ["chr4, chr5, chr7, chr9, chr10, chr13, chr14, chr16, chrX"],
+]
 
 if env == Env.TEST:
     fhir_image = 'ferlabcrsj/clin-fhir'
@@ -85,7 +98,7 @@ elif env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:13b8182d493658f2c6e0583bc275ba26967667ab-1683653903'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.33.5.jar'
+    spark_jar = 'clin-variant-etl-v3.34.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
