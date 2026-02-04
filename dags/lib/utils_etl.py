@@ -182,7 +182,7 @@ def build_etl_job_arguments(
         if bioinfo_analysis_code:
             arguments = arguments + ['--bioinfoAnalysisCode', bioinfo_analysis_code]
     if chromosome:
-        arguments = arguments + ['--chromosome', f'chr{chromosome}']
+        arguments = arguments + ['--chromosome', chromosome]
     return arguments
 
 

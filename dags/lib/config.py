@@ -67,16 +67,16 @@ batch_ids = []
 
 # group of chromosomes to reduce load of treatment in PROD
 chromosomes_2 = [
-    ["chr1, chr4, chr5, chr8, chr11, chr12, chr15, chr18, chr21, chrY"],
-    ["chr2, chr3, chr6, chr7, chr9, chr10, chr13, chr14, chr16, chr17, chr19, chr20, chr22, chrX"],
+    "chr1, chr4, chr5, chr8, chr11, chr12, chr15, chr18, chr21, chrY",
+    "chr2, chr3, chr6, chr7, chr9, chr10, chr13, chr14, chr16, chr17, chr19, chr20, chr22, chrX",
 ]
 
 # another grouping option with 4 groups (to be used in the future if needed)
 chromosomes_4 = [
-    ["chr1, chr11, chr18, chr21, chrY"],
-    ["chr2, chr8, chr15, chr19, chr22"],
-    ["chr3, chr6, chr12, chr17, chr20"],
-    ["chr4, chr5, chr7, chr9, chr10, chr13, chr14, chr16, chrX"],
+    "chr1, chr11, chr18, chr21, chrY",
+    "chr2, chr8, chr15, chr19, chr22",
+    "chr3, chr6, chr12, chr17, chr20",
+    "chr4, chr5, chr7, chr9, chr10, chr13, chr14, chr16, chrX",
 ]
 
 if env == Env.TEST:
