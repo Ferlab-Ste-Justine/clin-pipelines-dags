@@ -1,6 +1,6 @@
 from typing import List
 
-from lib.config import Env, chromosomes, env
+from lib.config import Env, chromosomes_2, env
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
@@ -83,7 +83,7 @@ def snv_somatic(analysis_ids: List[str], steps: str, spark_jar: str = '', task_i
 def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'variants', name: str = 'etl-enrich-variants',
              app_name: str = 'etl_enrich_variants', skip: str = '', **kwargs) -> SparkETLOperator:
     # we dont have the resources in PROD to enrich all chromosomes at once, we have to split
-    if env == Env.PROD:
+    if env == Env.PROD or env == Env.QA:
         return SparkETLOperator.partial(
             entrypoint='variants',
             task_id=task_id,
@@ -94,9 +94,9 @@ def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'varian
             spark_config='config-etl-large',
             spark_jar=spark_jar,
             skip=skip,
-            max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
+            max_active_tis_per_dag=2,  # concurrent OverWritePartition, set to 1 if issues arise
             **kwargs
-        ).expand(chromosome=chromosomes)
+        ).expand(chromosome=chromosomes_2)
     else:
         return SparkETLOperator(
             entrypoint='variants',
