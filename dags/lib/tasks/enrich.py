@@ -83,7 +83,7 @@ def snv_somatic(analysis_ids: List[str], steps: str, spark_jar: str = '', task_i
 def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'variants', name: str = 'etl-enrich-variants',
              app_name: str = 'etl_enrich_variants', skip: str = '', **kwargs) -> SparkETLOperator:
     # we dont have the resources in PROD to enrich all chromosomes at once, we have to split
-    if env == Env.PROD or env == Env.QA:
+    if env == Env.PROD:
         return SparkETLOperator.partial(
             entrypoint='variants',
             task_id=task_id,
@@ -94,7 +94,7 @@ def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'varian
             spark_config='config-etl-large',
             spark_jar=spark_jar,
             skip=skip,
-            max_active_tis_per_dag=2,  # concurrent OverWritePartition, set to 1 if issues arise
+            max_active_tis_per_dag=1,  # concurrent OverWritePartition, set to 1 if issues arise
             **kwargs
         ).expand(chromosome=chromosomes_2)
     else:

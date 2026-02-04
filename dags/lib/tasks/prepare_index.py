@@ -35,7 +35,7 @@ def gene_suggestions(spark_jar: str, skip: str = '', task_id: str = 'gene_sugges
 
 def variant_centric(spark_jar: str, skip: str = '', task_id: str = 'variant_centric', **kwargs) -> SparkETLOperator:
     # we dont have the resources in PROD to prepare all chromosomes at once, we have to split
-    if env == Env.PROD or env == Env.QA:
+    if env == Env.PROD:
         return SparkETLOperator.partial(
             entrypoint='variant_centric',
             task_id=task_id,
@@ -45,7 +45,7 @@ def variant_centric(spark_jar: str, skip: str = '', task_id: str = 'variant_cent
             spark_class=PREPARE_INDEX_MAIN_CLASS,
             spark_config='config-etl-large',
             spark_jar=spark_jar,
-             max_active_tis_per_dag=2,  # concurrent OverWritePartition, set to 1 if issues arise
+            max_active_tis_per_dag=1,  # concurrent OverWritePartition, set to 1 if issues arise
             skip=skip,
             **kwargs
         ).expand(chromosome=chromosomes_2)
