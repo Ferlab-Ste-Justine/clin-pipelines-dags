@@ -89,7 +89,7 @@ with DAG(
         wait_for_completion=True,
         conf={
             'analysis_ids': get_all_analysis_ids_task,
-            'notify_slack': 'yes' if env == Env.PROD else 'no',
+            'notify': 'yes' if env == Env.PROD else 'no',
             'color': params_validate_color,
             'spark_jar': spark_jar(),
         }
