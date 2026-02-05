@@ -10,7 +10,7 @@ from lib.slack import Slack
 with DAG(
         dag_id='etl_run_release_trigger',
         start_date=datetime(2022, 1, 1),
-        schedule='0 20 * * *',  # Run every day at 8pm
+        schedule='0 1 * * *',  # Run every day at 8pm EST (1am UTC)
         catchup=False,
         render_template_as_native_obj=True,
         default_args={
