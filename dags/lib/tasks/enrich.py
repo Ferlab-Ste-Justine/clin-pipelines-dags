@@ -1,6 +1,6 @@
 from typing import List
 
-from lib.config import Env, chromosomes, env
+from lib.config import Env, chromosomes_2, env
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
@@ -94,9 +94,9 @@ def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'varian
             spark_config='config-etl-large',
             spark_jar=spark_jar,
             skip=skip,
-            max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
+            max_active_tis_per_dag=1,  # concurrent OverWritePartition, set to 1 if issues arise
             **kwargs
-        ).expand(chromosome=chromosomes)
+        ).expand(chromosome=chromosomes_2)
     else:
         return SparkETLOperator(
             entrypoint='variants',
