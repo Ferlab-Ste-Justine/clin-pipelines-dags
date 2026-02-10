@@ -23,7 +23,7 @@ from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
                            get_ingest_dag_configs_by_analysis_ids,
                            get_ingest_dag_configs_by_batch_id, release_id,
-                           skip_notify, spark_jar, skip_export_fhir)
+                           skip_notify, spark_jar)
 
 with DAG(
         dag_id='etl',
