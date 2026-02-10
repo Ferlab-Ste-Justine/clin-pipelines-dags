@@ -13,6 +13,7 @@ def ingest_germline(
         color: str,
         skip_import: str,
         skip_post_import: str,
+        skip_export_fhir: str,
         skip_snv: str,
         skip_cnv: str,
         skip_variants: str,
@@ -37,7 +38,7 @@ def ingest_germline(
     ingest_fhir_group = ingest_fhir(
         batch_ids=[batch_id],
         color=color,
-        skip_all=skip_all,
+        skip_all=skip(skip_all, skip_export_fhir),
         skip_import=skip_import,
         skip_post_import=skip_post_import,
         spark_jar=spark_jar

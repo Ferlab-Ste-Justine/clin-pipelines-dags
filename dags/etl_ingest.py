@@ -13,7 +13,7 @@ from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params import get_analysis_ids
 from lib.tasks.params_validate import validate_batch_analysis_ids_color
-from lib.utils_etl import batch_id, color, skip_batch, skip_import, spark_jar
+from lib.utils_etl import batch_id, color, skip_batch, skip_import, spark_jar, skip_export_fhir
 
 with DAG(
         dag_id='etl_ingest',
@@ -24,6 +24,7 @@ with DAG(
             'analysis_ids': Param([], type=['null', 'array']),
             'color': Param('', type=['null', 'string']),
             'import': Param('yes', enum=['yes', 'no']),
+            'export_fhir': Param('yes', enum=['yes', 'no']),
             'skip_batch': Param('no', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
@@ -53,6 +54,7 @@ with DAG(
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
         skip_post_import='',  # always regenerate enrich clinical table
+        skip_export_fhir=skip_export_fhir(),
         skip_snv='',
         skip_cnv='',
         skip_variants='',
@@ -73,6 +75,7 @@ with DAG(
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
         skip_post_import='',  # always regenerate enrich clinical table
+        skip_export_fhir=skip_export_fhir(),
         skip_snv_somatic='',
         skip_cnv_somatic_tumor_only='',
         skip_variants='',
@@ -89,6 +92,7 @@ with DAG(
         color=color(),
         skip_import=skip_import(),  # skipping already imported batch is allowed
         skip_post_import='',  # always regenerate enrich clinical table
+        skip_export_fhir=skip_export_fhir(),
         skip_snv_somatic='',
         skip_variants='',
         skip_consequences='',
