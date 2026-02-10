@@ -294,7 +294,7 @@ with DAG(
         name='notify',
         k8s_context=K8sContext.DEFAULT,
         color=env_color,
-        skip=skip_notify(batch_param_name='batch_ids')
+        skip=skip_notify(batch_param_name='batch_ids', analysis_param_name='analysis_ids')
     ).expand(
         batch_id=all_batch_ids_task
     )
