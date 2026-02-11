@@ -13,7 +13,7 @@ from lib.groups.migrate.migrate_somatic_tumor_only import \
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.params_validate import validate_color
-from lib.utils_etl import batch_id, color, spark_jar
+from lib.utils_etl import batch_id, color, spark_jar, format_skip_condition, skip_export_fhir
 
 with DAG(
         dag_id='etl_migrate_batch',
@@ -43,11 +43,6 @@ with DAG(
         max_active_tasks=4,
         max_active_runs=1,
 ) as dag:
-    def format_skip_condition(param: str) -> str:
-        return '{% if params.' + param + ' == "yes" %}{% else %}yes{% endif %}'
-
-    def skip_export_fhir() -> str:
-        return format_skip_condition('export_fhir')
 
     def skip_snv() -> str:
         return format_skip_condition('snv')

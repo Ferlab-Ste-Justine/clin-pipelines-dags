@@ -69,3 +69,29 @@ def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: s
         raise AirflowFailException(f"Analysis IDs belong to more than one batch ID ({all_batch_ids}).")
 
     return list(all_batch_ids)[0]
+
+
+@task.virtualenv(skip_on_exit_code=SKIP_EXIT_CODE, task_id='get_batch_ids_from_analysis_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
+def get_batch_ids_from_analysis_ids(analysis_ids: Optional[Set[str]], skip: bool = False) -> List[str]:
+
+    '''
+    Get all batch IDs from a list of analysis IDs (without filtering by bioinfo_analysis_code).
+    Useful when you have analysis IDs from multiple bioinfo analysis codes.
+    '''
+
+    import sys
+    from lib.datasets import enriched_clinical
+    from lib.utils import SKIP_EXIT_CODE
+    from lib.utils_etl_tables import get_batch_ids, to_pandas
+
+    if skip or not analysis_ids or len(analysis_ids) == 0:
+        sys.exit(SKIP_EXIT_CODE)
+
+    df: DataFrame = to_pandas(enriched_clinical.uri)
+    clinical_df = df[["analysis_id", "sequencing_id", "batch_id"]]
+    all_batch_ids = sorted(get_batch_ids(clinical_df, bioinfo_analysis_code=None, analysis_ids=analysis_ids))
+
+    if not all_batch_ids or len(all_batch_ids) == 0:
+        return []
+
+    return list(all_batch_ids)

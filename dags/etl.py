@@ -18,6 +18,7 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, clinical, enrich, es, params
 from lib.tasks.batch_type import skip_if_no_batch_in
+from lib.tasks.clinical import get_batch_ids_from_analysis_ids
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
                            get_ingest_dag_configs_by_analysis_ids,
@@ -37,6 +38,7 @@ with DAG(
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'import': Param('no', enum=['yes', 'no']),
+            'export_fhir': Param('yes', enum=['yes', 'no']),
             'cnv_frequencies': Param('yes', enum=['yes', 'no']),
             'delete_previous_releases': Param('yes', enum=['yes', 'no']),
             'notify': Param('no', enum=['yes', 'no']),
@@ -82,6 +84,29 @@ with DAG(
     get_analysis_ids_task = params.get_analysis_ids()
 
     detect_batch_types_task = batch_type.detect(batch_ids=get_batch_ids_task, analysis_ids=get_analysis_ids_task, allowMultipleIdentifierTypes=True)
+
+    # Get batch IDs from analysis IDs when needed
+    get_batch_ids_from_analysis_task = get_batch_ids_from_analysis_ids(
+        analysis_ids=get_analysis_ids_task,
+    )
+
+    @task(task_id='get_all_batch_ids')
+    def get_all_batch_ids(batch_ids: List[str], batch_ids_from_analysis: List[str]) -> List[str]:
+        """Combine batch IDs from params and those derived from analysis IDs."""
+        all_batch_ids = set()
+        
+        if batch_ids and len(batch_ids) > 0:
+            all_batch_ids.update(batch_ids)
+        
+        if batch_ids_from_analysis and len(batch_ids_from_analysis) > 0:
+            all_batch_ids.update(batch_ids_from_analysis)
+        
+        return sorted(list(all_batch_ids))
+
+    all_batch_ids_task = get_all_batch_ids(
+        batch_ids=get_batch_ids_task,
+        batch_ids_from_analysis=get_batch_ids_from_analysis_task
+    )
 
     get_ingest_dag_configs_by_batch_id_task = get_ingest_dag_configs_by_batch_id.expand(batch_id=get_batch_ids_task)
     get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_analysis_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
@@ -269,9 +294,9 @@ with DAG(
         name='notify',
         k8s_context=K8sContext.DEFAULT,
         color=env_color,
-        skip=skip_notify(batch_param_name='batch_ids')
+        skip=skip_notify(batch_param_name='batch_ids', analysis_param_name='analysis_ids')
     ).expand(
-        batch_id=get_batch_ids_task
+        batch_id=all_batch_ids_task
     )
 
     trigger_qc_es_dag = TriggerDagRunOperator(

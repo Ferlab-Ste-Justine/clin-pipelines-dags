@@ -92,6 +92,7 @@ with DAG(
             'notify': 'yes' if env == Env.PROD else 'no',
             'color': params_validate_color,
             'spark_jar': spark_jar(),
+            'export_fhir': 'no', # already exported in that dag
         }
     )
 

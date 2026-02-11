@@ -41,10 +41,10 @@ def get_analysis_ids(clinical_df: DataFrame, analysis_ids: Optional[Collection[s
     )
 
 
-def get_batch_ids(clinical_df: DataFrame, bioinfo_analysis_code: BioinfoAnalysisCode, analysis_ids: Optional[Collection[str]] = None, sequencing_ids: Optional[Collection[str]] = None) -> Set[str]:
+def get_batch_ids(clinical_df: DataFrame, bioinfo_analysis_code: Optional[BioinfoAnalysisCode] = None, analysis_ids: Optional[Collection[str]] = None, sequencing_ids: Optional[Collection[str]] = None) -> Set[str]:
     """
         Return the set of batch ids corresponding to the provided sequencing ids or analysis ids from the
-        enriched_clinical table.
+        enriched_clinical table. If bioinfo_analysis_code is None, returns batch ids for all analysis codes.
     """
     if not analysis_ids:
         analysis_ids = []
@@ -52,9 +52,19 @@ def get_batch_ids(clinical_df: DataFrame, bioinfo_analysis_code: BioinfoAnalysis
     if not sequencing_ids:
         sequencing_ids = []
 
-    return set(
-        clinical_df.loc[
-            (clinical_df["bioinfo_analysis_code"] == bioinfo_analysis_code.value) & (clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids)),
-            "batch_id"
-        ]
-    )
+    if not bioinfo_analysis_code:
+        # No filtering by bioinfo_analysis_code
+        return set(
+            clinical_df.loc[
+                clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids),
+                "batch_id"
+            ]
+        )
+    else:
+        # Filter by bioinfo_analysis_code
+        return set(
+            clinical_df.loc[
+                (clinical_df["bioinfo_analysis_code"] == bioinfo_analysis_code.value) & (clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids)),
+                "batch_id"
+            ]
+        )
