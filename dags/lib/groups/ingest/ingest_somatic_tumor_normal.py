@@ -14,6 +14,7 @@ def ingest_somatic_tumor_normal(
         color: str,
         skip_import: str,
         skip_post_import: str,
+        skip_export_fhir: str,
         skip_snv_somatic: str,
         skip_variants: str,
         skip_consequences: str,
@@ -33,7 +34,7 @@ def ingest_somatic_tumor_normal(
     ingest_fhir_group = ingest_fhir(
         batch_ids=[batch_id],
         color=color,
-        skip_all=skip_all,
+        skip_all=skip(skip_all, skip_export_fhir),
         skip_import=skip_import,
         skip_post_import=skip_post_import,
         spark_jar=spark_jar,

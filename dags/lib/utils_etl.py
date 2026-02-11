@@ -46,6 +46,12 @@ class BioinfoAnalysisCode(Enum):
         }
         return mapping[self]
 
+def format_skip_condition(param: str) -> str:
+    return '{% if params.' + param + ' == "yes" %}{% else %}yes{% endif %}'
+
+
+def skip_export_fhir() -> str:
+    return format_skip_condition('export_fhir')
 
 def batch_id() -> str:
     return '{{ params.batch_id or "" }}'
@@ -117,8 +123,8 @@ def default_or_initial(batch_param_name: str = 'batch_ids', analysis_param_name:
     return f'{{% if (params.{batch_param_name} and params.{batch_param_name}|length) or (params.{analysis_param_name} and params.{analysis_param_name}|length)%}}default{{% else %}}initial{{% endif %}}'
 
 
-def skip_notify(batch_param_name: str = 'batch_id') -> str:
-    return f'{{% if params.{batch_param_name} and params.{batch_param_name}|length and params.notify == "yes" %}}{{% else %}}yes{{% endif %}}'
+def skip_notify(batch_param_name: str = 'batch_id', analysis_param_name: str = 'analysis_id') -> str:
+    return f'{{% if ((params.{batch_param_name} and params.{batch_param_name}|length) or (params.{analysis_param_name} and params.{analysis_param_name}|length)) and params.notify == "yes" %}}{{% else %}}yes{{% endif %}}'
 
 
 def skip_if_param_not(param_template, value) -> str:
@@ -135,7 +141,6 @@ def skip(cond1: str, cond2: str) -> str:
     concatenating both strings produces the same result as a boolean OR operator.
     """
     return cond1 + cond2
-
 
 def metadata_exists(clin_s3: S3Hook, batch_id: str) -> bool:
     metadata_path = f'{batch_id}/metadata.json'
@@ -195,6 +200,7 @@ def get_ingest_dag_configs_by_batch_id(batch_id: str) -> dict:
         'analysis_ids': None,
         'color': params['color'],
         'import': params['import'],
+        'export_fhir': params['export_fhir'],
         'spark_jar': params['spark_jar']
     }
 
@@ -224,6 +230,7 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
         'analysis_ids': analysis_ids_compatible_with_type,
         'color': params['color'],
         'import': get_param(params, 'import', 'no'),
+        'export_fhir': params['export_fhir'],
         'skip_batch': skip_batch,
         'spark_jar': params['spark_jar'],
     }
