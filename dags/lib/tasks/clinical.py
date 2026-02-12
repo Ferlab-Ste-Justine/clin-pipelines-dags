@@ -60,11 +60,12 @@ def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: s
 
     df: DataFrame = to_pandas(enriched_clinical.uri)
     clinical_df = df[["analysis_id", "sequencing_id", "batch_id", "bioinfo_analysis_code"]]
-    all_batch_ids = sorted(get_batch_ids(clinical_df, bioinfo_analysis_code=bioinfo_analysis_code, analysis_ids=analysis_ids))
+    all_batch_ids = sorted(get_batch_ids(clinical_df, bioinfo_analysis_code=bioinfo_analysis_code, analysis_ids=analysis_ids, only_the_most_recent_batch_id=True))
 
     if not all_batch_ids or len(all_batch_ids) == 0:
         raise AirflowFailException(f"No batch IDs found for the provided analysis IDs ({analysis_ids}).")
 
+    # not possible with only_the_most_recent_batch_id = true but we keep it for safety
     if len(all_batch_ids) > 1:
         raise AirflowFailException(f"Analysis IDs belong to more than one batch ID ({all_batch_ids}).")
 

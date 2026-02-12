@@ -41,10 +41,11 @@ def get_analysis_ids(clinical_df: DataFrame, analysis_ids: Optional[Collection[s
     )
 
 
-def get_batch_ids(clinical_df: DataFrame, bioinfo_analysis_code: Optional[BioinfoAnalysisCode] = None, analysis_ids: Optional[Collection[str]] = None, sequencing_ids: Optional[Collection[str]] = None) -> Set[str]:
+def get_batch_ids(clinical_df: DataFrame, bioinfo_analysis_code: Optional[BioinfoAnalysisCode] = None, analysis_ids: Optional[Collection[str]] = None, sequencing_ids: Optional[Collection[str]] = None, only_the_most_recent_batch_id: bool = False) -> Set[str]:
     """
         Return the set of batch ids corresponding to the provided sequencing ids or analysis ids from the
         enriched_clinical table. If bioinfo_analysis_code is None, returns batch ids for all analysis codes.
+        If only_the_most_recent_batch_id is True, returns only the most recent batch_id based on sequencing_id.
     """
     if not analysis_ids:
         analysis_ids = []
@@ -54,17 +55,20 @@ def get_batch_ids(clinical_df: DataFrame, bioinfo_analysis_code: Optional[Bioinf
 
     if not bioinfo_analysis_code:
         # No filtering by bioinfo_analysis_code
-        return set(
-            clinical_df.loc[
-                clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids),
-                "batch_id"
-            ]
-        )
+        filtered_df = clinical_df.loc[
+            clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids)
+        ]
     else:
         # Filter by bioinfo_analysis_code
-        return set(
-            clinical_df.loc[
-                (clinical_df["bioinfo_analysis_code"] == bioinfo_analysis_code.value) & (clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids)),
-                "batch_id"
-            ]
-        )
+        filtered_df = clinical_df.loc[
+            (clinical_df["bioinfo_analysis_code"] == bioinfo_analysis_code.value) & (clinical_df["analysis_id"].isin(analysis_ids) | clinical_df["sequencing_id"].isin(sequencing_ids))
+        ]
+    
+    if only_the_most_recent_batch_id and not filtered_df.empty:
+        # Sort by sequencing_id (descending) to get the most recent one first
+        # sequencing_id is a PostgreSQL auto-generated ID, so higher values are more recent
+        filtered_df = filtered_df.sort_values(by="sequencing_id", ascending=False)
+        # Take the first batch_id (most recent)
+        return set([filtered_df.iloc[0]["batch_id"]])
+    else:
+        return set(filtered_df["batch_id"])
