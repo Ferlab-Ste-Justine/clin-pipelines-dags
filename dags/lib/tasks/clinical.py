@@ -60,7 +60,7 @@ def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: s
 
     df: DataFrame = to_pandas(enriched_clinical.uri)
     clinical_df = df[["analysis_id", "sequencing_id", "batch_id", "bioinfo_analysis_code"]]
-    all_batch_ids = sorted(get_batch_ids(clinical_df, bioinfo_analysis_code=bioinfo_analysis_code, analysis_ids=analysis_ids, only_the_most_recent_batch_id=True))
+    all_batch_ids = sorted(get_batch_ids(clinical_df, bioinfo_analysis_code=bioinfo_analysis_code, analysis_ids=analysis_ids, only_the_most_recent_batch_id=False))
 
     if not all_batch_ids or len(all_batch_ids) == 0:
         raise AirflowFailException(f"No batch IDs found for the provided analysis IDs ({analysis_ids}).")
@@ -70,6 +70,24 @@ def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: s
         raise AirflowFailException(f"Analysis IDs belong to more than one batch ID ({all_batch_ids}).")
 
     return list(all_batch_ids)[0]
+
+
+@task.virtualenv(skip_on_exit_code=SKIP_EXIT_CODE, task_id='group_analysis_ids_by_batch', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])
+def group_analysis_ids_by_batch(analysis_ids: Optional[Set[str]], skip: bool = False) -> List[List[str]]:
+    """Group analysis IDs by their batch ID. Returns a list of analysis ID lists, one per batch."""
+
+    import sys
+    from lib.datasets import enriched_clinical
+    from lib.utils import SKIP_EXIT_CODE
+    from lib.utils_etl_tables import group_analysis_ids_by_batch, to_pandas
+
+    if skip or not analysis_ids or len(analysis_ids) == 0:
+        sys.exit(SKIP_EXIT_CODE)
+
+    from pandas import DataFrame
+    df: DataFrame = to_pandas(enriched_clinical.uri)
+    clinical_df = df[["analysis_id", "batch_id"]]
+    return group_analysis_ids_by_batch(clinical_df, analysis_ids)
 
 
 @task.virtualenv(skip_on_exit_code=SKIP_EXIT_CODE, task_id='get_batch_ids_from_analysis_ids', requirements=["deltalake===0.24.0"], inlets=[enriched_clinical])

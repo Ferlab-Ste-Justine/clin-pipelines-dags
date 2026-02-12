@@ -18,10 +18,10 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, clinical, enrich, es, params
 from lib.tasks.batch_type import skip_if_no_batch_in
-from lib.tasks.clinical import get_batch_ids_from_analysis_ids
+from lib.tasks.clinical import get_batch_ids_from_analysis_ids, group_analysis_ids_by_batch
 from lib.tasks.params_validate import validate_color
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
-                           get_ingest_dag_configs_by_analysis_ids,
+                           get_ingest_dag_config_by_batch_group,
                            get_ingest_dag_configs_by_batch_id, release_id,
                            skip_notify, spark_jar)
 
@@ -109,7 +109,8 @@ with DAG(
     )
 
     get_ingest_dag_configs_by_batch_id_task = get_ingest_dag_configs_by_batch_id.expand(batch_id=get_batch_ids_task)
-    get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_configs_by_analysis_ids.partial(all_batch_types=detect_batch_types_task, analysis_ids=get_analysis_ids_task).expand(analysisType=[ClinAnalysis.GERMLINE.value, ClinAnalysis.SOMATIC_TUMOR_ONLY.value])
+    group_analysis_ids_by_batch_task = group_analysis_ids_by_batch(analysis_ids=get_analysis_ids_task)
+    get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_config_by_batch_group.expand(analysis_ids=group_analysis_ids_by_batch_task)
 
     trigger_ingest_by_batch_id_dags = TriggerDagRunOperator.partial(
         task_id='ingest_batches',
@@ -360,7 +361,7 @@ with DAG(
     )
 
     (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> detect_batch_types_task >>
-     [get_ingest_dag_configs_by_batch_id_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
+     [get_ingest_dag_configs_by_batch_id_task, group_analysis_ids_by_batch_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
      trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
      delete_previous_variant_centric_group() >> index_group >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >> notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)

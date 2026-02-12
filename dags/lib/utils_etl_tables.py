@@ -1,4 +1,4 @@
-from typing import Collection, Optional, Set
+from typing import Collection, List, Optional, Set
 
 from lib.utils_etl import BioinfoAnalysisCode
 
@@ -16,6 +16,21 @@ def to_pandas(dataset_uri: str) -> DataFrame:
 
     dt: DeltaTable = DeltaTable(dataset_uri, storage_options=storage_options)
     return dt.to_pandas()
+
+
+def group_analysis_ids_by_batch(clinical_df: DataFrame, analysis_ids: Collection[str]) -> List[List[str]]:
+    """Group analysis IDs by their batch_id. Returns a list of sorted analysis ID lists, one per batch."""
+    from collections import defaultdict
+
+    if not analysis_ids:
+        return []
+
+    filtered = clinical_df.loc[clinical_df["analysis_id"].isin(analysis_ids)]
+    batch_to_analysis = defaultdict(set)
+    for _, row in filtered.iterrows():
+        batch_to_analysis[row["batch_id"]].add(row["analysis_id"])
+
+    return [sorted(ids) for ids in batch_to_analysis.values()]
 
 
 def get_analysis_ids(clinical_df: DataFrame, analysis_ids: Optional[Collection[str]] = None, sequencing_ids: Optional[Collection[str]] = None,
