@@ -371,8 +371,13 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> ingest_fhir_group >> detect_batch_types_task >>
-     [get_ingest_dag_configs_by_batch_id_task, group_analysis_ids_by_batch_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
-     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
+    (params_validate_task >>
+     get_batch_ids_task >> get_analysis_ids_task >>
+     ingest_fhir_group >>
+     detect_batch_types_task >>
+     get_ingest_dag_configs_by_batch_id_task >> group_analysis_ids_by_batch_task >> get_ingest_dag_configs_by_analysis_ids_task >>
+     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >>
+     enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
      delete_previous_variant_centric_group() >> index_group >>
-     publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >> notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
+     publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >>
+     notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
