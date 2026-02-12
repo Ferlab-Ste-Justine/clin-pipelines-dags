@@ -65,10 +65,8 @@ def get_batch_ids(clinical_df: DataFrame, bioinfo_analysis_code: Optional[Bioinf
         ]
     
     if only_the_most_recent_batch_id and not filtered_df.empty:
-        # Sort by sequencing_id (descending) to get the most recent one first
-        # sequencing_id is a PostgreSQL auto-generated ID, so higher values are more recent
-        filtered_df = filtered_df.sort_values(by="sequencing_id", ascending=False)
-        # Take the first batch_id (most recent)
-        return set([filtered_df.iloc[0]["batch_id"]])
+        # Get the batch_id for the row with the maximum sequencing_id (most recent)
+        idx = filtered_df["sequencing_id"].idxmax()
+        return set([filtered_df.loc[idx, "batch_id"]])
     else:
         return set(filtered_df["batch_id"])
