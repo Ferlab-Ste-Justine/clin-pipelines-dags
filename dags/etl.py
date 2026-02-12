@@ -84,6 +84,16 @@ with DAG(
     get_batch_ids_task = params.get_batch_ids()
     get_analysis_ids_task = params.get_analysis_ids()
 
+    # Mandatory FHIR export + normalize + enrich_clinical
+    ingest_fhir_group = ingest_fhir(
+        batch_ids=[],
+        color=color(),
+        skip_all='',
+        skip_import='yes',
+        skip_post_import='',
+        spark_jar=spark_jar(),
+    )
+
     detect_batch_types_task = batch_type.detect(batch_ids=get_batch_ids_task, analysis_ids=get_analysis_ids_task, allowMultipleIdentifierTypes=True)
 
     # Get batch IDs from analysis IDs when needed
@@ -112,16 +122,6 @@ with DAG(
     get_ingest_dag_configs_by_batch_id_task = get_ingest_dag_configs_by_batch_id.expand(batch_id=get_batch_ids_task)
     group_analysis_ids_by_batch_task = group_analysis_ids_by_batch(analysis_ids=get_analysis_ids_task)
     get_ingest_dag_configs_by_analysis_ids_task = get_ingest_dag_config_by_batch_group.expand(analysis_ids=group_analysis_ids_by_batch_task)
-
-    # Mandatory FHIR export + normalize + enrich_clinical
-    ingest_fhir_group = ingest_fhir(
-        batch_ids='',
-        color=color(),
-        skip_all='',
-        skip_import='yes',
-        skip_post_import='',
-        spark_jar=spark_jar(),
-    )
 
     trigger_ingest_by_batch_id_dags = TriggerDagRunOperator.partial(
         task_id='ingest_batches',
@@ -371,8 +371,8 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
-    (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> detect_batch_types_task >>
+    (params_validate_task >> [get_batch_ids_task >> get_analysis_ids_task] >> ingest_fhir_group >> detect_batch_types_task >>
      [get_ingest_dag_configs_by_batch_id_task, group_analysis_ids_by_batch_task >> get_ingest_dag_configs_by_analysis_ids_task] >>
-     ingest_fhir_group >> trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
+     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
      delete_previous_variant_centric_group() >> index_group >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >> notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
