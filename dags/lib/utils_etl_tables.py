@@ -19,15 +19,19 @@ def to_pandas(dataset_uri: str) -> DataFrame:
 
 
 def group_analysis_ids_by_batch(clinical_df: DataFrame, analysis_ids: Collection[str]) -> List[List[str]]:
-    """Group analysis IDs by their batch_id. Returns a list of sorted analysis ID lists, one per batch."""
+    """Group analysis IDs by their batch_id. Returns a list of sorted analysis ID lists, one per batch.
+    Each analysis_id is assigned to only one batch (the most recent by sequencing_id) to avoid duplicate runs."""
     from collections import defaultdict
 
     if not analysis_ids:
         return []
 
     filtered = clinical_df.loc[clinical_df["analysis_id"].isin(analysis_ids)]
+    # Keep only the most recent row per analysis_id (by sequencing_id) so each ID appears in one batch only
+    deduplicated = filtered.sort_values("sequencing_id").drop_duplicates(subset="analysis_id", keep="last")
+
     batch_to_analysis = defaultdict(set)
-    for _, row in filtered.iterrows():
+    for _, row in deduplicated.iterrows():
         batch_to_analysis[row["batch_id"]].add(row["analysis_id"])
 
     return [sorted(ids) for ids in batch_to_analysis.values()]

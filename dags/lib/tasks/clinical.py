@@ -60,12 +60,14 @@ def get_analysis_ids_related_batch(analysis_ids: Optional[Set[str]], batch_id: s
 
     df: DataFrame = to_pandas(enriched_clinical.uri)
     clinical_df = df[["analysis_id", "sequencing_id", "batch_id", "bioinfo_analysis_code"]]
-    all_batch_ids = sorted(get_batch_ids(clinical_df, bioinfo_analysis_code=bioinfo_analysis_code, analysis_ids=analysis_ids, only_the_most_recent_batch_id=False))
+    all_batch_ids = sorted(get_batch_ids(clinical_df, bioinfo_analysis_code=bioinfo_analysis_code, analysis_ids=analysis_ids, only_the_most_recent_batch_id=True))
 
     if not all_batch_ids or len(all_batch_ids) == 0:
         raise AirflowFailException(f"No batch IDs found for the provided analysis IDs ({analysis_ids}).")
 
-    # not possible with only_the_most_recent_batch_id = true but we keep it for safety
+    # wont happen with only_the_most_recent_batch_id = True, why is it possible in first place ?
+    # answer: using add parent feature we may have an analysis initialy from a batch but later a sequencing is added from another batch
+    # let's just find the latest one
     if len(all_batch_ids) > 1:
         raise AirflowFailException(f"Analysis IDs belong to more than one batch ID ({all_batch_ids}).")
 
@@ -86,7 +88,7 @@ def group_analysis_ids_by_batch(analysis_ids: Optional[Set[str]], skip: bool = F
 
     from pandas import DataFrame
     df: DataFrame = to_pandas(enriched_clinical.uri)
-    clinical_df = df[["analysis_id", "batch_id"]]
+    clinical_df = df[["analysis_id", "batch_id", "sequencing_id"]]
     return group_analysis_ids_by_batch(clinical_df, analysis_ids)
 
 
