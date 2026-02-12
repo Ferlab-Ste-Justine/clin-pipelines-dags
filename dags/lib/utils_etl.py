@@ -200,7 +200,7 @@ def get_ingest_dag_configs_by_batch_id(batch_id: str) -> dict:
         'analysis_ids': None,
         'color': params['color'],
         'import': params['import'],
-        'export_fhir': params['export_fhir'],
+        'export_fhir': 'no',
         'spark_jar': params['spark_jar']
     }
 
@@ -233,7 +233,7 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
         'analysis_ids': analysis_ids_compatible_with_type,
         'color': params['color'],
         'import': get_param(params, 'import', 'no'),
-        'export_fhir': params['export_fhir'],
+        'export_fhir': 'no',
         'skip_batch': skip_batch,
         'spark_jar': params['spark_jar'],
     }
@@ -250,7 +250,7 @@ def get_ingest_dag_config_by_batch_group(analysis_ids: List[str]) -> dict:
         'analysis_ids': analysis_ids,
         'color': params['color'],
         'import': get_param(params, 'import', 'no'),
-        'export_fhir': params['export_fhir'],
+        'export_fhir': 'no',
         'skip_batch': 'no',
         'spark_jar': params['spark_jar'],
     }

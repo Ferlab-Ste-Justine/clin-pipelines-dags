@@ -39,7 +39,7 @@ with DAG(
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'import': Param('no', enum=['yes', 'no']),
-            'export_fhir': Param('yes', enum=['yes', 'no']),
+
             'cnv_frequencies': Param('yes', enum=['yes', 'no']),
             'delete_previous_releases': Param('yes', enum=['yes', 'no']),
             'notify': Param('no', enum=['yes', 'no']),
