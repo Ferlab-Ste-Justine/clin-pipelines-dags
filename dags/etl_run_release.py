@@ -63,7 +63,7 @@ with DAG(
 
     @task(task_id='check_should_skip_franklin')
     def check_should_skip_franklin(germline_analysis_ids: list[str]) -> str:
-        return 'yes' if len(germline_analysis_ids) == 0 or env == Env.QA else ''
+        return 'yes' if len(germline_analysis_ids) == 0 or env == Env.QA or env == Env.STAGING else ''
 
     check_should_skip_franklin_task = check_should_skip_franklin(get_germline_analysis_ids_task)
 
@@ -92,7 +92,6 @@ with DAG(
             'notify': 'yes' if env == Env.PROD else 'no',
             'color': params_validate_color,
             'spark_jar': spark_jar(),
-            'export_fhir': 'no', # already exported in that dag
         }
     )
 
