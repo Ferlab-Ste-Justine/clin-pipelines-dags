@@ -200,7 +200,7 @@ def get_ingest_dag_configs_by_batch_id(batch_id: str) -> dict:
         'analysis_ids': None,
         'color': params['color'],
         'import': params['import'],
-        'export_fhir': params['export_fhir'],
+        'export_fhir': 'no',
         'spark_jar': params['spark_jar']
     }
 
@@ -214,6 +214,9 @@ def get_germline_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: Lis
     )
 
 
+# Deprecated: replaced by get_ingest_dag_config_by_batch_group which expands by batch instead of by analysis type.
+# The old approach grouped all analysis IDs of the same type into one config, which broke when
+# analysis IDs of the same type belonged to different batches (e.g. two germline in batch1 and batch2).
 @task(task_id='get_ingest_dag_configs_by_analysis_ids')
 def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], analysis_ids: List[str], analysisType: str, skip_batch: str = 'no') -> dict:
     context = get_current_context()
@@ -230,8 +233,25 @@ def get_ingest_dag_configs_by_analysis_ids(all_batch_types: Dict[str, str], anal
         'analysis_ids': analysis_ids_compatible_with_type,
         'color': params['color'],
         'import': get_param(params, 'import', 'no'),
-        'export_fhir': params['export_fhir'],
+        'export_fhir': 'no',
         'skip_batch': skip_batch,
+        'spark_jar': params['spark_jar'],
+    }
+
+
+@task(task_id='get_ingest_dag_config_by_batch_group')
+def get_ingest_dag_config_by_batch_group(analysis_ids: List[str]) -> dict:
+    context = get_current_context()
+    params = context["params"]
+    if not analysis_ids or len(analysis_ids) == 0:
+        return None
+    return {
+        'batch_id': None,
+        'analysis_ids': analysis_ids,
+        'color': params['color'],
+        'import': get_param(params, 'import', 'no'),
+        'export_fhir': 'no',
+        'skip_batch': 'no',
         'spark_jar': params['spark_jar'],
     }
 
