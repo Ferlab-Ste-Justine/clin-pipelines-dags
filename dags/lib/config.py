@@ -82,7 +82,7 @@ chromosomes_4 = [
 if env == Env.TEST:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
-    panels_image = 'ferlabcrsj/clin-panels'
+    panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = None
     spark_jar = None
     obo_parser_spark_jar = ''
@@ -96,7 +96,7 @@ if env == Env.TEST:
 elif env == Env.QA:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
-    panels_image = 'ferlabcrsj/clin-panels'
+    panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'http://elasticsearch:9200'
     spark_jar = 'clin-variant-etl-v3.34.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
