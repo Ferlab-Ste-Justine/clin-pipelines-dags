@@ -200,7 +200,7 @@ def get_ingest_dag_configs_by_batch_id(batch_id: str) -> dict:
         'analysis_ids': None,
         'color': params['color'],
         'import': params['import'],
-        'export_fhir': 'no',
+        'export_fhir': 'yes',
         'spark_jar': params['spark_jar']
     }
 
