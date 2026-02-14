@@ -51,7 +51,7 @@ with DAG(
             'trigger_rule': TriggerRule.NONE_FAILED,
             'on_failure_callback': Slack.notify_task_failure,
         },
-        max_active_tasks=4,
+        max_active_tasks=1, # airflow go issue understanding this need to be sequenctial here
         max_active_runs=1,
         render_template_as_native_obj=True,
         user_defined_macros={'any_in': batch_type.any_in}
@@ -371,13 +371,25 @@ with DAG(
         on_success_callback=Slack.notify_dag_completion,
     )
 
+    # Barrier: waits for ALL expanded ingest instances before proceeding.
+    # Without this, zero-instance expanded tasks break the dependency chain
+    # and downstream tasks (snv_all etc.) start before ingest completes.
+    ingest_complete = EmptyOperator(
+        task_id='ingest_complete',
+        trigger_rule=TriggerRule.NONE_FAILED,
+    )
+
     (params_validate_task >>
      get_batch_ids_task >> get_analysis_ids_task >>
      ingest_fhir_group >>
      detect_batch_types_task >>
      get_ingest_dag_configs_by_batch_id_task >> group_analysis_ids_by_batch_task >> get_ingest_dag_configs_by_analysis_ids_task >>
-     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >>
+     trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> ingest_complete >>
      enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
      delete_previous_variant_centric_group() >> index_group >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >>
      notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
+
+    # Explicit dependency so ingest_complete waits for batch ingest
+    # even when analysis ingest expands to 0 instances (and vice versa)
+    trigger_ingest_by_batch_id_dags >> ingest_complete
