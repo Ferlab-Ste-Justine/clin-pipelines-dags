@@ -399,7 +399,7 @@ with DAG(
      enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
      delete_previous_variant_centric_group() >> index_group >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >>
-     [notify_batch_ids_task, notify_analysis_ids_task] >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
+     notify_batch_ids_task, notify_analysis_ids_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
 
     # Explicit dependency so ingest_complete waits for batch ingest
     # even when analysis ingest expands to 0 instances (and vice versa)
