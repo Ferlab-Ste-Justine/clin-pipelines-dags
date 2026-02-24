@@ -124,7 +124,20 @@ def default_or_initial(batch_param_name: str = 'batch_ids', analysis_param_name:
 
 
 def skip_notify(batch_param_name: str = 'batch_id', analysis_param_name: str = 'analysis_id') -> str:
-    return f'{{% if ((params.{batch_param_name} and params.{batch_param_name}|length) or (params.{analysis_param_name} and params.{analysis_param_name}|length)) and params.notify == "yes" %}}{{% else %}}yes{{% endif %}}'
+    conditions = []
+    
+    if batch_param_name is not None:
+        conditions.append(f'(params.{batch_param_name} and params.{batch_param_name}|length)')
+    
+    if analysis_param_name is not None:
+        conditions.append(f'(params.{analysis_param_name} and params.{analysis_param_name}|length)')
+    
+    if not conditions:
+        # If no conditions, always skip (return "yes")
+        return 'yes'
+    
+    combined_conditions = ' or '.join(conditions)
+    return f'{{% if ({combined_conditions}) and params.notify == "yes" %}}{{% else %}}yes{{% endif %}}'
 
 
 def skip_if_param_not(param_template, value) -> str:
