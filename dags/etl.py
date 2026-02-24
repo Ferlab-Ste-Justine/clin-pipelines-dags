@@ -101,6 +101,7 @@ with DAG(
         analysis_ids=get_analysis_ids_task,
     )
 
+    # not used naymore but if needed, we can keep it 
     @task(task_id='get_all_batch_ids')
     def get_all_batch_ids(batch_ids: List[str], batch_ids_from_analysis: List[str]) -> List[str]:
         """Combine batch IDs from params and those derived from analysis IDs."""
@@ -301,14 +302,31 @@ with DAG(
     )
 
     # Use operator directly for dynamic task mapping
-    notify_task = NotifyOperator.partial(
-        task_id='notify',
-        name='notify',
+    notify_batch_ids_task = NotifyOperator.partial(
+        task_id='notify_batch_ids',
+        name='notify_batch_ids',
         k8s_context=K8sContext.DEFAULT,
         color=env_color,
-        skip=skip_notify(batch_param_name='batch_ids', analysis_param_name='analysis_ids')
+        skip=skip_notify(batch_param_name='batch_ids', analysis_param_name=None)
     ).expand(
-        batch_id=all_batch_ids_task
+        batch_id=get_batch_ids_task
+    )
+
+    @task(task_id='prepare_notify_analysis_ids')
+    def prepare_notify_analysis_ids(analysis_ids: List[str]) -> str:
+        if not analysis_ids or len(analysis_ids) == 0:
+            raise AirflowSkipException("No analysis IDs to notify.")
+        return ','.join(analysis_ids)
+
+    prepare_notify_analysis_ids_task = prepare_notify_analysis_ids(get_analysis_ids_task)
+
+    notify_analysis_ids_task = NotifyOperator(
+        task_id='notify_analysis_ids',
+        name='notify_analysis_ids',
+        k8s_context=K8sContext.DEFAULT,
+        color=env_color,
+        batch_id=prepare_notify_analysis_ids_task,
+        skip=skip_notify(batch_param_name=None, analysis_param_name='analysis_ids')
     )
 
     trigger_qc_es_dag = TriggerDagRunOperator(
@@ -381,14 +399,14 @@ with DAG(
 
     (params_validate_task >>
      get_batch_ids_task >> get_analysis_ids_task >>
-     ingest_fhir_group >>
+     ingest_fhir_group >> all_batch_ids_task >>
      detect_batch_types_task >>
      get_ingest_dag_configs_by_batch_id_task >> group_analysis_ids_by_batch_task >> get_ingest_dag_configs_by_analysis_ids_task >>
      trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> ingest_complete >>
      enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
      delete_previous_variant_centric_group() >> index_group >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >>
-     notify_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
+     notify_batch_ids_task >> prepare_notify_analysis_ids_task >> notify_analysis_ids_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
 
     # Explicit dependency so ingest_complete waits for batch ingest
     # even when analysis ingest expands to 0 instances (and vice versa)
