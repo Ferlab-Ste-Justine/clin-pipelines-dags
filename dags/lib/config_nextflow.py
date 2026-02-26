@@ -44,7 +44,7 @@ nextflow_svclustering_revision = 'v1.3.5-clin'
 
 nextflow_svclustering_parental_origin_revision = 'v1.1.4-clin'
 
-nextflow_post_processing_revision = 'v2.10.0'
+nextflow_post_processing_revision = 'v2.10.1'
 nextflow_cnv_post_processing_revision = 'v1.0.0'
 
 
