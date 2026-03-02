@@ -12,6 +12,8 @@
   "franklin_url": "https://mocks.qa.cqgc.hsj.rtss.qc.ca/api/franklin",
   "franklin_email": "API_franklin_email",
   "franklin_password": "test",
+  "phenovar_url": "https://mocks.qa.cqgc.hsj.rtss.qc.ca/api/phenovar",
+  "phenovar_api_token": "phenovar_api_token",
   "slack_hook_url": "https://hooks.slack.com/services/...",
   "dev_skip_task": "yes"
 }

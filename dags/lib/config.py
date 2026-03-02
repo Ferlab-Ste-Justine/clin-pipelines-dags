@@ -40,6 +40,8 @@ s3_gnomad = Variable.get('s3_gnomad', None)
 franklin_url = Variable.get('franklin_url', None)
 franklin_email = Variable.get('franklin_email', None)
 franklin_password = Variable.get('franklin_password', None)
+phenovar_url = Variable.get('phenovar_url', None)
+phenovar_api_token = Variable.get('phenovar_api_token', None)
 slack_hook_url = Variable.get('slack_hook_url', None)
 show_test_dags = Variable.get('show_test_dags', None) == 'yes'
 cosmic_credentials = Variable.get('cosmic_credentials', None)
@@ -52,6 +54,7 @@ clin_import_bucket = f'cqgc-{env}-app-files-import'
 clin_datalake_bucket = f'cqgc-{env}-app-datalake'
 clin_nextflow_bucket = f'cqgc-{env}-app-nextflow'
 clin_scratch_bucket = f'cqgc-{env}-app-files-scratch'
+clin_phenovar_import_bucket = f'cqgc-{env}-app-phenovar-import'
 all_qlin_buckets = [clin_import_bucket, clin_datalake_bucket, clin_nextflow_bucket, clin_scratch_bucket]
 
 etl_run_pending_folder = '.etl-run'
