@@ -151,14 +151,6 @@ def phenovar_update(
         if _skip:
             raise AirflowSkipException()
         
-        clin_s3 = S3Hook(config.s3_conn_id)
-        
-        # Check if any status markers remain
-        for analysis_id in _analysis_ids:
-            status_key = build_s3_status_key(analysis_id)
-            if clin_s3.check_for_key(status_key, clin_datalake_bucket):
-                raise AirflowSkipException('Not all analyses are completed')
-        
         phenovar_s3 = S3Hook(config.s3_conn_id)
         did_something = False
         

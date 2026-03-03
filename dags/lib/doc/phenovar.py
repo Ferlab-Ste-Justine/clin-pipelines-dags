@@ -102,7 +102,7 @@ Example payload:
         "cohort": "1261485"
     },
     "phenotype_hpo_code_list": ["HP:0000151", "HP:0001263"],
-    "phenotype_onset_hpo_code": "",
+    "phenotype_onset_hpo_code": "HP:0003577",  # Earliest age at onset from clinical_signs
     "download_specifications": {
         "download_source": "cqgc_s3",
         "details": {
