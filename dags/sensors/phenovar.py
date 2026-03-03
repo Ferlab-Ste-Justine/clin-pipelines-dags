@@ -79,21 +79,21 @@ class PhenotypingAPISensor(BaseSensorOperator):
                 
                 try:
                     status_response = check_phenovar_status(task_id)
-                    phenovar_status = status_response.get('status', 'UNKNOWN')
+                    phenovar_state = status_response.get('state', 'UNKNOWN')
                     
-                    logging.info(f'Analysis {analysis_id} (task {task_id}): {phenovar_status}')
+                    logging.info(f'Analysis {analysis_id} (task {task_id}): {phenovar_state}')
                     
-                    if phenovar_status == 'SUCCESS':
+                    if phenovar_state == 'SUCCESS':
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.SUCCESS)
                         completed_analyses.append(analysis_id)
-                    elif phenovar_status == 'FAILURE':
+                    elif phenovar_state == 'FAILURE':
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.FAILURE)
                         completed_analyses.append(analysis_id)
-                    elif phenovar_status in ['PENDING', 'STARTED']:
+                    elif phenovar_state in ['PENDING', 'STARTED', 'RECEIVED']:
                         # Update to STARTED if it was PENDING
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.STARTED)
                     else:
-                        logging.warning(f'Unknown Phenovar status: {phenovar_status} for task {task_id}')
+                        logging.warning(f'Unknown Phenovar state: {phenovar_state} for task {task_id}')
                         
                 except Exception as e:
                     logging.error(f'Error checking status for analysis {analysis_id}: {str(e)}')

@@ -303,7 +303,8 @@ def submit_phenovar_analysis(payload: dict) -> dict:
 def check_phenovar_status(task_id: str) -> dict:
     """
     Check status of Phenovar task.
-    Returns: dict with keys 'status', 'result' (if completed)
+    Returns: dict with keys 'state', 'result' (if completed), 'message' (if failed)
+    Response follows CeleryTaskDiagnosisTableResponse schema.
     """
     conn = get_phenovar_http_conn()
     headers = get_phenovar_headers()
@@ -320,13 +321,14 @@ def check_phenovar_status(task_id: str) -> dict:
 
 def download_phenovar_results(task_id: str) -> str:
     """
-    Download Phenovar results JSON.
-    Returns: JSON string of results
+    Download Phenovar results JSON from check-status response.
+    Returns: JSON string of results (DiagnosisTableResponse)
     """
     status_response = check_phenovar_status(task_id)
     
-    if status_response.get('status') != 'SUCCESS':
-        raise AirflowFailException(f'Cannot download results, status is {status_response.get("status")}')
+    state = status_response.get('state')
+    if state != 'SUCCESS':
+        raise AirflowFailException(f'Cannot download results, state is {state}')
     
     result_data = status_response.get('result')
     if not result_data:
