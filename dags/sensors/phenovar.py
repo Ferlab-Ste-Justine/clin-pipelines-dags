@@ -8,7 +8,7 @@ from airflow.sensors.base import BaseSensorOperator
 from lib import config
 from lib.config import clin_datalake_bucket
 from lib.phenovar import (
-    PhenotypingStatus, build_s3_phenovar_root_key, 
+    PhenotypingStatus, build_s3_status_key, 
     check_phenovar_status, read_s3_task_id,
     write_s3_analysis_status
 )
@@ -41,7 +41,7 @@ class PhenotypingAPISensor(BaseSensorOperator):
         analysis_to_task_id = {}
         
         for analysis_id in analysis_ids:
-            status_key = f'{build_s3_phenovar_root_key(analysis_id)}/_PHENOVAR_STATUS_.txt'
+            status_key =  build_s3_status_key(analysis_id)
             
             if clin_s3.check_for_key(status_key, clin_datalake_bucket):
                 key_obj = clin_s3.get_key(status_key, clin_datalake_bucket)

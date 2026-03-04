@@ -28,7 +28,18 @@ spamming **Phenovar**.
 
 ### extract_clinical_data
 
-Extract patient information, HPO codes, and VCF file URLs from **enriched_clinical** table:
+Extract patient information, HPO codes, age-at-onset codes, and VCF file URLs from **enriched_clinical** table.
+
+**Idempotency**: First checks if analyses already have result files and skips them. Returns empty dict 
+if all analyses have results, preventing unnecessary reprocessing.
+
+**Family filtering**: Only processes **SOLO/DUO/TRIO** analyses. Families with siblings are detected and skipped.
+
+**Validation**: Ensures each analysis has:
+- A proband with HPO codes (required by Phenovar API)
+- At least one VCF file (SNV or CNV)
+
+Example extracted data:
 
 ```json
 {
@@ -44,8 +55,9 @@ Extract patient information, HPO codes, and VCF file URLs from **enriched_clinic
             "affected_status": true,
             "gender": "Male",
             "clinical_signs": ["HP:0000151", "HP:0001263"],
-            "snv_vcf_germline_urls": "WrappedArray(s3a://cqgc-qa-app-download/blue/254bad63.vcf.gz)",
-            "cnv_vcf_germline_urls": "WrappedArray(s3a://cqgc-qa-app-download/blue/135a23ed.vcf.gz)"
+            "age_at_onset_codes": ["HP:0003577", "HP:0011463"],
+            "snv_vcf_germline_urls": ["s3a://cqgc-qa-app-download/blue/254bad63.vcf.gz"],
+            "cnv_vcf_germline_urls": ["s3a://cqgc-qa-app-download/blue/135a23ed.vcf.gz"]
         },
         {
             "analysis_id": "1261485",
@@ -58,12 +70,17 @@ Extract patient information, HPO codes, and VCF file URLs from **enriched_clinic
             "affected_status": false,
             "gender": "Female",
             "clinical_signs": [],
-            "snv_vcf_germline_urls": "WrappedArray(s3a://cqgc-qa-app-download/blue/00fba308.vcf.gz)",
-            "cnv_vcf_germline_urls": "WrappedArray(s3a://cqgc-qa-app-download/blue/2fc95fde.vcf.gz)"
+            "age_at_onset_codes": [],
+            "snv_vcf_germline_urls": ["s3a://cqgc-qa-app-download/blue/00fba308.vcf.gz"],
+            "cnv_vcf_germline_urls": ["s3a://cqgc-qa-app-download/blue/2fc95fde.vcf.gz"]
         }
     ]
 }
 ```
+
+**Age-at-onset extraction**: The `age_at_onset_codes` field contains HPO codes extracted from FHIR 
+observations during the normalization process. These codes represent the age of phenotype onset 
+(e.g., HP:0003577 = Congenital onset, HP:0011463 = Childhood onset).
 
 Data is grouped by **analysis_id** to handle trios (multiple rows per analysis).
 
@@ -89,6 +106,24 @@ Files are mapped to Phenovar file types:
 
 Build Phenovar API payload and submit analysis requests.
 
+**Age-at-onset selection**: The `phenotype_onset_hpo_code` field is populated with the **earliest** 
+age-at-onset code from the clinical signs, based on this hierarchy:
+
+1. HP:0030674 - Antenatal onset
+2. HP:0003577 - Congenital onset
+3. HP:0003623 - Neonatal onset
+4. HP:0003593 - Infantile onset
+5. HP:0011463 - Childhood onset
+6. HP:0003621 - Juvenile onset
+7. HP:0011462 - Young adult onset
+8. HP:0003596 - Middle age onset
+9. HP:0003584 - Late onset (Senior)
+
+If no valid onset code is found, the field is set to empty string `""` (optional per Phenovar API spec).
+
+**Idempotency check**: Before submitting, verifies the analysis hasn't already been submitted by 
+checking for existing status markers.
+
 Example payload:
 ```json
 {
@@ -102,7 +137,7 @@ Example payload:
         "cohort": "1261485"
     },
     "phenotype_hpo_code_list": ["HP:0000151", "HP:0001263"],
-    "phenotype_onset_hpo_code": "HP:0003577",  # Earliest age at onset from clinical_signs
+    "phenotype_onset_hpo_code": "HP:0003577",
     "download_specifications": {
         "download_source": "cqgc_s3",
         "details": {
@@ -138,8 +173,12 @@ raw/landing/phenovar/
     phenovar_result.json      → Downloaded result (when SUCCESS)
 ```
 
-**Idempotency**: The DAG checks status before submitting. If an analysis already exists with 
-SUCCESS status and has a result file, it will be skipped.
+**Idempotency**: The DAG implements multi-level idempotency:
+1. **extract_clinical_data**: Skips analyses that already have `phenovar_result.json` files
+2. **submit_analyses**: Checks status markers before submitting to avoid duplicate requests
+3. **Result files**: Presence of result file indicates completed processing
+
+This allows safe re-runs without reprocessing completed analyses or spamming the Phenovar API.
 
 ### api_sensor
 
@@ -170,11 +209,58 @@ After download, a `PipelineOperator` task calls the Java class
 2. Add an entry to **Task.output** referencing the DocumentReference
 3. Move the result JSON to the downloadable files bucket
 
+## Age-at-Onset Feature
+
+The DAG extracts and uses age-at-onset information from FHIR observations to improve Phenovar's 
+variant prioritization.
+
+### FHIR Data Extraction (Scala ETL)
+
+During FHIR-to-normalized transformation, the `observationMappings` function:
+1. Extracts `age_at_onset` from the observation's extension field
+2. Looks for URL: `http://fhir.cqgc.ferlab.bio/StructureDefinition/age-at-onset`
+3. Extracts the `valueCoding.code` (HPO code)
+4. Stores in `normalized_observation.age_at_onset`
+
+Example FHIR extension:
+```json
+{
+  "extension": [
+    {
+      "url": "http://fhir.cqgc.ferlab.bio/StructureDefinition/age-at-onset",
+      "valueCoding": {
+        "system": "http://purl.obolibrary.org/obo/hp.owl",
+        "code": "HP:0003577",
+        "display": "Congenital onset"
+      }
+    }
+  ]
+}
+```
+
+### Enriched Clinical Aggregation (Scala ETL)
+
+The `withClinicalSigns` function aggregates observations into the `enriched_clinical` table:
+- Each clinical sign includes: `id`, `name`, `affected_status_code`, `affected_status`, `age_at_onset`
+- Age-at-onset codes are collected per observation
+
+### Python Selection Logic
+
+The Python DAG extracts all age-at-onset codes from clinical signs and selects the **earliest** 
+onset based on the HPO hierarchy (Antenatal → Senior). This single value is included in the 
+Phenovar API payload as `phenotype_onset_hpo_code`.
+
+**Benefits**: Provides temporal context to phenotypes, helping Phenovar better prioritize variants 
+based on when symptoms first appeared.
+
 ### Cleanup
 
-After all analyses are complete:
-1. **clean_up_clin**: Delete status marker files from datalake
-2. **clean_up_phenovar**: Delete VCF files from Phenovar import bucket
+After all analyses are complete, cleanup tasks run in sequence:
+1. **clean_up_clin**: Delete status marker files (`_PHENOVAR_STATUS_.txt`, `_PHENOVAR_TASK_ID_.txt`) from datalake
+2. **clean_up_phenovar**: Delete copied VCF files from Phenovar import bucket
+
+**Note**: `clean_up_phenovar` relies on task chain ordering rather than checking for deleted status markers,
+as those are removed by the preceding `clean_up_clin` task.
 
 ## Parameters
 
@@ -188,16 +274,21 @@ After all analyses are complete:
 ## Constraints
 
 - **Germline only**: Only GERMLINE analyses are allowed (validated early in the workflow)
-- **Proband required**: Each analysis must have a proband with HPO codes
-- **VCF files required**: SNV and CNV VCF files must exist for the proband
+- **Family composition**: Only **SOLO/DUO/TRIO** analyses are processed (families with siblings are skipped)
+- **Proband required**: Each analysis must have a proband with HPO codes (required by Phenovar API)
+- **VCF files required**: At least one VCF file (SNV or CNV) must exist for the analysis
+- **Age-at-onset**: Optional field, extracted from FHIR observations and selected based on hierarchy
 - **Timeout**: Default 8 hours for Phenovar processing (typical duration: up to 3 hours)
 
 ## Error Handling
 
-- **Retry-safe**: Can be restarted without duplicating work
+- **Retry-safe**: Can be restarted without duplicating work (multi-level idempotency)
 - **Partial failures**: Individual analysis failures don't block others
+- **Early validation**: Filters out invalid analyses (siblings, missing HPO, missing VCF) before processing
 - **Status tracking**: Failed analyses marked with FAILURE status, can be reset and retried
 - **Sensor timeout**: If Phenovar takes longer than timeout, sensor fails (can be restarted)
+- **HTTP connection management**: Response data is read before closing connections to avoid empty responses
+- **VCF URL parsing**: Handles numpy arrays and various S3 URL formats (s3://, s3a://)
 
 ## Reset Functionality
 
