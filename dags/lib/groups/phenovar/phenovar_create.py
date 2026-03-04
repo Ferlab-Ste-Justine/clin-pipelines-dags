@@ -178,7 +178,7 @@ def phenovar_create(analysis_ids: List[str], skip: str):
                             )
                             
                             vcf_files.append({
-                                'filepath': actual_filename,
+                                'filepath': f'{analysis_id}/{actual_filename}',
                                 'filetype': map_phenovar_file_type(is_proband, is_mother, is_father, is_snv=True)
                             })
                         except Exception as e:
@@ -203,7 +203,7 @@ def phenovar_create(analysis_ids: List[str], skip: str):
                             )
                             
                             vcf_files.append({
-                                'filepath': actual_filename,
+                                'filepath': f'{analysis_id}/{actual_filename}',
                                 'filetype': map_phenovar_file_type(is_proband, is_mother, is_father, is_snv=False)
                             })
                         except Exception as e:

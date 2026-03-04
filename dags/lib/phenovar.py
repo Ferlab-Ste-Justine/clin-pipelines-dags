@@ -215,8 +215,7 @@ def build_phenovar_payload(analysis_data: dict, vcf_files: List[dict]) -> dict:
         "download_specifications": {
             "download_source": "s3_minio",  # This should match Phenovar server config
             "details": {
-                "s3_bucket_name": clin_phenovar_import_bucket,
-                "s3_bucket_root_path": analysis_data['analysis_id']
+                "s3_bucket_name": clin_phenovar_import_bucket
             }
         },
         "analysis_files": vcf_files
