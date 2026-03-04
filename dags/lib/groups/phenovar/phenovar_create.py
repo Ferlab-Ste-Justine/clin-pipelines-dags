@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 from airflow.decorators import task, task_group
-from airflow.exceptions import AirflowSkipException
+from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 from lib import config
@@ -279,20 +279,16 @@ def phenovar_create(analysis_ids: List[str], skip: str):
                 continue
             
             # Build and submit payload
-            try:
-                payload = build_phenovar_payload(analysis_data, vcf_files)
-                response = submit_phenovar_analysis(payload)
-                
-                task_id = response.get('task_id')
-                if task_id:
-                    logging.info(f'Submitted analysis {analysis_id}, task_id: {task_id}')
-                    write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.PENDING, task_id)
-                    submitted_ids.append(analysis_id)
-                else:
-                    logging.error(f'No task_id in response for analysis {analysis_id}')
+            payload = build_phenovar_payload(analysis_data, vcf_files)
+            response = submit_phenovar_analysis(payload)
             
-            except Exception as e:
-                logging.error(f'Error submitting analysis {analysis_id}: {str(e)}')
+            task_id = response.get('task_id')
+            if task_id:
+                logging.info(f'Submitted analysis {analysis_id}, task_id: {task_id}')
+                write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.PENDING, task_id)
+                submitted_ids.append(analysis_id)
+            else:
+                raise AirflowFailException(f'No task_id in response for analysis {analysis_id}')
         
         logging.info(f'Successfully submitted {len(submitted_ids)} analyses to Phenovar')
         return submitted_ids

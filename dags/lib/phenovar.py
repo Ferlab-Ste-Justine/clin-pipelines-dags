@@ -167,11 +167,20 @@ def build_phenovar_payload(analysis_data: dict, vcf_files: List[dict]) -> dict:
     age_at_onset_codes = analysis_data.get('age_at_onset_codes', [])
     earliest_onset = get_earliest_age_at_onset(age_at_onset_codes)
     
+    # Map FHIR gender to Phenovar sex format
+    gender_map = {
+        'male': 'M',
+        'female': 'F',
+        'other': 'M',  # Default to M for other/unknown
+        'unknown': 'M'
+    }
+    sex = gender_map.get(analysis_data.get('gender', '').lower(), 'M')
+    
     payload = {
         "schema_version": "1.0.0",
         "patient_details": {
             "externalid": analysis_data['sequencing_id'],
-            "sex": analysis_data['gender'],
+            "sex": sex,
             "maternal_affected": analysis_data.get('maternal_affected', False),
             "paternal_affected": analysis_data.get('paternal_affected', False),
             "label": "",
