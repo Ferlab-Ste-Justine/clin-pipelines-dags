@@ -189,7 +189,7 @@ def build_phenovar_payload(analysis_data: dict, vcf_files: List[dict]) -> dict:
         "phenotype_hpo_code_list": analysis_data.get('clinical_signs', []),
         "phenotype_onset_hpo_code": earliest_onset,
         "download_specifications": {
-            "download_source": "cqgc_s3",  # This should match Phenovar server config
+            "download_source": "s3_minio",  # This should match Phenovar server config
             "details": {
                 "s3_bucket_name": clin_phenovar_import_bucket,
                 "s3_bucket_root_path": analysis_data['analysis_id']

@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from airflow.exceptions import AirflowSkipException
+from airflow.exceptions import AirflowFailException, AirflowSkipException
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.sensors.base import BaseSensorOperator
 
@@ -67,6 +67,7 @@ class PhenotypingAPISensor(BaseSensorOperator):
         
         # Check status for each task (in chunks of 10 to avoid overwhelming the API)
         completed_analyses = []
+        failed_analyses = []
         chunk_size = 10
         
         for i in range(0, len(pending_analyses), chunk_size):
@@ -80,6 +81,7 @@ class PhenotypingAPISensor(BaseSensorOperator):
                 try:
                     status_response = check_phenovar_status(task_id)
                     phenovar_state = status_response.get('state', 'UNKNOWN')
+                    message = status_response.get('message', '')
                     
                     logging.info(f'Analysis {analysis_id} (task {task_id}): {phenovar_state}')
                     
@@ -87,8 +89,9 @@ class PhenotypingAPISensor(BaseSensorOperator):
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.SUCCESS)
                         completed_analyses.append(analysis_id)
                     elif phenovar_state == 'FAILURE':
+                        logging.error(f'Analysis {analysis_id} failed in Phenovar: {message}')
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.FAILURE)
-                        completed_analyses.append(analysis_id)
+                        failed_analyses.append((analysis_id, message))
                     elif phenovar_state in ['PENDING', 'STARTED', 'RECEIVED']:
                         # Update to STARTED if it was PENDING
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.STARTED)
@@ -98,8 +101,15 @@ class PhenotypingAPISensor(BaseSensorOperator):
                 except Exception as e:
                     logging.error(f'Error checking status for analysis {analysis_id}: {str(e)}')
         
+        # If any analyses failed, fail the task immediately
+        if failed_analyses:
+            failure_details = '\n'.join([f'  - {analysis_id}: {msg}' for analysis_id, msg in failed_analyses])
+            raise AirflowFailException(
+                f'Phenovar analysis failed for {len(failed_analyses)} analysis:\n{failure_details}'
+            )
+        
         completed_count = len(completed_analyses)
         logging.info(f'Completed analyses: {completed_count}/{pending_count}')
         
-        # Return True when all pending analyses are completed (SUCCESS or FAILURE)
+        # Return True when all pending analyses are completed successfully
         return completed_count == pending_count
