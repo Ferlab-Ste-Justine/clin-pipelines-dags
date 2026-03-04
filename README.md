@@ -121,14 +121,16 @@ Create Airflow connection:
 ```json
 // For default setup
 {
-  "endpoint_url": "http://minio:9000",
+  "host": "http://minio:9000",
+  "entry_point": "http://minio:9000",
   "verify": false,
   "aws_access_key_id": "minioadmin",
   "aws_secret_access_key": "minioadmin"
 }
 // For external minio setup
 {
-  "endpoint_url": "http://minio-external:9000",
+  "host": "http://minio-external:9000",
+  "entry_point": "http://minio-external:9000",
   "verify": false,
   "aws_access_key_id": "<your minio access key>",
   "aws_secret_access_key": "<your minio password key>"
