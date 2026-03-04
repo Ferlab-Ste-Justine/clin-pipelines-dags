@@ -36,8 +36,9 @@ class PhenotypingAPISensor(BaseSensorOperator):
         analysis_ids = self.analysis_ids
         clin_s3 = S3Hook(config.s3_conn_id)
         
-        # Find analyses with PENDING or STARTED status
+        # Find analyses with PENDING, STARTED, or FAILURE status
         pending_analyses = []
+        failed_analyses_existing = []
         analysis_to_task_id = {}
         
         for analysis_id in analysis_ids:
@@ -57,8 +58,18 @@ class PhenotypingAPISensor(BaseSensorOperator):
                         analysis_to_task_id[analysis_id] = task_id
                     else:
                         logging.warning(f'No task ID found for analysis {analysis_id}')
+                elif status == PhenotypingStatus.FAILURE:
+                    logging.error(f'Found existing FAILURE analysis: {analysis_id}')
+                    failed_analyses_existing.append(analysis_id)
         
         pending_count = len(pending_analyses)
+        
+        # Fail if any analyses have already failed
+        if failed_analyses_existing:
+            failure_details = '\n'.join([f'  - {analysis_id}' for analysis_id in failed_analyses_existing])
+            raise AirflowFailException(
+                f'Phenovar analysis already failed for {len(failed_analyses_existing)} analysis:\n{failure_details}'
+            )
         
         if pending_count == 0:
             raise AirflowSkipException('No PENDING or STARTED analyses')
