@@ -67,6 +67,27 @@ with DAG(
 
     check_should_skip_franklin_task = check_should_skip_franklin(get_germline_analysis_ids_task)
 
+    @task(task_id='check_should_skip_phenovar')
+    def check_should_skip_phenovar(germline_analysis_ids: list[str]) -> str:
+        return 'yes' if len(germline_analysis_ids) == 0 else ''
+
+    check_should_skip_phenovar_task = check_should_skip_phenovar(get_germline_analysis_ids_task)
+
+    trigger_phenovar_by_analysis_id_dags = TriggerDagRunOperator(
+        task_id='import_phenovar',
+        trigger_dag_id='etl_import_phenovar',
+        wait_for_completion=False,  # Don't wait, it's independent (in the future we may have to wait for it)
+        skip=check_should_skip_phenovar_task,
+        conf={
+            'batch_ids': None,
+            'analysis_ids': get_germline_analysis_ids_task,
+            'color': params_validate_color,
+            'export_fhir': 'no',
+            'import': 'no',
+            'spark_jar': spark_jar(),
+        }
+    )
+
     trigger_franklin_by_analysis_id_dags = TriggerDagRunOperator(
         task_id='import_franklin',
         trigger_dag_id='etl_import_franklin',
@@ -76,6 +97,7 @@ with DAG(
             'batch_ids': None,
             'analysis_ids': get_germline_analysis_ids_task,
             'color': params_validate_color,
+            'export_fhir': 'no',
             'import': 'no',
             'spark_jar': spark_jar(),
         }
@@ -106,7 +128,8 @@ with DAG(
         param_sequencing_ids >> get_all_analysis_ids_task >>
         detect_batch_types_task >>
         get_germline_analysis_ids_task >> nextflow_germline_task_group >>
-        check_should_skip_franklin_task >> trigger_franklin_by_analysis_id_dags >>
-        cleanup_task >> trigger_etl >>
-        slack
+        [check_should_skip_phenovar_task, check_should_skip_franklin_task]
     )
+    
+    check_should_skip_phenovar_task >> trigger_phenovar_by_analysis_id_dags
+    check_should_skip_franklin_task >> trigger_franklin_by_analysis_id_dags >> cleanup_task >> trigger_etl >> slack
