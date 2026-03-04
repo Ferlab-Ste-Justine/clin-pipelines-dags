@@ -17,7 +17,7 @@ from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.slack import Slack
 from lib.tasks import batch_type, clinical, params, params_validate
 from lib.utils_etl import (ClinAnalysis, color, skip_import,
-                           spark_jar)
+                           spark_jar, skip_export_fhir)
 
 with DAG(
         dag_id='etl_import_franklin',
@@ -33,6 +33,7 @@ with DAG(
             'batch_ids': Param([], type=['null', 'array'], description='Put a single batch id per line.'),
             'analysis_ids': Param([], type=['null', 'array'], description='Put a single sequencing id per line.'),
             'color': Param('', type=['null', 'string']),
+            'export_fhir': Param('yes', enum=['yes', 'no']),
             'import': Param('yes', enum=['yes', 'no']),
             'reset': Param('no', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
@@ -53,7 +54,7 @@ with DAG(
     ingest_fhir_group = ingest_fhir(
         batch_ids=batch_ids,
         color=color,
-        skip_all='',  # Always run
+        skip_all=skip_export_fhir(),
         skip_import=skip_import(batch_param_name='batch_ids'),
         skip_post_import='',  # Always run enrich clinical steps
         spark_jar=spark_jar()

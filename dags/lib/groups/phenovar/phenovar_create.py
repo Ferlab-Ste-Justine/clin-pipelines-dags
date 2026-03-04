@@ -171,13 +171,14 @@ def phenovar_create(analysis_ids: List[str], skip: str):
                             source_bucket, source_key = parse_s3_url(snv_url_str)
                             filename = extract_vcf_filename(source_key)
                             
-                            copy_vcf_to_phenovar_bucket(
+                            # Copy and potentially gzip, get actual filename used
+                            actual_filename = copy_vcf_to_phenovar_bucket(
                                 clin_s3, phenovar_s3, analysis_id,
                                 source_bucket, source_key, filename
                             )
                             
                             vcf_files.append({
-                                'filepath': filename,
+                                'filepath': actual_filename,
                                 'filetype': map_phenovar_file_type(is_proband, is_mother, is_father, is_snv=True)
                             })
                         except Exception as e:
@@ -195,13 +196,14 @@ def phenovar_create(analysis_ids: List[str], skip: str):
                             source_bucket, source_key = parse_s3_url(cnv_url_str)
                             filename = extract_vcf_filename(source_key)
                             
-                            copy_vcf_to_phenovar_bucket(
+                            # Copy and potentially gzip, get actual filename used
+                            actual_filename = copy_vcf_to_phenovar_bucket(
                                 clin_s3, phenovar_s3, analysis_id,
                                 source_bucket, source_key, filename
                             )
                             
                             vcf_files.append({
-                                'filepath': filename,
+                                'filepath': actual_filename,
                                 'filetype': map_phenovar_file_type(is_proband, is_mother, is_father, is_snv=False)
                             })
                         except Exception as e:
