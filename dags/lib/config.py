@@ -82,6 +82,25 @@ chromosomes_4 = [
     "chr4, chr5, chr7, chr9, chr10, chr13, chr14, chr16, chrX",
 ]
 
+# grouping option with 5 groups (distributes large chromosomes across groups)
+chromosomes_5 = [
+    "chr1, chr11, chr17, chr21, chrY",
+    "chr2, chr12, chr18, chr22",
+    "chr3, chr9, chr13, chr19, chr20",
+    "chr4, chr10, chr14, chr16",
+    "chr5, chr6, chr7, chr8, chr15, chrX",
+]
+
+# grouping option with 6 groups (further distribution for reduced load per group)
+chromosomes_6 = [
+    "chr1, chr15, chr21, chrY",
+    "chr2, chr16, chr22",
+    "chr3, chr13, chr17, chr20",
+    "chr4, chr11, chr14, chr19",
+    "chr5, chr10, chr18",
+    "chr6, chr7, chr8, chr9, chr12, chrX",
+]
+
 if env == Env.TEST:
     fhir_image = 'ferlabcrsj/clin-fhir'
     pipeline_image = 'ferlabcrsj/clin-pipelines'
