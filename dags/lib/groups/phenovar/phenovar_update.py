@@ -161,7 +161,7 @@ def phenovar_update(
             
             if vcf_keys:
                 # Only delete VCF files
-                vcf_files = [k for k in vcf_keys if k.endswith('.vcf')]
+                vcf_files = [k for k in vcf_keys if k.endswith('.vcf') or k.endswith('.vcf.gz')]
                 if vcf_files:
                     phenovar_s3.delete_objects(clin_phenovar_import_bucket, vcf_files)
                     logging.info(f'Deleted {len(vcf_files)} VCF files for analysis {analysis_id}')
