@@ -140,41 +140,40 @@ def get_earliest_age_at_onset(age_at_onset_codes: List[str]) -> str:
     return ""
 
 
-def copy_vcf_to_phenovar_bucket(clin_s3: S3Hook, phenovar_s3: S3Hook, analysis_id: str, 
+def copy_vcf_to_phenovar_bucket(clin_s3: S3Hook, phenovar_s3: S3Hook, analysis_id: str,
                                  source_bucket: str, source_key: str, dest_filename: str) -> str:
     """
     Copy VCF file from source bucket to Phenovar import bucket.
-    Ensures the file is gzipped (adds .gz extension if needed).
-    Returns the actual filename used (may have .gz appended).
+    Decompresses .vcf.gz to .vcf — phenovar3_pipeline processor does not support gzip input.
+    Returns the actual filename used (may have .gz stripped).
     """
-    # Ensure .vcf.gz extension for Phenovar compatibility
+    # Decompress .vcf.gz to plain .vcf: phenovar3_pipeline opens VCF as plain text
     actual_filename = dest_filename
-    needs_gzip = False
-    
-    if dest_filename.endswith('.vcf') and not dest_filename.endswith('.vcf.gz'):
-        actual_filename = dest_filename + '.gz'
-        needs_gzip = True
-        logging.info(f'VCF file is not gzipped, will compress: {dest_filename} -> {actual_filename}')
-    elif not dest_filename.endswith('.vcf.gz'):
-        logging.warning(f'Unexpected VCF filename format: {dest_filename}, proceeding without compression')
-    
+    needs_decompress = False
+
+    if dest_filename.endswith('.vcf.gz'):
+        actual_filename = dest_filename[:-3]  # strip .gz
+        needs_decompress = True
+        logging.info(f'VCF is gzipped, will decompress: {dest_filename} -> {actual_filename}')
+    elif not dest_filename.endswith('.vcf'):
+        logging.warning(f'Unexpected VCF filename format: {dest_filename}, proceeding as-is')
+
     destination_key = f'{analysis_id}/{actual_filename}'
-    
+
     if phenovar_s3.check_for_key(destination_key, clin_phenovar_import_bucket):
         logging.info(f'VCF already in Phenovar bucket: {clin_phenovar_import_bucket}/{destination_key}')
         return actual_filename
-    
+
     logging.info(f'Copying VCF: {source_bucket}/{source_key} -> {clin_phenovar_import_bucket}/{destination_key}')
     vcf_file = clin_s3.get_key(source_key, source_bucket)
     vcf_content = vcf_file.get()['Body'].read()
-    logging.info(f'Original VCF content size: {len(vcf_content)} bytes')
-    
-    # Gzip if needed
-    if needs_gzip:
-        logging.info('Compressing VCF content with gzip...')
-        vcf_content = gzip.compress(vcf_content)
-        logging.info(f'Compressed VCF content size: {len(vcf_content)} bytes')
-    
+    logging.info(f'VCF content size: {len(vcf_content)} bytes')
+
+    if needs_decompress:
+        logging.info('Decompressing VCF content...')
+        vcf_content = gzip.decompress(vcf_content)
+        logging.info(f'Decompressed VCF content size: {len(vcf_content)} bytes')
+
     phenovar_s3.load_bytes(vcf_content, destination_key, clin_phenovar_import_bucket, replace=True)
     return actual_filename
 
