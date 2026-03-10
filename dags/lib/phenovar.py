@@ -142,23 +142,37 @@ def get_earliest_age_at_onset(age_at_onset_codes: List[str]) -> str:
 def copy_vcf_to_phenovar_bucket(clin_s3: S3Hook, phenovar_s3: S3Hook, analysis_id: str,
                                  source_bucket: str, source_key: str, dest_filename: str) -> str:
     """
-    Copy VCF file from source bucket to Phenovar import bucket as-is.
-    Decompression is handled by Phenovar on ingestion (magic-byte detection).
-    Returns the destination filename.
+    Copy VCF file from source bucket to Phenovar import bucket.
+    If file has gzip magic bytes but no .gz extension, adds .gz to the filename
+    since Phenovar is extension-based.
+    
+    Returns the actual destination filename used (may differ if .gz was added).
     """
-    destination_key = f'{analysis_id}/{dest_filename}'
-
-    if phenovar_s3.check_for_key(destination_key, clin_phenovar_import_bucket):
-        logging.info(f'VCF already in Phenovar bucket: {clin_phenovar_import_bucket}/{destination_key}')
-        return dest_filename
-
-    logging.info(f'Copying VCF: {source_bucket}/{source_key} -> {clin_phenovar_import_bucket}/{destination_key}')
+    # Download file content
+    logging.info(f'Reading VCF: {source_bucket}/{source_key}')
     vcf_file = clin_s3.get_key(source_key, source_bucket)
     vcf_content = vcf_file.get()['Body'].read()
     logging.info(f'VCF content size: {len(vcf_content)} bytes')
-
+    
+    # Check for gzip magic bytes and add .gz extension if missing
+    is_gzipped = len(vcf_content) >= 2 and vcf_content[:2] == b'\x1f\x8b'
+    has_gz_extension = dest_filename.endswith('.gz')
+    
+    actual_filename = dest_filename
+    if is_gzipped and not has_gz_extension:
+        actual_filename = dest_filename + '.gz'
+        logging.info(f'File is gzipped but missing .gz extension, adding it: {dest_filename} → {actual_filename}')
+    
+    destination_key = f'{analysis_id}/{actual_filename}'
+    
+    if phenovar_s3.check_for_key(destination_key, clin_phenovar_import_bucket):
+        logging.info(f'VCF already exists in Phenovar bucket: {clin_phenovar_import_bucket}/{destination_key}')
+        return actual_filename
+    
+    logging.info(f'Uploading to: {clin_phenovar_import_bucket}/{destination_key} ({len(vcf_content)} bytes)')
     phenovar_s3.load_bytes(vcf_content, destination_key, clin_phenovar_import_bucket, replace=True)
-    return dest_filename
+    
+    return actual_filename
 
 
 def build_phenovar_payload(analysis_data: dict, vcf_files: List[dict]) -> dict:
