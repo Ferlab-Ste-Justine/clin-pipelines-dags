@@ -89,7 +89,7 @@ with DAG(
     )
 
     update = phenovar_update(
-        analysis_ids=get_all_analysis_ids,
+        analysis_ids=create,
         skip=''
     )
 
@@ -125,5 +125,5 @@ with DAG(
 
     # DAG structure
     ([batch_ids, analysis_ids] >> params_validate_task >> ingest_fhir_group >> identifier_to_type >>
-     phenovar_validate(identifier_to_type) >> get_all_analysis_ids >> reset_task >> 
-     create >> update >> add_phenovar_documents_task >> slack)
+     phenovar_validate(identifier_to_type) >> get_all_analysis_ids >> reset_task >>
+     create >> update >> prepare_analysis_ids_task >> add_phenovar_documents_task >> slack)
