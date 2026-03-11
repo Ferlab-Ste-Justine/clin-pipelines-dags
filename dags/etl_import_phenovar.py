@@ -89,7 +89,7 @@ with DAG(
     )
 
     update = phenovar_update(
-        analysis_ids=create,
+        analysis_ids=get_all_analysis_ids,
         skip=''
     )
 
@@ -102,7 +102,7 @@ with DAG(
             raise AirflowSkipException("No analyses were submitted to Phenovar.")
         return '--analysis-ids=' + ','.join(analysis_ids)
 
-    prepare_analysis_ids_task = prepare_phenovar_documents_analysis_ids(create, skip='')
+    prepare_analysis_ids_task = prepare_phenovar_documents_analysis_ids(get_all_analysis_ids, skip='')
 
     add_phenovar_documents_task = PipelineOperator(
         task_id='add_phenovar_documents',
