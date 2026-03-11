@@ -135,10 +135,10 @@ elif env == Env.QA:
     ]
 elif env == Env.STAGING:
     fhir_image = 'ferlabcrsj/clin-fhir:eddb20a'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:657d4a8'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:969c580'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.35.0.jar'
+    spark_jar = 'clin-variant-etl-v3.36.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -149,10 +149,10 @@ elif env == Env.STAGING:
     batch_ids = [] # automatic dags/lib/tasks/batch_type:get_all_batch_ids
 elif env == Env.PROD:
     fhir_image = 'ferlabcrsj/clin-fhir:eddb20a'
-    pipeline_image = 'ferlabcrsj/clin-pipelines:657d4a8'
+    pipeline_image = 'ferlabcrsj/clin-pipelines:969c580'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.35.0.jar'
+    spark_jar = 'clin-variant-etl-v3.36.1.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
