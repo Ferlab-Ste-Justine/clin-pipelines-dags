@@ -325,7 +325,7 @@ with DAG(
         arguments=[
             'bio.ferlab.clin.etl.UpdateAnalysisStatus',
             prepare_analysis_ids_arg_task,
-            '--status=processing',
+            '--status=analysis',
         ],
         skip=skip_notify(batch_param_name=None, analysis_param_name='analysis_ids')
     )
