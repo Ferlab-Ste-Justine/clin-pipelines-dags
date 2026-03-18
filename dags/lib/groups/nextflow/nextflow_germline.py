@@ -71,15 +71,12 @@ def nextflow_germline(analysis_ids: List[str]):
         if missing_clinical_signs_seq_ids:
             raise AirflowFailException(f"Some proband sequencing IDs don't have at least one associated clinical sign: {missing_clinical_signs_seq_ids}")
 
-    @task(task_id='prepare_exomiser_references_analysis_ids')
-    def prepare_exomiser_references_analysis_ids(analysis_ids: Set[str], skip: str) -> str:
-        if skip:
-            raise AirflowSkipException("Skipping exomiser references preparation task.")
-        return '--analysis-ids=' + ','.join(analysis_ids)
-
     check_prerequisites_task = check_nextflow_germline_prerequisites(analysis_ids, skip=skip)
     get_job_hash_task = get_job_hash(analysis_ids=analysis_ids, skip=skip)
-    prepare_exomiser_references_analysis_ids_task = prepare_exomiser_references_analysis_ids(analysis_ids, skip=skip)
+    
+    from lib.tasks import params_validate
+    prepare_exomiser_references_analysis_ids_task = params_validate.prepare_analysis_ids_arg \
+        .override(task_id='prepare_exomiser_references_analysis_ids')(analysis_ids, skip=skip)
     prepare_nextflow_exomiser_task = exomiser.prepare(analysis_ids=analysis_ids, skip=skip)
 
     @task_group(group_id='snv')

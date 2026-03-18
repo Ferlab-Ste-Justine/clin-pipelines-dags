@@ -93,16 +93,8 @@ with DAG(
         skip=''
     )
 
-    @task(task_id='prepare_phenovar_documents_analysis_ids')
-    def prepare_phenovar_documents_analysis_ids(analysis_ids: List[str], skip: str) -> str:
-        """Prepare analysis IDs argument for AddPhenovarDocuments Java class."""
-        if skip:
-            raise AirflowSkipException("Skipping Phenovar documents preparation task.")
-        if not analysis_ids:
-            raise AirflowSkipException("No analyses were submitted to Phenovar.")
-        return '--analysis-ids=' + ','.join(analysis_ids)
-
-    prepare_analysis_ids_task = prepare_phenovar_documents_analysis_ids(get_all_analysis_ids, skip='')
+    prepare_analysis_ids_task = params_validate.prepare_analysis_ids_arg \
+        .override(task_id='prepare_phenovar_documents_analysis_ids')(get_all_analysis_ids, skip='')
 
     add_phenovar_documents_task = PipelineOperator(
         task_id='add_phenovar_documents',
