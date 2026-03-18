@@ -15,12 +15,13 @@ from lib.groups.index.publish_index import publish_index
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.qa import qa
 from lib.operators.notify import NotifyOperator
+from lib.operators.pipeline import PipelineOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type, clinical, enrich, es, params
 from lib.tasks.batch_type import skip_if_no_batch_in
 from lib.tasks.clinical import get_batch_ids_from_analysis_ids, group_analysis_ids_by_batch
-from lib.tasks.params_validate import validate_color
+from lib.tasks.params_validate import validate_color, prepare_analysis_ids_arg, prepare_analysis_ids_comma_separated
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
                            get_ingest_dag_config_by_batch_group,
                            get_ingest_dag_configs_by_batch_id, release_id,
@@ -312,13 +313,22 @@ with DAG(
         batch_id=get_batch_ids_task
     )
 
-    @task(task_id='prepare_notify_analysis_ids')
-    def prepare_notify_analysis_ids(analysis_ids: List[str]) -> str:
-        if not analysis_ids or len(analysis_ids) == 0:
-            raise AirflowSkipException("No analysis IDs to notify.")
-        return ','.join(analysis_ids)
+    prepare_notify_analysis_ids_task = prepare_analysis_ids_comma_separated(get_analysis_ids_task)
 
-    prepare_notify_analysis_ids_task = prepare_notify_analysis_ids(get_analysis_ids_task)
+    prepare_analysis_ids_arg_task = prepare_analysis_ids_arg(get_analysis_ids_task)
+
+    update_analysis_status_task = PipelineOperator(
+        task_id='update_analysis_status',
+        name='update_analysis_status',
+        k8s_context=K8sContext.DEFAULT,
+        color=env_color,
+        arguments=[
+            'bio.ferlab.clin.etl.UpdateAnalysisStatus',
+            prepare_analysis_ids_arg_task,
+            '--status=analysis',
+        ],
+        skip=skip_notify(batch_param_name=None, analysis_param_name='analysis_ids')
+    )
 
     notify_analysis_ids_task = NotifyOperator(
         task_id='notify_analysis_ids',
@@ -406,7 +416,7 @@ with DAG(
      enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
      delete_previous_variant_centric_group() >> index_group >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >>
-     notify_batch_ids_task >> prepare_notify_analysis_ids_task >> notify_analysis_ids_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
+     notify_batch_ids_task >> prepare_notify_analysis_ids_task >> prepare_analysis_ids_arg_task >> update_analysis_status_task >> notify_analysis_ids_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
 
     # Explicit dependency so ingest_complete waits for batch ingest
     # even when analysis ingest expands to 0 instances (and vice versa)

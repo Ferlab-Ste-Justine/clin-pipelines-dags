@@ -2,7 +2,7 @@ import logging
 from typing import List
 
 from airflow.decorators import task
-from airflow.exceptions import AirflowFailException
+from airflow.exceptions import AirflowFailException, AirflowSkipException
 from lib.config import Env, env
 from lib.slack import Slack
 from lib.utils_etl import get_current_color
@@ -70,3 +70,20 @@ def validate_batch_ids_analysis_ids_color(batch_ids: List[str], analysis_ids: Li
             'DAG params "batch_ids" and "analysis_ids" cannot be used together'
         )
     _validate_color(color)
+
+@task(task_id='prepare_analysis_ids_arg')
+def prepare_analysis_ids_arg(analysis_ids: List[str], skip: str = '') -> str:
+    if skip:
+        raise AirflowSkipException("Skipping analysis IDs preparation task.")
+    if not analysis_ids or len(analysis_ids) == 0:
+        raise AirflowSkipException("No analysis IDs to process.")
+    return '--analysis-ids=' + ','.join(analysis_ids)
+
+@task(task_id='prepare_analysis_ids_comma_separated')
+def prepare_analysis_ids_comma_separated(analysis_ids: List[str], skip: str = '') -> str:
+    if skip:
+        raise AirflowSkipException("Skipping analysis IDs preparation task.")
+    if not analysis_ids or len(analysis_ids) == 0:
+        raise AirflowSkipException("No analysis IDs to process.")
+    return ','.join(analysis_ids)
+    
