@@ -3,19 +3,6 @@ etl_qc = '''
 
 L'échec d'un de ces tests ne bloque pas l'exécution du DAG.
 
-## Série de tests validant les variants des batchs à partir du fichier VCF
-
-### Fonctionnement des tests
-- Filtrer les variants provenant du fichier VCF de la batch
-  - chromosome = {1 à 22, X, Y}
-  - alternate != *
-- Vérifier que tous les variants sont dans les tables
-
-### Différents tests
-- Table normalized_snv
-- Table normalized_variants
-- Table normalized_snv_somatic
-
 ## Série de tests validant les filtres sur les variants
 
 ### Différents filtres appliqués
@@ -65,49 +52,8 @@ L'échec d'un de ces tests ne bloque pas l'exécution du DAG.
 - Les colonnes de variant_centric.donors
 - Les colonnes de variant_centric
 
-## Série de tests validant le calcul des fréquences
-
-### Définitions des calculs
-Les variants considérés dans le calcul des fréquences sont ceux ayant le filtre Dragen à PASS et ayant un GQ >= 20
-- ac: Allele Count<span style="color:white">-----------------</span>- Nombre d'allèles ayant le variant
-- an: Allele Number<span style="color:white">--------------</span>- Nombre d'allèles total (= 2 pn)
-- af: Allele Frequency<span style="color:white">----------</span>- Ratio ac/an
-- pc: Participant Count<span style="color:white">--------</span>- Nombre de participants ayant le variant
-- pn: Participant Number<span style="color:white">-----</span>- Nombre de participants total séquencés
-- pf: Participant Frequency<span style="color:white">-</span>- Ratio pc/pn
-
-### Fonctionnement des tests
-- Caculer les valeurs attendues de ac, an, pc et pn à partir des variants de la table normalized_snv
-- Récupérer et comparer les valeurs de ac, an, pc et pn des variants de la table variant_centric
-
-### Différents tests
-- frequency_RQDM - total
-- frequency_RQDM - affected
-- frequency_RQDM - non_affected
-- frequencies_by_analysis - total
-- frequencies_by_analysis - affected
-- frequencies_by_analysis - non_affected
-
 ---
 Pour plus de détails sur chaque test, voir "Task Instance Details".
-'''
-
-vcf_snv = '''
-### Documentation
-- Test : Table normalized_snv
-- Objectif : La liste filtrée des variants du fichier VCF est la même que dans la table normalized_snv
-'''
-
-vcf_nor_variants = '''
-### Documentation
-- Test : Table normalized_variants
-- Objectif : La liste filtrée des variants du fichier VCF est la même que dans la table normalized_variants
-'''
-
-vcf_snv_somatic = '''
-### Documentation
-- Test : Table normalized_snv_somatic
-- Objectif : La liste filtrée des variants du fichier VCF est la même que dans la table normalized_snv_somatic
 '''
 
 filters_snv = '''
@@ -361,52 +307,3 @@ dictionary_snv = '''
 - Test : Table variant_centric
 - Objectif : Les valeurs des colonnes sont incluses dans leur dictionnaire
 '''
-
-freq_rqdm_total = '''
-### Documentation
-- Test : Calcul de frequency_RQDM - total
-- Objectif : Les valeurs de pc, pn, ac et an pour variant_centric.frequency_RQDM.total sont bien calculées par rapport aux données de la table normalized_snv
-'''
-
-freq_rqdm_affected = '''
-### Documentation
-- Test : Calcul de frequency_RQDM - affected
-- Objectif : Les valeurs de pc, pn, ac et an pour variant_centric.frequency_RQDM.affected sont bien calculées par rapport aux données de la table normalized_snv
-'''
-
-freq_rqdm_non_affected = '''
-### Documentation
-- Test : Calcul de frequency_RQDM - non_affected
-- Objectif : Les valeurs de pc, pn, ac et an pour variant_centric.frequency_RQDM.non_affected sont bien calculées par rapport aux données de la table normalized_snv
-'''
-
-freq_by_analysis_total = '''
-### Documentation
-- Test : Calcul de frequencies_by_analysis - total
-- Objectif : Les valeurs de pc, pn, ac et an pour variant_centric.frequencies_by_analysis.total sont bien calculées par rapport aux données de la table normalized_snv
-'''
-
-freq_by_analysis_affected = '''
-### Documentation
-- Test : Calcul de frequencies_by_analysis - affected
-- Objectif : Les valeurs de pc, pn, ac et an pour variant_centric.frequencies_by_analysis.affected sont bien calculées par rapport aux données de la table normalized_snv
-'''
-
-freq_by_analysis_non_affected = '''
-### Documentation
-- Test : Calcul de frequencies_by_analysis - non_affected
-- Objectif : Les valeurs de pc, pn, ac et an pour variant_centric.frequencies_by_analysis.non_affected sont bien calculées par rapport aux données de la table normalized_snv
-'''
-
-freq_rqdm_tumor_only = '''
-### Documentation
-- Test : Calcul de freq_rqdm_tumor_only
-- Objectif : Les valeurs de pc et pn pour variant_centric.freq_rqdm_tumor_only sont bien calculées par rapport aux données de la table normalized_snv_somatic
-'''
-
-freq_rqdm_tumor_normal = '''
-### Documentation
-- Test : Calcul de freq_rqdm_tumor_normal
-- Objectif : Les valeurs de pc et pn pour variant_centric.freq_rqdm_tumor_normal sont bien calculées par rapport aux données de la table normalized_snv_somatic
-'''
-
