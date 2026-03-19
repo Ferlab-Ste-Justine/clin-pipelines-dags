@@ -201,7 +201,7 @@ def no_dup_coverage_by_gene(spark_jar: str) -> SparkOperator:
 
 def no_dup_nextflow_svclustering_germline(spark_jar: str) -> SparkOperator:
     return SparkOperator(
-        task_id='no_dup_nextflow_svclusterin_germline',
+        task_id='no_dup_nextflow_svclustering_germline',
         doc_md=doc.no_dup_nextflow_svclustering_germline,
         name='etl-qc-no-dup-nextflow-svclustering-germline',
         k8s_context=K8sContext.ETL,
