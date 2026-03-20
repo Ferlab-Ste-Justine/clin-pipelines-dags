@@ -25,7 +25,7 @@ from lib.tasks.params_validate import validate_color, prepare_analysis_ids_arg, 
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
                            get_ingest_dag_config_by_batch_group,
                            get_ingest_dag_configs_by_batch_id, release_id,
-                           skip_notify, spark_jar)
+                           skip_if_param_empty, skip_notify, spark_jar)
 
 with DAG(
         dag_id='etl',
@@ -327,7 +327,7 @@ with DAG(
             prepare_analysis_ids_arg_task,
             '--status=analysis',
         ],
-        skip=skip_notify(batch_param_name=None, analysis_param_name='analysis_ids')
+        skip=skip_if_param_empty('analysis_ids')
     )
 
     notify_analysis_ids_task = NotifyOperator(

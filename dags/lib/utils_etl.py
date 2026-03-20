@@ -140,6 +140,10 @@ def skip_notify(batch_param_name: str = 'batch_id', analysis_param_name: str = '
     return f'{{% if ({combined_conditions}) and params.notify == "yes" %}}{{% else %}}yes{{% endif %}}'
 
 
+def skip_if_param_empty(param_name: str) -> str:
+    return f'{{% if params.{param_name} and params.{param_name}|length %}}{{% else %}}yes{{% endif %}}'
+
+
 def skip_if_param_not(param_template, value) -> str:
     return f'{{% if ({param_template}) and ({param_template}|length) and ({param_template}) == "{value}" %}}{{% else %}}yes{{% endif %}}'.replace(
         '{{', '').replace('}}', '')
