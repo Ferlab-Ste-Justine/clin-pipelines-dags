@@ -1,7 +1,7 @@
 import json
 from enum import Enum
 import logging
-from typing import Dict, List, Optional, Set, TypeVar
+from typing import Dict, List, Optional, Set
 
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
