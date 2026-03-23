@@ -180,7 +180,7 @@ def exomiser_cnv(batch_id: str, analysis_ids: list, target_batch_types: List[Cli
     )
 
 def franklin(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAnalysis], spark_jar: str, skip: str, detect_batch_type_task_id: str) -> SparkETLOperator:
-    return SparkETLOperator(
+    return SparkETLOperator.partial(
         entrypoint='franklin',
         task_id='franklin',
         name='etl-normalize-franklin',
@@ -191,8 +191,8 @@ def franklin(batch_id: str, analysis_ids: list, target_batch_types: List[ClinAna
         spark_jar=spark_jar,
         skip=skip,
         batch_id=batch_id,
-        analysis_ids=analysis_ids,
         target_batch_types=target_batch_types,
         batch_id_deprecated=True,
         detect_batch_type_task_id=detect_batch_type_task_id,
-    )
+        max_active_tis_per_dag=1,  # Process one chunk at a time to prevent resource issues
+    ).expand(analysis_ids=analysis_ids)

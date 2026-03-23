@@ -1,9 +1,10 @@
 from airflow.decorators import task_group
+from lib.config import analysis_chunk_size
 from lib.groups.franklin.franklin_update import franklin_update
 from lib.tasks import normalize
 from lib.tasks.nextflow import svclustering_parental_origin
 from lib.utils import check_task_output_exists
-from lib.utils_etl import BioinfoAnalysisCode, ClinAnalysis, get_job_hash, skip
+from lib.utils_etl import BioinfoAnalysisCode, ClinAnalysis, chunk_list, get_job_hash, skip
 
 
 @task_group(group_id='normalize')
@@ -26,6 +27,11 @@ def normalize_germline(
 
     target_batch_types = [ClinAnalysis.GERMLINE]
 
+
+    # Chunk analysis_ids to prevent Spark job to fail if too many of them
+    # implemented for Franklin but can be reused for other tasks if needed. 
+    analysis_ids_chunks = chunk_list(analysis_ids, analysis_chunk_size)
+
     snv = normalize.snv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_snv), detect_batch_type_task_id)
     cnv = normalize.cnv(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_cnv), detect_batch_type_task_id)
     variants = normalize.variants(batch_id, analysis_ids, BioinfoAnalysisCode.GEBA.value, target_batch_types, spark_jar, skip(skip_all, skip_variants), detect_batch_type_task_id)
@@ -39,7 +45,7 @@ def normalize_germline(
         skip=skip(skip_all, skip_franklin)
     )
 
-    franklin = normalize.franklin(batch_id, analysis_ids, target_batch_types, spark_jar, skip(skip_all, skip_franklin), detect_batch_type_task_id)
+    franklin = normalize.franklin(batch_id, analysis_ids_chunks, target_batch_types, spark_jar, skip(skip_all, skip_franklin), detect_batch_type_task_id)
 
     @task_group(group_id="nextflow")
     def nextflow_group():
@@ -58,4 +64,4 @@ def normalize_germline(
         (get_job_hash_task >> prepare_svclustering_parental_origin_task >> check_should_run_svclustering_parental_origin >>
          run_svclustering_parental_origin >> normalize_svclustering_parental_origin_task)
 
-    snv >> cnv >> variants >> consequences >> exomiser >> exomiser_cnv >> coverage_by_gene >> franklin_update_task >> franklin >> nextflow_group()
+    analysis_ids_chunks >> snv >> cnv >> variants >> consequences >> exomiser >> exomiser_cnv >> coverage_by_gene >> franklin_update_task >> franklin >> nextflow_group()

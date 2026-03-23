@@ -46,6 +46,14 @@ class BioinfoAnalysisCode(Enum):
         }
         return mapping[self]
 
+@task(task_id='chunk_analysis_ids')
+def chunk_list(items: List, chunk_size: int) -> List[List]:
+    if not items:
+        return []
+    
+    return [items[i:i + chunk_size] for i in range(0, len(items), chunk_size)]
+
+
 def format_skip_condition(param: str) -> str:
     return '{% if params.' + param + ' == "yes" %}{% else %}yes{% endif %}'
 
