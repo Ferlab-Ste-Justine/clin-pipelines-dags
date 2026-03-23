@@ -118,6 +118,7 @@ with DAG(
             'notify': 'yes' if env == Env.PROD else 'no',
             'color': params_validate_color,
             'spark_jar': spark_jar(),
+            'import': 'yes' if param_batch_ids else 'no',
         }
     )
 
