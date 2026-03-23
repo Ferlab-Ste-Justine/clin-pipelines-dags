@@ -114,6 +114,7 @@ def run(input: str, job_hash: str, skip: str = '', **kwargs):
             '--input', input,
             '--outdir', info_output_dir,
             '--exomiser_outdir', exomiser_output_dir,
+            '-resume',
         ) \
         .operator(
             NextflowOperator,

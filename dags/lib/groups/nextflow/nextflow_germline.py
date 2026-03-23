@@ -1,4 +1,5 @@
 from typing import List, Set
+from datetime import timedelta
 
 from airflow.decorators import task, task_group
 from airflow.exceptions import AirflowSkipException
@@ -89,7 +90,9 @@ def nextflow_germline(analysis_ids: List[str]):
         nextflow_post_processing_task = post_processing.run(
             input=prepare_nextflow_post_processing_task,
             job_hash=get_job_hash_task,
-            skip=skip
+            skip=skip,
+            retries=1,
+            retry_delay=timedelta(minutes=1)
         )
         add_exomiser_references_task = PipelineOperator(
             task_id='add_exomiser_references_task',
@@ -117,7 +120,9 @@ def nextflow_germline(analysis_ids: List[str]):
         nextflow_post_processing_task = cnv_post_processing.run(
             input=prepare_nextflow_post_processing_task,
             job_hash=get_job_hash_task,
-            skip=skip
+            skip=skip,
+            retries=1,
+            retry_delay=timedelta(minutes=1)
         )
         add_exomiser_references_task = PipelineOperator(
             task_id='cnv_add_exomiser_references_task',
