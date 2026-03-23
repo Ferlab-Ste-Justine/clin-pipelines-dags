@@ -255,7 +255,9 @@ def _get_pod_working_dir(base_path: str, context: Context) -> str:
     # Will be empty for non-map tasks
     map_index_part = f"_{ti.map_index}" if ti.map_index >= 0 else ""
 
-    return f"{base_path}/{ti.dag_id}/{ti.task_id}{map_index_part}/{sanitized_run_id}_trial{ti.try_number}"
+    # return f"{base_path}/{ti.dag_id}/{ti.task_id}{map_index_part}/{sanitized_run_id}_trial{ti.try_number}"
+    # No trial number in path - retries use same directory to allow -resume to work
+    return f"{base_path}/{ti.dag_id}/{ti.task_id}{map_index_part}/{sanitized_run_id}"
 
 
 # Remove characters `+` and `:` from the run id

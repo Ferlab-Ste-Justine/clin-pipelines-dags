@@ -26,9 +26,10 @@ with DAG(
     @task(task_id='check_should_skip_run')
     def check_should_skip_run(sequencing_ids: list, batch_ids: list) -> str:
         
-        # Check if there are any pending IDs
-        if (not sequencing_ids or len(sequencing_ids) == 0) and (not batch_ids or len(batch_ids) == 0):
-            logging.info("Skipping trigger: No pending sequencing_ids or batch_ids found")
+        # Only trigger if we have sequencing_ids, sequencing are more prioritary than somatic normal
+        # if (not sequencing_ids or len(sequencing_ids) == 0) and (not batch_ids or len(batch_ids) == 0):
+        if not sequencing_ids or len(sequencing_ids) == 0:
+            logging.info("Skipping trigger: No pending sequencing_ids found")
             return 'yes'
         
         session = Session()

@@ -130,7 +130,7 @@ with DAG(
     (
         start >> params_validate_color >>
         ingest_fhir_group >>
-        param_sequencing_ids >> get_all_analysis_ids_task >>
+        param_batch_ids >> param_sequencing_ids >> get_all_analysis_ids_task >>
         detect_batch_types_task >>
         get_germline_analysis_ids_task >> nextflow_germline_task_group >>
         [check_should_skip_phenovar_task, check_should_skip_franklin_task]
