@@ -48,6 +48,7 @@ cosmic_credentials = Variable.get('cosmic_credentials', None)
 omim_credentials = Variable.get('omim_credentials', None)
 basespace_illumina_credentials = Variable.get('basespace_illumina_credentials', None)
 svclustering_batch_size = Variable.get('svclustering_batch_size', '100')
+analysis_chunk_size = int(Variable.get('analysis_chunk_size', '50'))
 dev_skip_task = Variable.get('dev_skip_task', None) == 'yes'
 
 clin_import_bucket = f'cqgc-{env}-app-files-import'

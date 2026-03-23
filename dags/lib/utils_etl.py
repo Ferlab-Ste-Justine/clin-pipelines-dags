@@ -1,7 +1,7 @@
 import json
 from enum import Enum
 import logging
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, TypeVar
 
 from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
@@ -45,6 +45,14 @@ class BioinfoAnalysisCode(Enum):
             BioinfoAnalysisCode.TNEBA: ClinAnalysis.SOMATIC_TUMOR_NORMAL.value
         }
         return mapping[self]
+
+@task(task_id='chunk_analysis_ids')
+def chunk_list(items: List, chunk_size: int) -> List[List]:
+    if not items:
+        return []
+    
+    return [items[i:i + chunk_size] for i in range(0, len(items), chunk_size)]
+
 
 def format_skip_condition(param: str) -> str:
     return '{% if params.' + param + ' == "yes" %}{% else %}yes{% endif %}'

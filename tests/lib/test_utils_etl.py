@@ -69,3 +69,36 @@ def test_batch_folder_exists_false(clin_minio, clean_up_clin_minio):
 
     batch_id = "BATCH_1"
     assert batch_folder_exists(clin_minio, batch_id) is False
+
+
+def test_chunk_list():
+    """Test chunk_list function with various scenarios"""
+    from dags.lib.utils_etl import chunk_list
+
+    # Normal chunking with remainder
+    assert chunk_list.function([1, 2, 3, 4, 5], 2) == [[1, 2], [3, 4], [5]]
+    
+    # Exact multiple
+    assert chunk_list.function([1, 2, 3, 4], 2) == [[1, 2], [3, 4]]
+    
+    # Empty list
+    assert chunk_list.function([], 2) == []
+    
+    # List smaller than chunk size
+    assert chunk_list.function([1, 2], 5) == [[1, 2]]
+    
+    # With strings (like analysis_ids)
+    assert chunk_list.function(['id1', 'id2', 'id3', 'id4', 'id5', 'id6', 'id7'], 3) == [['id1', 'id2', 'id3'], ['id4', 'id5', 'id6'], ['id7']]
+    
+    # Single item
+    assert chunk_list.function(['single_item'], 10) == [['single_item']]
+    
+    # Chunk size of 1
+    assert chunk_list.function([1, 2, 3], 1) == [[1], [2], [3]]
+    
+    # Real-world Franklin scenario: 74 analysis_ids with chunk_size=15
+    analysis_ids = [f'analysis_{i}' for i in range(1, 75)]
+    result = chunk_list.function(analysis_ids, 15)
+    assert len(result) == 5
+    assert [len(chunk) for chunk in result] == [15, 15, 15, 15, 14]
+    assert sum(len(chunk) for chunk in result) == 74
