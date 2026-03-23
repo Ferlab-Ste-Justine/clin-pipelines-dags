@@ -12,10 +12,11 @@ from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks import batch_type
 from lib.tasks.clinical import get_all_analysis_ids
-from lib.tasks.params import get_sequencing_ids
+from lib.tasks.params import get_batch_ids, get_sequencing_ids
 from lib.tasks.params_validate import validate_color
-from lib.tasks.run_sequencings import cleanup_pending_sequencing_ids
+from lib.tasks.run_sequencings import cleanup_pending_run_ids
 from lib.utils_etl import (color, get_germline_analysis_ids, spark_jar)
+
 
 with DAG(
         dag_id='etl_run_release',
@@ -24,6 +25,7 @@ with DAG(
         catchup=False,
         params={
             'sequencing_ids': Param([], type=['null', 'array']),
+            'batch_ids': Param([], type=['null', 'array']),
             'color': Param('', type=['null', 'string']),
             'spark_jar': Param('', type=['null', 'string']),
         },
@@ -54,6 +56,7 @@ with DAG(
     )
     
     param_sequencing_ids = get_sequencing_ids()
+    param_batch_ids = get_batch_ids()
     get_all_analysis_ids_task = get_all_analysis_ids(sequencing_ids=param_sequencing_ids)
 
     detect_batch_types_task = batch_type.detect(analysis_ids=get_all_analysis_ids_task, allowMultipleIdentifierTypes=True)
@@ -103,7 +106,7 @@ with DAG(
         }
     )
     
-    cleanup_task = cleanup_pending_sequencing_ids(param_sequencing_ids)
+    cleanup_task = cleanup_pending_run_ids(param_sequencing_ids, param_batch_ids)
 
     trigger_etl = TriggerDagRunOperator(
         task_id='trigger_etl',
@@ -111,9 +114,11 @@ with DAG(
         wait_for_completion=True,
         conf={
             'analysis_ids': get_all_analysis_ids_task,
+            'batch_ids': param_batch_ids,
             'notify': 'yes' if env == Env.PROD else 'no',
             'color': params_validate_color,
             'spark_jar': spark_jar(),
+            'import': 'yes' if param_batch_ids else 'no',
         }
     )
 

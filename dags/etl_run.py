@@ -5,8 +5,8 @@ from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
 from lib.slack import Slack
-from lib.tasks.params import get_sequencing_ids
-from lib.tasks.run_sequencings import save_sequencing_ids_to_s3
+from lib.tasks.params import get_batch_id, get_sequencing_ids
+from lib.tasks.run_sequencings import save_run_to_s3
 
 with DAG(
         dag_id='etl_run',
@@ -15,6 +15,7 @@ with DAG(
         catchup=False,
         params={
             'sequencing_ids': Param([], type=['null', 'array']),
+            'batch_id': Param(None, type=['null', 'string']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         render_template_as_native_obj=True,
@@ -30,7 +31,7 @@ with DAG(
         on_success_callback=Slack.notify_dag_start
     )
     
-    save_task = save_sequencing_ids_to_s3(get_sequencing_ids())
+    save_task = save_run_to_s3(get_sequencing_ids(), get_batch_id())
 
     slack = EmptyOperator(
         task_id="slack",

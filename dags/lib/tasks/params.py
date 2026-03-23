@@ -29,6 +29,12 @@ def get_sequencing_ids() -> list:
     params = context["params"]
     return get_param(params, 'sequencing_ids', [])
 
+@task(task_id='get_batch_id')
+def get_batch_id() -> str:
+    context = get_current_context()
+    params = context["params"]
+    return get_param(params, 'batch_id', None)
+
 @task(task_id='get_analysis_ids')
 def get_analysis_ids() -> list:
     context = get_current_context()
