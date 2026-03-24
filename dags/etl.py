@@ -349,7 +349,7 @@ with DAG(
     trigger_qc_dag = TriggerDagRunOperator(
         task_id='qc',
         trigger_dag_id='etl_qc',
-        wait_for_completion=True,
+        wait_for_completion=False,
         skip=skip_qc(),
         conf={
             'spark_jar': spark_jar()
