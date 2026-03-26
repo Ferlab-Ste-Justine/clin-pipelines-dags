@@ -66,36 +66,46 @@ spark_service_account = 'spark'
 batch_ids = []
 
 # group of chromosomes to reduce load of treatment in PROD
+
 chromosomes_2 = [
-    "chr1, chr4, chr5, chr8, chr11, chr12, chr15, chr18, chr21, chrY",
-    "chr2, chr3, chr6, chr7, chr9, chr10, chr13, chr14, chr16, chr17, chr19, chr20, chr22, chrX",
+    "chr1, chr4, chr5, chr9, chr11, chr13, chr14, chr16, chr18, chr21, chrX, chrY",
+    "chr2, chr3, chr6, chr7, chr8, chr10, chr12, chr15, chr17, chr19, chr20, chr22"
 ]
-
-# another grouping option with 4 groups (to be used in the future if needed)
 chromosomes_4 = [
-    "chr1, chr11, chr18, chr21, chrY",
-    "chr2, chr8, chr15, chr19, chr22",
-    "chr3, chr6, chr12, chr17, chr20",
-    "chr4, chr5, chr7, chr9, chr10, chr13, chr14, chr16, chrX",
+    "chr1, chr10, chr15, chr17, chr21, chrX",
+    "chr2, chr7, chr11, chr14, chr19, chr20",
+    "chr3, chr6, chr8, chr13, chr16, chrY",
+    "chr4, chr5, chr9, chr12, chr18, chr22"
 ]
-
-# grouping option with 5 groups (distributes large chromosomes across groups)
-chromosomes_5 = [
-    "chr1, chr11, chr17, chr21, chrY",
-    "chr2, chr12, chr18, chr22",
-    "chr3, chr9, chr13, chr19, chr20",
-    "chr4, chr10, chr14, chr16",
-    "chr5, chr6, chr7, chr8, chr15, chrX",
-]
-
-# grouping option with 6 groups (further distribution for reduced load per group)
 chromosomes_6 = [
-    "chr1, chr15, chr21, chrY",
-    "chr2, chr16, chr22",
-    "chr3, chr13, chr17, chr20",
-    "chr4, chr11, chr14, chr19",
-    "chr5, chr10, chr18",
-    "chr6, chr7, chr8, chr9, chr12, chrX",
+    "chr1, chr10, chr17, chr22",
+    "chr2, chr11, chr16, chr21",
+    "chr3, chr9, chr14, chr20",
+    "chr4, chr8, chr13, chr19",
+    "chr5, chr15, chr18, chrX",
+    "chr6, chr7, chr12, chrY"
+]
+chromosomes_8 = [
+    "chr1, chr15, chr21",
+    "chr2, chr14, chr22",
+    "chr3, chr13, chr20",
+    "chr4, chr12, chrY",
+    "chr5, chr10, chr19",
+    "chr6, chr11, chr18",
+    "chr7, chr9, chr16",
+    "chr8, chr17, chrX"
+]
+chromosomes_10 = [
+    "chr1, chr20",
+    "chr2, chr18",
+    "chr3, chr17",
+    "chr4, chr16",
+    "chr5, chr15",
+    "chr6, chr14, chr22",
+    "chr7, chr13, chrY",
+    "chr12, chrX",
+    "chr8, chr10, chr21",
+    "chr9, chr11, chr19"
 ]
 
 if env == Env.TEST:
