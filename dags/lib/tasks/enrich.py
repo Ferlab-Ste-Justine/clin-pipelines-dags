@@ -1,6 +1,6 @@
 from typing import List
 
-from lib.config import Env, chromosomes_6, env
+from lib.config import Env, chromosomes_2, chromosomes_8, env
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
@@ -11,7 +11,6 @@ def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-
         app_name: str = 'etl_enrich_snv', skip: str = '', **kwargs) -> SparkETLOperator:
 
     # we dont have the resources in PROD to enrich all chromosomes at once, we have to split
-    '''
     if env == Env.PROD:
         return SparkETLOperator.partial(
             entrypoint='snv',
@@ -25,20 +24,19 @@ def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-
             skip=skip,
              max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
             **kwargs
-        ).expand(chromosome=chromosomes)
-    else :
-    '''
-    return SparkETLOperator(
-        entrypoint='snv',
-        task_id=task_id + '_all',
-        name=name,
-        steps=steps,
-        app_name=app_name,
-        spark_class=ENRICHED_MAIN_CLASS,
-        spark_config='config-etl-large',
-        spark_jar=spark_jar,
-        skip=skip,
-        **kwargs
+        ).expand(chromosome=chromosomes_2)
+    else:
+        return SparkETLOperator(
+            entrypoint='snv',
+            task_id=task_id + '_all',
+            name=name,
+            steps=steps,
+            app_name=app_name,
+            spark_class=ENRICHED_MAIN_CLASS,
+            spark_config='config-etl-large',
+            spark_jar=spark_jar,
+            skip=skip,
+            **kwargs
     )
 
 
