@@ -94,7 +94,7 @@ def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'varian
             skip=skip,
             max_active_tis_per_dag=1,  # concurrent OverWritePartition, set to 1 if issues arise
             **kwargs
-        ).expand(chromosome=chromosomes_6)
+        ).expand(chromosome=chromosomes_8)
     else:
         return SparkETLOperator(
             entrypoint='variants',
