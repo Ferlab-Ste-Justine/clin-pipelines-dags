@@ -24,6 +24,8 @@ class PhenotypingStatus(Enum):
 
 
 # Age at onset hierarchy (from earliest to latest)
+AGE_AT_ONSET_DEFAULT = "HP:0003674"  # Onset (unspecified)
+
 AGE_AT_ONSET_HIERARCHY = [
     "HP:0030674",  # Antenatal
     "HP:0003577",  # Congenital
@@ -125,18 +127,17 @@ def get_earliest_age_at_onset(age_at_onset_codes: List[str]) -> str:
     """
     Get the earliest age at onset from a list of HPO onset codes.
     Uses AGE_AT_ONSET_HIERARCHY to determine order.
-    Returns empty string if no valid onset codes found in hierarchy.
+    Falls back to AGE_AT_ONSET_DEFAULT (HP:0003674 - Onset) when no match found.
     """
     if not age_at_onset_codes:
-        return ""
-    
+        return AGE_AT_ONSET_DEFAULT
+
     # Find the earliest onset based on hierarchy
     for onset_code in AGE_AT_ONSET_HIERARCHY:
         if onset_code in age_at_onset_codes:
             return onset_code
-    
-    # No match found in hierarchy, return empty string (field is optional per Swagger)
-    return ""
+
+    return AGE_AT_ONSET_DEFAULT
 
 
 def copy_vcf_to_phenovar_bucket(clin_s3: S3Hook, phenovar_s3: S3Hook, analysis_id: str,
