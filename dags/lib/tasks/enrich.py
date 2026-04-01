@@ -1,6 +1,6 @@
 from typing import List
 
-from lib.config import Env, chromosomes_2, chromosomes_6, env
+from lib.config import Env, chromosomes_2, chromosomes_8, env
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
