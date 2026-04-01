@@ -133,8 +133,7 @@ with DAG(
         param_batch_ids >> param_sequencing_ids >> get_all_analysis_ids_task >>
         detect_batch_types_task >>
         get_germline_analysis_ids_task >> nextflow_germline_task_group >>
-        [check_should_skip_phenovar_task, check_should_skip_franklin_task]
+        check_should_skip_phenovar_task >> check_should_skip_franklin_task >>
+        trigger_phenovar_by_analysis_id_dags >> trigger_franklin_by_analysis_id_dags >> 
+        cleanup_task >> trigger_etl >> slack
     )
-    
-    check_should_skip_phenovar_task >> trigger_phenovar_by_analysis_id_dags
-    check_should_skip_franklin_task >> trigger_franklin_by_analysis_id_dags >> cleanup_task >> trigger_etl >> slack
