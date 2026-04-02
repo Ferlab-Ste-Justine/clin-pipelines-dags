@@ -171,6 +171,9 @@ class PublicSourceDag:
 
 
     def check_is_new_version(self) -> bool:
+        if self.is_new_version:
+            logging.info(f'New version already detected in a previous step, skipping version check.')
+            return True
         current_version = self.get_current_version()
         logging.info(f'current version: {current_version}')
         logging.info(f'last version: {self.last_version}')
