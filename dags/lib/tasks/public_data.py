@@ -259,7 +259,7 @@ def update_public_data_info(dag_data: PublicSourceDag, **context):
 def should_continue(dag_data: PublicSourceDag):
     def check_is_new_version(dag_data: PublicSourceDag, **context):
         dont_skip = context["params"]["skip_if_not_new_version"] == 'no'
-        is_new_version = dag_data.check_is_new_version()
+        is_new_version = dag_data.is_new_version or dag_data.check_is_new_version()
         if not is_new_version and dont_skip:
             logging.info("skip_if_not_new_version is set to 'no', continuing the DAG even if the version is not new")
         return dont_skip or is_new_version
