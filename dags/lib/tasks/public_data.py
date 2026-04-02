@@ -177,7 +177,8 @@ class PublicSourceDag:
         current_version = self.get_current_version()
         logging.info(f'current version: {current_version}')
         logging.info(f'last version: {self.last_version}')
-        self.is_new_version = current_version != self.last_version
+        if not self.is_new_version:
+            self.is_new_version = current_version != self.last_version
         logging.info(f'The file has a new version!' if self.is_new_version else f'The file is up to date!')
         return self.is_new_version
     
