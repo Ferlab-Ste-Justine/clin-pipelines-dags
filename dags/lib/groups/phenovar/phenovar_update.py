@@ -21,7 +21,7 @@ def phenovar_update(
     analysis_ids: List[str],
     skip: str,
     poke_interval: int = 300,  # 5 minutes
-    timeout: int = 28800  # 8 hours
+    timeout: int = 86400  # 24 hours
 ):
     """
     Task group for updating Phenovar results.
