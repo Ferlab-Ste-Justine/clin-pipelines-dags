@@ -14,10 +14,10 @@ from lib.doc import cnv_frequencies as doc
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
-from lib.tasks import (enrich, es, index, params_validate, prepare_index,
+from lib.tasks import (enrich, es, es_optimize, index, params_validate, prepare_index,
                        publish_index, qa)
 from lib.tasks.nextflow import svclustering
-from lib.utils_etl import color, release_id, spark_jar
+from lib.utils_etl import color, release_id, skip_es_post_release, spark_jar
 
 with DAG(
         dag_id='etl_cnv_frequencies',
@@ -28,6 +28,7 @@ with DAG(
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'spark_jar': Param('', type=['null', 'string']),
+            'es_post_release': Param('yes', enum=['yes', 'no']),
         },
         default_args={
             'trigger_rule': TriggerRule.NONE_FAILED,
@@ -104,6 +105,13 @@ with DAG(
     publish_cnv_centric_task = publish_index.cnv_centric(release_id, color('_'), spark_jar(),
                                                          task_id='publish_cnv_centric',
                                                          on_success_callback=Slack.notify_dag_completion)
+    wait_for_ready_cnv = es_optimize.wait_for_ready.override(task_id='wait_for_ready_cnv_centric')(
+        index_name='cnv_centric', release_id=release_id, color=color('_'), skip=skip_es_post_release()
+    )
+    force_merge_cnv = es_optimize.force_merge.override(task_id='force_merge_cnv_centric')(
+        index_name='cnv_centric', release_id=release_id, color=color('_'), skip=skip_es_post_release()
+    )
+
     delete_previous_release_task = es.delete_previous_release('cnv_centric', release_id, color('_'))
 
     trigger_rolling_dag = TriggerDagRunOperator(
@@ -117,5 +125,5 @@ with DAG(
     )
 
     (params_validate_task >> ingest_fhir_group >> prepare_svclustering_task >> run_group() >> normalize_group() >>
-     enrich_cnv_task >> prepare_cnv_centric_task >> qa_group() >> index_cnv_centric_task >> publish_cnv_centric_task >>
+     enrich_cnv_task >> prepare_cnv_centric_task >> qa_group() >> index_cnv_centric_task >> wait_for_ready_cnv >> force_merge_cnv >> publish_cnv_centric_task >>
      trigger_rolling_dag >> delete_previous_release_task)
