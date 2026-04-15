@@ -20,6 +20,8 @@ def gene_centric(release_id: str, color: str, spark_jar: str, skip: str = '', ta
             'gene_centric',
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
+            'true',   # disableReplicas
+            'false',  # forceMerge — handled by etl_post_release DAG
         ],
         **kwargs
     )
@@ -43,6 +45,8 @@ def gene_suggestions(release_id: str, color: str, spark_jar: str, skip: str = ''
             'gene_suggestions',
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
+            'true',   # disableReplicas
+            'false',  # forceMerge — handled by etl_post_release DAG
         ],
         **kwargs
     )
@@ -66,6 +70,8 @@ def variant_centric(release_id: str, color: str, spark_jar: str, skip: str = '',
             'variant_centric',
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
+            'true',   # disableReplicas
+            'false',  # forceMerge — handled by etl_post_release DAG
         ],
         **kwargs
     )
@@ -89,6 +95,8 @@ def variant_suggestions(release_id: str, color: str, spark_jar: str, skip: str =
             'variant_suggestions',
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
+            'true',   # disableReplicas
+            'false',  # forceMerge — handled by etl_post_release DAG
         ],
         **kwargs
     )
@@ -112,6 +120,8 @@ def cnv_centric(release_id: str, color: str, spark_jar: str, skip: str = '', tas
             'cnv_centric',
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
+            'true',   # disableReplicas
+            'false',  # forceMerge — handled by etl_post_release DAG
         ],
         **kwargs
     )
@@ -135,6 +145,8 @@ def coverage_by_gene_centric(release_id: str, color: str, spark_jar: str, skip: 
             'coverage_by_gene_centric',
             '1900-01-01 00:00:00',
             f'config/{env}.conf',
+            'true',   # disableReplicas
+            'false',  # forceMerge — handled by etl_post_release DAG
         ],
         **kwargs
     )

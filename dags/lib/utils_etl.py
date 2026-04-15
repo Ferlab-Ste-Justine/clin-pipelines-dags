@@ -157,6 +157,10 @@ def skip_if_param_not(param_template, value) -> str:
         '{{', '').replace('}}', '')
 
 
+def skip_es_post_release() -> str:
+    return '{% if params.es_post_release == "yes" %}{% else %}yes{% endif %}'
+
+
 def skip(cond1: str, cond2: str) -> str:
     """
     Skips the task if one of the conditions is True.
