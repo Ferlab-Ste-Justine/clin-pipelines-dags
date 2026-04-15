@@ -297,17 +297,6 @@ with DAG(
                                                                  ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
     )
 
-    trigger_post_release = TriggerDagRunOperator(
-        task_id='post_release',
-        trigger_dag_id='etl_post_release',
-        wait_for_completion=True,
-        skip=skip_es_post_release(),
-        conf={
-            'release_id': release_id(),
-            'color': env_color,
-        }
-    )
-
     publish_group = publish_index(
         color=underscore_color,
         spark_jar=spark_jar(),
@@ -407,6 +396,17 @@ with DAG(
         }
     )
 
+    trigger_post_release = TriggerDagRunOperator(
+        task_id='post_release',
+        trigger_dag_id='etl_post_release',
+        wait_for_completion=False,
+        skip=skip_es_post_release(),
+        conf={
+            'release_id': release_id(),
+            'color': env_color,
+        }
+    )
+
     slack = EmptyOperator(
         task_id="slack",
         on_success_callback=Slack.notify_dag_completion,
@@ -427,9 +427,9 @@ with DAG(
      get_ingest_dag_configs_by_batch_id_task >> group_analysis_ids_by_batch_task >> get_ingest_dag_configs_by_analysis_ids_task >>
      trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> ingest_complete >>
      enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
-     delete_previous_variant_centric_group() >> index_group >> trigger_post_release >>
-     publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >>
-     notify_batch_ids_task >> prepare_notify_analysis_ids_task >> prepare_analysis_ids_arg_task >> update_analysis_status_task >> notify_analysis_ids_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
+     delete_previous_variant_centric_group() >> index_group >> publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >>
+     notify_batch_ids_task >> prepare_notify_analysis_ids_task >> prepare_analysis_ids_arg_task >> update_analysis_status_task >> notify_analysis_ids_task >> 
+     trigger_post_release >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
 
     # Explicit dependency so ingest_complete waits for batch ingest
     # even when analysis ingest expands to 0 instances (and vice versa)
