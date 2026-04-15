@@ -25,7 +25,8 @@ from lib.tasks.params_validate import validate_color, prepare_analysis_ids_arg, 
 from lib.utils_etl import (ClinAnalysis, color, default_or_initial,
                            get_ingest_dag_config_by_batch_group,
                            get_ingest_dag_configs_by_batch_id, release_id,
-                           skip_if_param_empty, skip_notify, spark_jar)
+                           skip_es_post_release, skip_if_param_empty,
+                           skip_notify, spark_jar)
 
 with DAG(
         dag_id='etl',
@@ -46,6 +47,7 @@ with DAG(
             'notify': Param('no', enum=['yes', 'no']),
             'qc': Param('yes', enum=['yes', 'no']),
             'rolling': Param('yes' if env == Env.QA else 'no', enum=['yes', 'no']),
+            'es_post_release': Param('yes', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         default_args={
@@ -295,6 +297,17 @@ with DAG(
                                                                  ClinAnalysis.SOMATIC_TUMOR_ONLY]) + skip_if_cnv_frequencies()
     )
 
+    trigger_post_release = TriggerDagRunOperator(
+        task_id='post_release',
+        trigger_dag_id='etl_post_release',
+        wait_for_completion=True,
+        skip=skip_es_post_release(),
+        conf={
+            'release_id': release_id(),
+            'color': env_color,
+        }
+    )
+
     publish_group = publish_index(
         color=underscore_color,
         spark_jar=spark_jar(),
@@ -414,7 +427,7 @@ with DAG(
      get_ingest_dag_configs_by_batch_id_task >> group_analysis_ids_by_batch_task >> get_ingest_dag_configs_by_analysis_ids_task >>
      trigger_ingest_by_batch_id_dags >> trigger_ingest_by_analysis_ids_dags >> ingest_complete >>
      enrich_group() >> prepare_group >> qa_group >> get_release_ids_group >>
-     delete_previous_variant_centric_group() >> index_group >>
+     delete_previous_variant_centric_group() >> index_group >> trigger_post_release >>
      publish_group >> trigger_rolling_dag >> trigger_delete_previous_releases >> trigger_cnv_frequencies >>
      notify_batch_ids_task >> prepare_notify_analysis_ids_task >> prepare_analysis_ids_arg_task >> update_analysis_status_task >> notify_analysis_ids_task >> slack >> trigger_qc_es_dag >> trigger_qc_dag)
 
