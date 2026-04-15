@@ -7,16 +7,18 @@ from lib.config import env, es_url
 
 
 @task(task_id='wait_for_ready')
-def wait_for_ready(index_name: str, release_id: str, color: str, skip=None, timeout: str = '30m'):
+def wait_for_ready(index_name: str, release_id: str, color: str, skip=None, es_timeout_minutes: int = 30):
     """Wait for index to reach green health (all replicas STARTED)."""
     if skip:
         raise AirflowSkipException()
 
     full_index = f'clin_{env}{color}_{index_name}_{release_id}'
-    url = f'{es_url}/_cluster/health/{full_index}?wait_for_status=green&wait_for_no_relocating_shards=true&timeout={timeout}'
+    es_timeout = f'{es_timeout_minutes}m'
+    requests_timeout = es_timeout_minutes * 60 + 10  # ES timeout + 10s buffer
+    url = f'{es_url}/_cluster/health/{full_index}?wait_for_status=green&wait_for_no_relocating_shards=true&timeout={es_timeout}'
 
-    logging.info(f'Waiting for ready status on index [{full_index}] (timeout={timeout})')
-    response = requests.get(url, verify=False)
+    logging.info(f'Waiting for ready status on index [{full_index}] (timeout={es_timeout})')
+    response = requests.get(url, verify=False, timeout=requests_timeout)
     logging.info(f'ES response: {response.text}')
 
     if not response.ok:
@@ -25,7 +27,7 @@ def wait_for_ready(index_name: str, release_id: str, color: str, skip=None, time
     result = response.json()
     if result.get('timed_out', False) or result.get('status') != 'green':
         raise AirflowFailException(
-            f'Index {full_index} did not reach green within {timeout} '
+            f'Index {full_index} did not reach green within {es_timeout} '
             f'(status={result.get("status")}, timed_out={result.get("timed_out")})'
         )
 
@@ -33,7 +35,7 @@ def wait_for_ready(index_name: str, release_id: str, color: str, skip=None, time
 
 
 @task(task_id='force_merge')
-def force_merge(index_name: str, release_id: str, color: str, skip=None, max_num_segments: int = 1, timeout: int = 3600):
+def force_merge(index_name: str, release_id: str, color: str, skip=None, max_num_segments: int = 1, timeout: int = 10):
     """Trigger force merge. Best-effort: logs warning on timeout (merge continues on ES)."""
     if skip:
         raise AirflowSkipException()
