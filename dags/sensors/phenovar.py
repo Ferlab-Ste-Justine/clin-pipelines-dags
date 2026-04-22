@@ -8,7 +8,8 @@ from airflow.sensors.base import BaseSensorOperator
 from lib import config
 from lib.config import clin_datalake_bucket
 from lib.phenovar import (
-    PhenotypingStatus, build_s3_status_key, 
+    PHENOVAR_BOOT_ID_XCOM_KEY,
+    PhenotypingStatus, build_s3_status_key,
     check_phenovar_status, read_s3_task_id,
     write_s3_analysis_status
 )
@@ -36,22 +37,29 @@ class PhenotypingAPISensor(BaseSensorOperator):
         analysis_ids = self.analysis_ids
         clin_s3 = S3Hook(config.s3_conn_id)
         
+        # Phenovar pod boot_id captured at submit time (same for all analyses in this DAG run).
+        # Empty string when the DAG run predates the boot_id mechanism — comparison is skipped.
+        submit_boot_id = context['ti'].xcom_pull(
+            task_ids='create.submit_analyses',
+            key=PHENOVAR_BOOT_ID_XCOM_KEY,
+        ) or ''
+
         # Find analyses with PENDING, STARTED, or FAILURE status
         pending_analyses = []
         failed_analyses_existing = []
         analysis_to_task_id = {}
-        
+
         for analysis_id in analysis_ids:
             status_key =  build_s3_status_key(analysis_id)
-            
+
             if clin_s3.check_for_key(status_key, clin_datalake_bucket):
                 key_obj = clin_s3.get_key(status_key, clin_datalake_bucket)
                 status = PhenotypingStatus[key_obj.get()['Body'].read().decode('utf-8')]
-                
+
                 if status in [PhenotypingStatus.PENDING, PhenotypingStatus.STARTED]:
                     logging.info(f'Found {status.name} analysis: {analysis_id}')
                     pending_analyses.append(analysis_id)
-                    
+
                     # Read task ID for this analysis
                     task_id = read_s3_task_id(clin_s3, analysis_id)
                     if task_id:
@@ -93,10 +101,21 @@ class PhenotypingAPISensor(BaseSensorOperator):
                     status_response = check_phenovar_status(task_id)
                     phenovar_state = status_response.get('state', 'UNKNOWN')
                     message = status_response.get('message', '')
-                    
+                    current_boot_id = status_response.get('boot_id', '')
+
                     logging.info(f'Analysis {analysis_id} (task {task_id}): {phenovar_state}')
-                    
-                    if phenovar_state == 'SUCCESS':
+
+                    # Detect pod reset that orphaned this task: submit-time boot_id mismatches current.
+                    # Skip when either side is empty (pre-boot_id DAG runs or phenovar without the field).
+                    if submit_boot_id and current_boot_id and submit_boot_id != current_boot_id:
+                        orphan_msg = (
+                            f'pod reset mid-analysis '
+                            f'(boot_id changed {submit_boot_id}→{current_boot_id})'
+                        )
+                        logging.error(f'Analysis {analysis_id} orphaned: {orphan_msg}')
+                        write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.FAILURE)
+                        failed_analyses.append((analysis_id, orphan_msg))
+                    elif phenovar_state == 'SUCCESS':
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.SUCCESS)
                         completed_analyses.append(analysis_id)
                     elif phenovar_state == 'FAILURE':
@@ -108,9 +127,14 @@ class PhenotypingAPISensor(BaseSensorOperator):
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.STARTED)
                     else:
                         logging.warning(f'Unknown Phenovar state: {phenovar_state} for task {task_id}')
-                        
+
+                except AirflowFailException:
+                    # Don't swallow our own fail signals (boot-id mismatch, FAILURE path above,
+                    # or hard API errors surfaced by parse_response).
+                    raise
                 except Exception as e:
-                    logging.error(f'Error checking status for analysis {analysis_id}: {str(e)}')
+                    # Transient network/parse error — log and let the next poke retry.
+                    logging.warning(f'Transient error checking status for analysis {analysis_id}: {str(e)}')
         
         # If any analyses failed, fail the task immediately
         if failed_analyses:

@@ -8,6 +8,7 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from lib import config
 from lib.datasets import enriched_clinical
 from lib.phenovar import (
+    PHENOVAR_BOOT_ID_XCOM_KEY,
     PhenotypingStatus, build_phenovar_payload, can_submit_analysis,
     copy_vcf_to_phenovar_bucket, extract_vcf_filename,
     get_clinical_data, map_phenovar_file_type, parse_s3_url,
@@ -224,19 +225,21 @@ def phenovar_create(analysis_ids: List[str], skip: str):
         }
     
     @task
-    def submit_analyses(data: dict, _skip: str) -> List[str]:
+    def submit_analyses(data: dict, _skip: str, **context) -> List[str]:
         """
         Build payload and submit analysis requests to Phenovar API.
         Returns list of submitted analysis IDs.
+        Pushes the phenovar pod boot_id to XCom for sensor orphan detection.
         """
         if _skip:
             raise AirflowSkipException()
-        
+
         analysis_groups = data['analysis_groups']
         analysis_vcf_files = data['analysis_vcf_files']
-        
+
         clin_s3 = S3Hook(config.s3_conn_id)
         submitted_ids = []
+        phenovar_boot_id = None
         
         for analysis_id, rows in analysis_groups.items():
             # Check if we can submit (idempotency check)
@@ -286,13 +289,20 @@ def phenovar_create(analysis_ids: List[str], skip: str):
             
             task_id = response.get('task_id')
             if task_id:
-                logging.info(f'Submitted analysis {analysis_id}, task_id: {task_id}')
+                boot_id = response.get('boot_id', '')
+                logging.info(f'Submitted analysis {analysis_id}, task_id: {task_id}, boot_id: {boot_id}')
                 write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.PENDING, task_id)
                 submitted_ids.append(analysis_id)
+                if phenovar_boot_id is None and boot_id:
+                    phenovar_boot_id = boot_id
             else:
                 raise AirflowFailException(f'No task_id in response for analysis {analysis_id}')
-        
+
         logging.info(f'Successfully submitted {len(submitted_ids)} analyses to Phenovar')
+
+        if phenovar_boot_id:
+            context['ti'].xcom_push(key=PHENOVAR_BOOT_ID_XCOM_KEY, value=phenovar_boot_id)
+
         return submitted_ids
     
     # Chain the tasks

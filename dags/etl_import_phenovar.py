@@ -15,6 +15,7 @@ from lib.doc import phenovar as doc
 from lib.groups.ingest.ingest_fhir import ingest_fhir
 from lib.groups.phenovar.phenovar_create import phenovar_create
 from lib.groups.phenovar.phenovar_update import phenovar_update
+from lib.operators.k8s_deployment_restart import K8sDeploymentRestartOperator
 from lib.operators.pipeline import PipelineOperator
 from lib.phenovar import delete_phenovar_s3_data
 from lib.slack import Slack
@@ -83,6 +84,13 @@ with DAG(
 
     reset_task = reset_phenovar_data(get_all_analysis_ids, reset())
 
+    rollout_restart_phenovar = K8sDeploymentRestartOperator(
+        task_id='rollout_restart_phenovar',
+        k8s_context=K8sContext.ETL,
+        deployment='phenovar',
+        wait_seconds=300,
+    )
+
     create = phenovar_create(
         analysis_ids=get_all_analysis_ids,
         skip=''
@@ -118,4 +126,5 @@ with DAG(
     # DAG structure
     ([batch_ids, analysis_ids] >> params_validate_task >> ingest_fhir_group >> identifier_to_type >>
      phenovar_validate(identifier_to_type) >> get_all_analysis_ids >> reset_task >>
+     rollout_restart_phenovar >>
      create >> update >> prepare_analysis_ids_task >> add_phenovar_documents_task >> slack)

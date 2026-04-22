@@ -241,6 +241,12 @@ def build_s3_result_key(analysis_id: str) -> str:
     return f'{build_s3_phenovar_root_key(analysis_id)}/phenovar_result.json'
 
 
+# XCom key used to share the phenovar pod boot_id between submit_analyses and the sensor.
+# Scope: per DAG run — all analyses submitted in a single DAG run share the same phenovar pod,
+# so storing the boot_id once in XCom is enough (no need for per-analysis_id S3 markers).
+PHENOVAR_BOOT_ID_XCOM_KEY = 'phenovar_boot_id'
+
+
 def check_s3_analysis_status(clin_s3: S3Hook, analysis_id: str) -> PhenotypingStatus:
     """Check the current status of an analysis from S3 marker file."""
     key = build_s3_status_key(analysis_id)
