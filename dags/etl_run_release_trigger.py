@@ -52,7 +52,7 @@ with DAG(
                     DagRun.dag_id == 'etl',
                     DagRun.state.in_([DagRunState.SUCCESS, DagRunState.FAILED]),
                 )
-                .order_by(DagRun.execution_date.desc())
+                .order_by(DagRun.start_date.desc())
                 .first()
             )
             if last_etl_run is not None:
