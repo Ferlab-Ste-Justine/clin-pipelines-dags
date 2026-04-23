@@ -413,19 +413,3 @@ def check_phenovar_status(task_id: str) -> dict:
     return result
 
 
-def download_phenovar_results(task_id: str) -> str:
-    """
-    Download Phenovar results JSON from check-status response.
-    Returns: JSON string of results (DiagnosisTableResponse)
-    """
-    status_response = check_phenovar_status(task_id)
-    
-    state = status_response.get('state')
-    if state != 'SUCCESS':
-        raise AirflowFailException(f'Cannot download results, state is {state}')
-    
-    result_data = status_response.get('result')
-    if not result_data:
-        raise AirflowFailException('No result data in response')
-    
-    return json.dumps(result_data)
