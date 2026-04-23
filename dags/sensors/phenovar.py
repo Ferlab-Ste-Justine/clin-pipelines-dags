@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import List
 
@@ -9,7 +10,7 @@ from lib import config
 from lib.config import clin_datalake_bucket
 from lib.phenovar import (
     PHENOVAR_BOOT_ID_XCOM_KEY,
-    PhenotypingStatus, build_s3_status_key,
+    PhenotypingStatus, build_s3_result_key, build_s3_status_key,
     check_phenovar_status, read_s3_task_id,
     write_s3_analysis_status
 )
@@ -55,6 +56,21 @@ class PhenotypingAPISensor(BaseSensorOperator):
             if clin_s3.check_for_key(status_key, clin_datalake_bucket):
                 key_obj = clin_s3.get_key(status_key, clin_datalake_bucket)
                 status = PhenotypingStatus[key_obj.get()['Body'].read().decode('utf-8')]
+
+                # Crash-recovery shortcut: if a prior sensor run already wrote the result
+                # JSON but crashed before flipping the marker to SUCCESS, just flip it now.
+                # The result is durably on S3 — no need to re-poll phenovar (where the
+                # task_id may have been wiped by a meanwhile-happened pod reboot).
+                if (
+                    status in [PhenotypingStatus.PENDING, PhenotypingStatus.STARTED]
+                    and clin_s3.check_for_key(build_s3_result_key(analysis_id), clin_datalake_bucket)
+                ):
+                    logging.info(
+                        f'Analysis {analysis_id}: result file already on S3 '
+                        f'(marker was {status.name}); marking SUCCESS'
+                    )
+                    write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.SUCCESS)
+                    continue
 
                 if status in [PhenotypingStatus.PENDING, PhenotypingStatus.STARTED]:
                     logging.info(f'Found {status.name} analysis: {analysis_id}')
@@ -116,6 +132,26 @@ class PhenotypingAPISensor(BaseSensorOperator):
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.FAILURE)
                         failed_analyses.append((analysis_id, orphan_msg))
                     elif phenovar_state == 'SUCCESS':
+                        # Harvest the result JSON inline from the /check-status payload.
+                        # Writing result BEFORE flipping the marker to SUCCESS guarantees
+                        # that any subsequent pod reboot (which would wipe the redis
+                        # task meta) can't strand us in a state where the marker says
+                        # SUCCESS but the result is lost. If the write-marker step below
+                        # crashes, the next poke's crash-recovery shortcut handles it.
+                        result_blob = status_response.get('result')
+                        if not result_blob:
+                            raise AirflowFailException(
+                                f'Analysis {analysis_id}: SUCCESS response missing result payload'
+                            )
+                        result_json = json.dumps(result_blob)
+                        result_key = build_s3_result_key(analysis_id)
+                        clin_s3.load_string(
+                            result_json, result_key, clin_datalake_bucket, replace=True
+                        )
+                        logging.info(
+                            f'Analysis {analysis_id}: wrote {len(result_json)} bytes '
+                            f'of result to {result_key}'
+                        )
                         write_s3_analysis_status(clin_s3, analysis_id, PhenotypingStatus.SUCCESS)
                         completed_analyses.append(analysis_id)
                     elif phenovar_state == 'FAILURE':
