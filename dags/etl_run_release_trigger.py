@@ -21,6 +21,7 @@ with DAG(
             'trigger_rule': TriggerRule.NONE_FAILED,
             'on_failure_callback': Slack.notify_task_failure,
         },
+        max_active_runs=1,  # Avoid multiple concurrent runs of this trigger DAG
 ) as dag:
     
     @task(task_id='check_should_skip_run')
@@ -93,7 +94,7 @@ with DAG(
     trigger_etl_run_release = TriggerDagRunOperator(
         task_id='trigger_etl_run_release',
         trigger_dag_id='etl_run_release',
-        wait_for_completion=True, # One release at a time
+        wait_for_completion=False,
         skip=check_should_skip,
         conf={
             'sequencing_ids': get_pending_sequencing_ids_task,
