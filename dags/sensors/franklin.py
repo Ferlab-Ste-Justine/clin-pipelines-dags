@@ -9,9 +9,8 @@ from lib import config
 from lib.config import clin_datalake_bucket
 from lib.franklin import (FranklinStatus, build_s3_analyses_ids_key,
                           extract_from_name_aliquot_id,
-                          extract_param_from_s3_key, get_analysis_status,
-                          get_franklin_token, write_s3_analysis_status, get_s3_analyses_keys,
-                          extract_from_name_analysis_id)
+                          extract_from_name_analysis_id, get_analysis_status,
+                          get_franklin_token, write_s3_analysis_status)
 
 
 class FranklinAPISensor(BaseSensorOperator):
@@ -30,31 +29,24 @@ class FranklinAPISensor(BaseSensorOperator):
 
         analysis_ids = self.analysis_ids
         clin_s3 = S3Hook(config.s3_conn_id)
-        keys = get_s3_analyses_keys(clin_s3, analysis_ids)
 
         created_analyses = []
         ready_analyses = []
 
-        for key in keys:
-            if '_FRANKLIN_STATUS_.txt' in key:
-                key_obj = clin_s3.get_key(key, clin_datalake_bucket)
-                status = FranklinStatus[key_obj.get()['Body'].read().decode('utf-8')]
-                if status is FranklinStatus.CREATED:  # ignore others status
-
-                    logging.info(f'Found CREATED: {key}')
-                    analysis_id = extract_param_from_s3_key(key, 'analysis_id')
-
-                    ids_key = clin_s3.get_key(build_s3_analyses_ids_key(analysis_id), clin_datalake_bucket)
-                    ids = ids_key.get()['Body'].read().decode('utf-8').split(',')
-
-                    created_analyses += ids
+        # _FRANKLIN_IDS_.txt holds every Franklin ID (aliquot + family) for an analysis_id;
+        # scanning per-aliquot _FRANKLIN_STATUS_.txt files would drop family IDs once all aliquots are READY.
+        for analysis_id in analysis_ids:
+            ids_key = build_s3_analyses_ids_key(analysis_id)
+            if clin_s3.check_for_key(ids_key, clin_datalake_bucket):
+                ids = clin_s3.get_key(ids_key, clin_datalake_bucket).get()['Body'].read().decode('utf-8').split(',')
+                created_analyses += ids
 
         # remove duplicated IDs if any
         created_analyses = list(set(created_analyses))
         created_count = len(created_analyses)
 
         if created_count == 0:
-            raise AirflowSkipException('No CREATED analyses')
+            raise AirflowSkipException('No analyses to track')
 
         token = get_franklin_token()
         statuses = get_analysis_status(created_analyses, token)
