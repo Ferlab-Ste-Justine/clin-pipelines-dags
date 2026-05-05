@@ -72,44 +72,58 @@ batch_ids = []
 # group of chromosomes to reduce load of treatment in PROD
 
 chromosomes_2 = [
-    "chr1, chr4, chr5, chr9, chr11, chr13, chr14, chr16, chr18, chr21, chrX, chrY",
-    "chr2, chr3, chr6, chr7, chr8, chr10, chr12, chr15, chr17, chr19, chr20, chr22"
+    "chr1, chr3, chr5, chr6, chr9, chr10, chr11, chr15, chr18, chr22, chrX, chrY",
+    "chr2, chr4, chr7, chr8, chr12, chr13, chr14, chr16, chr17, chr19, chr20, chr21"
 ]
 chromosomes_4 = [
-    "chr1, chr10, chr15, chr17, chr21, chrX",
-    "chr2, chr7, chr11, chr14, chr19, chr20",
-    "chr3, chr6, chr8, chr13, chr16, chrY",
-    "chr4, chr5, chr9, chr12, chr18, chr22"
+    "chr1, chr10, chr11, chr15, chr22, chrY",
+    "chr2, chr4, chr8, chr17, chr18, chrX",
+    "chr7, chr12, chr16, chr19, chr20, chr21",
+    "chr3, chr5, chr6, chr9, chr13, chr14"
 ]
 chromosomes_6 = [
-    "chr1, chr10, chr17, chr22",
-    "chr2, chr11, chr16, chr21",
-    "chr3, chr9, chr14, chr20",
-    "chr4, chr8, chr13, chr19",
-    "chr5, chr15, chr18, chrX",
-    "chr6, chr7, chr12, chrY"
+    "chr1, chr17, chrX, chrY",
+    "chr2, chr11, chr14, chr21", 
+    "chr12, chr13, chr15, chr19",
+    "chr3, chr5, chr16, chr18",
+    "chr4, chr7, chr9, chr22", 
+    "chr6, chr8, chr10, chr20" 
 ]
 chromosomes_8 = [
-    "chr1, chr15, chr21",
-    "chr2, chr14, chr22",
-    "chr3, chr13, chr20",
-    "chr4, chr12, chrY",
-    "chr5, chr10, chr19",
-    "chr6, chr11, chr18",
-    "chr7, chr9, chr16",
-    "chr8, chr17, chrX"
+    "chr1, chr12, chrY",
+    "chr2, chr5, chr21",
+    "chr4, chr18, chr19",
+    "chr3, chr10, chr13",
+    "chr7, chr16, chrX",
+    "chr6, chr9, chr20",
+    "chr8, chr17, chr22",
+    "chr11, chr14, chr15"
 ]
 chromosomes_10 = [
-    "chr1, chr20",
-    "chr2, chr18",
-    "chr3, chr17",
-    "chr4, chr16",
-    "chr5, chr15",
-    "chr6, chr14, chr22",
-    "chr7, chr13, chrY",
-    "chr12, chrX",
-    "chr8, chr10, chr21",
-    "chr9, chr11, chr19"
+    "chr1, chr10",
+    "chr2, chr16",
+    "chr9, chr19",
+    "chr3, chr8",
+    "chr7, chr15",
+    "chr6, chr14, chrY",
+    "chr17, chrX",
+    "chr11, chr18, chr20",
+    "chr12, chr21, chr22",
+    "chr4, chr5, chr13"
+]
+chromosomes_12 = [
+    "chr1, chrY",
+    "chr2, chr21",
+    "chr19, chr18",
+    "chr3, chr13",
+    "chr7, chr22",
+    "chr6, chr20",
+    "chr17, chrX",
+    "chr11, chr14",
+    "chr12, chr15",
+    "chr5, chr8",
+    "chr4, chr9",
+    "chr10, chr16"
 ]
 
 if env == Env.TEST:
