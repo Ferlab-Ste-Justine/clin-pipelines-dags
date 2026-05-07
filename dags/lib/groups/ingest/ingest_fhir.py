@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import List
 
 from airflow.decorators import task_group
@@ -41,6 +42,8 @@ def ingest_fhir(
         arguments=[
             'bio.ferlab.clin.etl.FhirExport', 'all',
         ],
+        retries=1,
+        retry_delay=timedelta(minutes=1),
     )
 
     fhir_normalize = SparkOperator(

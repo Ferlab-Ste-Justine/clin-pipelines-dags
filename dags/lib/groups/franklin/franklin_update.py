@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from typing import List
 
 from airflow.decorators import task_group, task
@@ -33,7 +34,7 @@ def franklin_update(analysis_ids: List[str],
         timeout=timeout,
     )
 
-    @task
+    @task(retries=1, retry_delay=timedelta(minutes=5))
     def download_results(_analysis_ids: List[str], _skip: str):
         if _skip:
             raise AirflowSkipException()
