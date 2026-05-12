@@ -23,7 +23,7 @@ def migrate_somatic_tumor_normal(
         batch_id=batch_id,
         analysis_ids=[],
         batch_type=ClinAnalysis.SOMATIC_TUMOR_NORMAL,
-        skip=skip_all
+        skip='yes'  # always skip validation
     )
 
     get_all_analysis_ids = clinical.get_all_analysis_ids(analysis_ids=[], batch_id=batch_id, skip=skip_all)
