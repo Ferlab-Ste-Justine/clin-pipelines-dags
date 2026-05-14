@@ -37,7 +37,7 @@ with DAG(
         try:
             # Check for running instances of etl_run_release or etl
             running_dags = session.query(DagRun).filter(
-                DagRun.dag_id.in_(['etl_run_release', 'etl', 'etl_ingest', 'etl_import_franklin', 'etl_import_phenovar', 'etl_cnv_frequencies']),
+                DagRun.dag_id.in_(['etl_run_release', 'etl', 'etl_ingest', 'etl_import_franklin', 'etl_cnv_frequencies']),
                 DagRun.state == DagRunState.RUNNING
             ).all()
 
