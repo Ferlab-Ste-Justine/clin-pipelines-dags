@@ -17,7 +17,7 @@ from lib.slack import Slack
 from lib.tasks import (enrich, es, index, params_validate, prepare_index,
                        publish_index, qa)
 from lib.tasks.nextflow import svclustering
-from lib.utils_etl import color, release_id, skip_es_post_release, spark_jar
+from lib.utils_etl import color, release_id, spark_jar
 
 with DAG(
         dag_id='etl_cnv_frequencies',
@@ -28,7 +28,6 @@ with DAG(
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
             'spark_jar': Param('', type=['null', 'string']),
-            'es_post_release': Param('yes', enum=['yes', 'no']),
         },
         default_args={
             'trigger_rule': TriggerRule.NONE_FAILED,
