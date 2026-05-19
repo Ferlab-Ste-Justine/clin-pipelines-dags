@@ -47,7 +47,7 @@ with DAG(
             'notify': Param('no', enum=['yes', 'no']),
             'qc': Param('yes', enum=['yes', 'no']),
             'rolling': Param('yes' if env == Env.QA else 'no', enum=['yes', 'no']),
-            'es_post_release': Param('yes', enum=['yes', 'no']),
+            'es_post_release': Param('no', enum=['yes', 'no']),
             'spark_jar': Param('', type=['null', 'string']),
         },
         default_args={
