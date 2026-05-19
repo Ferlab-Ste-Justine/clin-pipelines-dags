@@ -30,7 +30,7 @@ class FranklinAPISensor(BaseSensorOperator):
         analysis_ids = self.analysis_ids
         clin_s3 = S3Hook(config.s3_conn_id)
 
-        created_analyses = []
+        tracked_analysis_ids: set[str] = set()
         ready_analyses = []
 
         # _FRANKLIN_IDS_.txt holds every Franklin ID (aliquot + family) for an analysis_id;
@@ -39,23 +39,21 @@ class FranklinAPISensor(BaseSensorOperator):
             ids_key = build_s3_analyses_ids_key(analysis_id)
             if clin_s3.check_for_key(ids_key, clin_datalake_bucket):
                 ids = clin_s3.get_key(ids_key, clin_datalake_bucket).get()['Body'].read().decode('utf-8').split(',')
-                created_analyses += ids
+                tracked_analysis_ids.update(ids)
 
-        # remove duplicated IDs if any
-        created_analyses = list(set(created_analyses))
-        created_count = len(created_analyses)
+        tracked_count = len(tracked_analysis_ids)
 
-        if created_count == 0:
+        if tracked_count == 0:
             raise AirflowSkipException('No analyses to track')
 
         token = get_franklin_token()
-        statuses = get_analysis_status(created_analyses, token)
+        statuses = get_analysis_status(list(tracked_analysis_ids), token)
         for status in statuses:
             if status['processing_status'] == 'READY':
 
                 franklin_analysis_id = str(status['id'])
 
-                if franklin_analysis_id in created_analyses:
+                if franklin_analysis_id in tracked_analysis_ids:
                     analysis_id = extract_from_name_analysis_id(status['name'])
                     analysis_aliquot_id = extract_from_name_aliquot_id(status['name'])
 
@@ -68,5 +66,5 @@ class FranklinAPISensor(BaseSensorOperator):
 
         ready_count = len(ready_analyses)
 
-        logging.info(f'Ready analyses: {ready_count}/{created_count} {ready_analyses}')
-        return ready_count == created_count  # All created analyses are ready
+        logging.info(f'Ready analyses: {ready_count}/{tracked_count} {ready_analyses}')
+        return ready_count == tracked_count  # All tracked analyses are ready
