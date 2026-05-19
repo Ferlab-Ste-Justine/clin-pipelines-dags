@@ -18,12 +18,13 @@ with DAG(
         params={
             'release_id': Param('', type=['null', 'string']),
             'color': Param('', type=['null', 'string']),
+            'dryrun': Param('no', enum=['yes', 'no']),
         },
         default_args={
             'trigger_rule': TriggerRule.NONE_FAILED,
             'on_failure_callback': Slack.notify_task_failure,
         },
-        max_active_tasks=6,
+        max_active_tasks=1,
         max_active_runs=1,
 ) as dag:
 
@@ -43,6 +44,7 @@ with DAG(
         coverage_by_gene_centric_release_id=release_id('coverage_by_gene_centric'),
         cnv_centric_release_id=release_id('cnv_centric'),
         color=color('_'),
+        dryrun='{{ params.dryrun }}',
     )
 
     slack = EmptyOperator(

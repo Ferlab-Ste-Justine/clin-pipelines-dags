@@ -11,7 +11,8 @@ def optimize_indices(
         cnv_centric_release_id: str,
         coverage_by_gene_centric_release_id: str,
         color: str,
-        skip: str = ''
+        skip: str = '',
+        dryrun: str = '',
 ):
     indices = {
         'gene_centric': gene_centric_release_id,
@@ -27,6 +28,6 @@ def optimize_indices(
             index_name=name, release_id=rid, color=color, skip=skip
         )
         fm = es_optimize.force_merge.override(task_id=f'force_merge_{name}')(
-            index_name=name, release_id=rid, color=color, skip=skip
+            index_name=name, release_id=rid, color=color, skip=skip, dryrun=dryrun
         )
         wfg >> fm
