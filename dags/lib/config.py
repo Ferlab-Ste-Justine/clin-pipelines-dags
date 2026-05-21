@@ -166,7 +166,7 @@ elif env == Env.STAGING:
     pipeline_image = 'ferlabcrsj/clin-pipelines:d721e14'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.37.0.jar'
+    spark_jar = 'clin-variant-etl-v3.38.0.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
