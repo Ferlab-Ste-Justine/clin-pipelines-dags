@@ -125,6 +125,22 @@ chromosomes_12 = [
     "chr4, chr9",
     "chr10, chr16"
 ]
+chromosomes_14 = [
+    "chr1",
+    "chr2",
+    "chr7",
+    "chr3",
+    "chr6, chrY",
+    "chr19, chr21",
+    "chr12, chr18",
+    "chr17, chr22",
+    "chr5, chr20",
+    "chr4, chr13",
+    "chr11, chrX",
+    "chr9, chr15",
+    "chr10, chr14",
+    "chr8, chr16"
+]
 
 if env == Env.TEST:
     fhir_image = 'ferlabcrsj/clin-fhir'
