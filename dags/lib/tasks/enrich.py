@@ -1,13 +1,13 @@
 from typing import List
 
-from lib.config import Env, chromosomes_2, chromosomes_4, chromosomes_6, env
+from lib.config import Env, chromosomes_2, chromosomes_4, chromosomes_8, env
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
 ENRICHED_MAIN_CLASS = 'bio.ferlab.clin.etl.enriched.RunEnriched'
 
 SNV_CHROMOSOME_GROUPS = {Env.PROD: chromosomes_2, Env.STAGING: chromosomes_2}
-VARIANTS_CHROMOSOME_GROUPS = {Env.PROD: chromosomes_6, Env.STAGING: chromosomes_4}
+VARIANTS_CHROMOSOME_GROUPS = {Env.PROD: chromosomes_8, Env.STAGING: chromosomes_4}
 
 
 def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-enrich-snv',
