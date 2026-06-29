@@ -1,5 +1,5 @@
 from lib.operators.spark_etl import SparkETLOperator
-from lib.config import Env, chromosomes_4, env
+from lib.config import Env, chromosomes_2, env
 
 PREPARE_INDEX_MAIN_CLASS = 'bio.ferlab.clin.etl.es.PrepareIndex'
 
@@ -48,7 +48,7 @@ def variant_centric(spark_jar: str, skip: str = '', task_id: str = 'variant_cent
             max_active_tis_per_dag=1,  # concurrent OverWritePartition, set to 1 if issues arise
             skip=skip,
             **kwargs
-        ).expand(chromosome=chromosomes_4)
+        ).expand(chromosome=chromosomes_2)
     else:
         return SparkETLOperator(
             entrypoint='variant_centric',
