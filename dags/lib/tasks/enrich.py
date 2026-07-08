@@ -23,7 +23,7 @@ def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-
             steps='default',
             app_name=app_name,
             spark_class=ENRICHED_MAIN_CLASS,
-            spark_config='config-etl-xlarge',
+            spark_config='config-etl-large',
             spark_jar=spark_jar,
             skip=skip,
              max_active_tis_per_dag=1,  # concurrent OverWritePartition doesnt work
@@ -94,7 +94,7 @@ def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'varian
             steps='default',
             app_name=app_name,
             spark_class=ENRICHED_MAIN_CLASS,
-            spark_config='config-etl-xlarge',
+            spark_config='config-etl-large',
             spark_jar=spark_jar,
             skip=skip,
             max_active_tis_per_dag=1,  # concurrent OverWritePartition, set to 1 if issues arise
@@ -125,7 +125,7 @@ def consequences(steps: str, spark_jar: str = '', task_id: str = 'consequences',
         steps=steps,
         app_name=app_name,
         spark_class=ENRICHED_MAIN_CLASS,
-        spark_config='config-etl-xlarge',
+        spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
         **kwargs
@@ -141,7 +141,7 @@ def cnv_all(steps: str, spark_jar: str = '', task_id: str = 'cnv_all', name: str
         steps=steps,
         app_name=app_name,
         spark_class=ENRICHED_MAIN_CLASS,
-        spark_config='config-etl-xlarge',
+        spark_config='config-etl-large',
         spark_jar=spark_jar,
         skip=skip,
         **kwargs
