@@ -75,32 +75,36 @@ def group_families_from_clinical_data(clinical_data: List[dict]) -> Tuple[Dict[s
 def filter_valid_families(family_groups: Dict[str, List[dict]]) -> Dict[str, List[dict]]:
     filtered_families = {}
     for family_id, analyses in family_groups.items():
-        has_proband = False
-        has_mother = False
-        has_father = False
-        has_something_else = None
+        # Proband row carries the parent information
+        proband = next((a for a in analyses if a['is_proband']), None)
+        if proband is None:
+            logging.warning(f'(unsupported) family: {family_id} with no proband analyses: {analyses}')
+            continue
 
+        # Aliquots the proband points to as father/mother (cast to str: ids may be int or str)
+        parent_aliquots = {str(a) for a in (proband['father_aliquot_id'], proband['mother_aliquot_id']) if a is not None}
+
+        # Keep only the supported proband + mother + father subset. Any other member
+        # (sibling/quatuor: not the proband and not a referenced parent) is dropped so
+        # the case still matches Franklin's proband/duo/trio requirement.
+        kept = [proband]
         for analysis in analyses:
-            # Proband row contains the parent information
             if analysis['is_proband']:
-                has_proband = True
+                continue
+            if str(analysis['aliquot_id']) in parent_aliquots:
+                kept.append(analysis)
+            elif analysis['father_aliquot_id'] or analysis['mother_aliquot_id']:
+                logging.warning(
+                    f'Unknown relation in family {family_id} for sequencing id {analysis["sequencing_id"]} (dropped)')
 
-                if analysis['father_aliquot_id']:
-                    has_father = True
+        has_father = proband['father_aliquot_id'] is not None
+        has_mother = proband['mother_aliquot_id'] is not None
 
-                if analysis['mother_aliquot_id']:
-                    has_mother = True
-
-            # If we have a brother or a sister
-            if not analysis['is_proband'] and (analysis['father_aliquot_id'] or analysis['mother_aliquot_id']):
-                has_something_else = True
-                logging.warning(f'Unknown relation in family {family_id} for sequencing id {analysis["sequencing_id"]}')
-
-        if not has_something_else and has_proband and (has_mother or has_father):  # TRIO or DUO
-            filtered_families[family_id] = analyses
+        if has_mother or has_father:  # TRIO or DUO
+            filtered_families[family_id] = kept
         else:
             logging.warning(
-                f'(unsupported) family: {family_id} with PROBAND: {has_proband} MOTHER: {has_mother} FATHER: {has_father} UNSUPPORTED: {has_something_else} analyses: {analyses}')
+                f'(unsupported) family: {family_id} with PROBAND: True MOTHER: {has_mother} FATHER: {has_father} analyses: {analyses}')
     return filtered_families
 
 
