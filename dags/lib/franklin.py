@@ -81,8 +81,8 @@ def filter_valid_families(family_groups: Dict[str, List[dict]]) -> Dict[str, Lis
             logging.warning(f'(unsupported) family: {family_id} with no proband analyses: {analyses}')
             continue
 
-        # Aliquots the proband points to as father/mother
-        parent_aliquots = {proband['father_aliquot_id'], proband['mother_aliquot_id']} - {None}
+        # Aliquots the proband points to as father/mother (cast to str: ids may be int or str)
+        parent_aliquots = {str(a) for a in (proband['father_aliquot_id'], proband['mother_aliquot_id']) if a is not None}
 
         # Keep only the supported proband + mother + father subset. Any other member
         # (sibling/quatuor: not the proband and not a referenced parent) is dropped so
@@ -91,7 +91,7 @@ def filter_valid_families(family_groups: Dict[str, List[dict]]) -> Dict[str, Lis
         for analysis in analyses:
             if analysis['is_proband']:
                 continue
-            if analysis['aliquot_id'] in parent_aliquots:
+            if str(analysis['aliquot_id']) in parent_aliquots:
                 kept.append(analysis)
             elif analysis['father_aliquot_id'] or analysis['mother_aliquot_id']:
                 logging.warning(
