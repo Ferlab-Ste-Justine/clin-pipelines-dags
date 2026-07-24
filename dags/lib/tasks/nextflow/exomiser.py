@@ -80,10 +80,28 @@ def prepare(analysis_ids: Set[str], skip: str) -> Dict[str, str]:
         # Construct pedigree.persons field
         analysis_id = proband_row['analysis_id']
         family_df = clinical_df[clinical_df['analysis_id'] == analysis_id]
+
+        # Exomiser requires a definite sex for any individual used as a parent.
+        father_ids = set(family_df['father_aliquot_id'].dropna())
+        mother_ids = set(family_df['mother_aliquot_id'].dropna())
+
+        def resolve_sex(person):
+            sex = sex_mapping.get(person['gender'])
+            if sex != pp_base.UNKNOWN_SEX:
+                return sex
+            aliquot_id = person['aliquot_id']
+            if aliquot_id in father_ids:
+                logging.warning(f"Coercing UNKNOWN sex to MALE for father '{aliquot_id}' in analysis {analysis_id}")
+                return pp_base.MALE
+            if aliquot_id in mother_ids:
+                logging.warning(f"Coercing UNKNOWN sex to FEMALE for mother '{aliquot_id}' in analysis {analysis_id}")
+                return pp_base.FEMALE
+            return sex
+
         persons = [pp_base.Pedigree.Person(
             family_id=analysis_id,
             individual_id=person['aliquot_id'],
-            sex=sex_mapping.get(person['gender']),
+            sex=resolve_sex(person),
             affected_status=affected_mapping.get(person['affected_status_code']),
             paternal_id=person['father_aliquot_id'] if pd.notna(person['father_aliquot_id']) else None,
             maternal_id=person['mother_aliquot_id'] if pd.notna(person['mother_aliquot_id']) else None
