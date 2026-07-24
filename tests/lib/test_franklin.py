@@ -67,33 +67,51 @@ def test_group_families_from_clinical_data(clinical_data, solo_analysis_row, tri
 
 def test_filter_valid_families(trio_analysis_rows, duo_analysis_rows):
     """
-    It should filter out families that have an unsupported family member type.
+    It should keep the supported proband + mother + father subset and drop only the
+    unsupported members (e.g. a sibling in a quatuor), never the whole family.
     """
     from lib.franklin import filter_valid_families
 
     family_groups = {
-        # Supported
+        # Supported, untouched
         'FM1': trio_analysis_rows,
         'FM2': duo_analysis_rows,
 
-        # Unsupported (aliquot_id 9 is a sister)
+        # Quatuor: proband + mother + sister (aliquot_id 9). Sister must be dropped,
+        # family kept as a duo (proband + mother).
         'FM3': [
             {'analysis_id': 'A4', 'family_id': 'FM_FRK_0003', 'aliquot_id': '7', 'sequencing_id': 'S7',
              'is_proband': True,
              'father_aliquot_id': None, 'mother_aliquot_id': 8},
-            {'analysis_id': 'A4', 'family_id': 'FM_FRK_0003', 'aliquot_id': '8', 'sequencing_id': 'S8',
+            {'analysis_id': 'A4', 'family_id': 'FM_FRK_0003', 'aliquot_id': 8, 'sequencing_id': 'S8',
              'is_proband': False,
-             'father_aliquot_id': None, 'mother_aliquot_id': None},
+             'father_aliquot_id': None, 'mother_aliquot_id': None},  # mother
             {'analysis_id': 'A4', 'family_id': 'FM_FRK_0003', 'aliquot_id': '9', 'sequencing_id': 'S9',
              'is_proband': False,
              'father_aliquot_id': None, 'mother_aliquot_id': 8}  # sister
+        ],
+
+        # Proband only (no parents) is still dropped -> flows only via no_family path.
+        'FM4': [
+            {'analysis_id': 'A5', 'family_id': 'FM_FRK_0004', 'aliquot_id': '10', 'sequencing_id': 'S10',
+             'is_proband': True,
+             'father_aliquot_id': None, 'mother_aliquot_id': None},
         ],
     }
 
     filtered_families = filter_valid_families(family_groups)
 
-    assert len(filtered_families) == 2
-    assert 'FM3' not in filtered_families
+    assert len(filtered_families) == 3
+    assert filtered_families['FM1'] == trio_analysis_rows
+    assert filtered_families['FM2'] == duo_analysis_rows
+
+    assert 'FM4' not in filtered_families
+
+    # FM3 kept as proband + mother, sister removed
+    assert 'FM3' in filtered_families
+    kept_seq_ids = {a['sequencing_id'] for a in filtered_families['FM3']}
+    assert kept_seq_ids == {'S7', 'S8'}
+    assert 'S9' not in kept_seq_ids
 
 
 def test_extract_vcf_prefix_for_legacy():
