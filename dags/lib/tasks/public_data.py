@@ -156,6 +156,15 @@ class PublicSourceDag:
         return version
 
 
+    def get_published_version(self) -> str:
+        """Version recorded by the last successful run of this DAG (written by update_public_data_info).
+
+        Useful for manually deposited sources, where the S3 version marker is maintained by hand
+        and therefore cannot serve as the 'already imported' reference.
+        """
+        return next((entry.version for entry in _get_public_data_json() if entry.dag_id == self.dag_id), None)
+
+
     def set_last_version(self, version: str, version_key: str = None):
         if version_key:
             current_version = self.get_current_version()
