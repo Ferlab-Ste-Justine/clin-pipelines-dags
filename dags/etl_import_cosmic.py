@@ -1,16 +1,17 @@
-import base64
+# import base64
 from datetime import datetime
 
 from airflow import DAG
 from airflow.decorators import task
+from airflow.exceptions import AirflowFailException
 from airflow.utils.trigger_rule import TriggerRule
-from lib import config
+# from lib import config
 from lib.config import K8sContext, config_file
 from lib.operators.spark import SparkOperator
 from lib.operators.trigger_dagrun import TriggerDagRunOperator
 from lib.slack import Slack
 from lib.tasks.public_data import PublicSourceDag, update_public_data_info, should_continue
-from lib.utils import http_get
+# from lib.utils import http_get
 
 
 cosmic_dag = PublicSourceDag(
@@ -31,30 +32,50 @@ with DAG(
 
     @task(task_id='files', on_execute_callback=Slack.notify_dag_start)
     def files():
-        url = 'https://cancer.sanger.ac.uk/cosmic'
-        path = 'file_download/GRCh38/cosmic'
-
-        # TODO: Download Cosmic_CancerGeneCensus_GRCh38.tar when scripted downloads are added to new download page
+        # COSMIC downloads are no longer automated: the licence is bound to a named user and to
+        # their IP, so no service account can fetch the archives. The files are deposited by hand
+        # under raw/landing/cosmic/ (cmc_export.tsv.gz, Cosmic_CancerGeneCensus_GRCh38.tsv.gz),
+        # and the version marker cosmic.version is updated by hand along with them.
+        #
+        # The download code is kept below for the day scripted downloads become available again.
+        # Note that the gene census file name below is stale: the ETL reads
+        # Cosmic_CancerGeneCensus_GRCh38.tsv.gz, not cancer_gene_census.csv.
+        #
+        # url = 'https://cancer.sanger.ac.uk/cosmic'
+        # path = 'file_download/GRCh38/cosmic'
+        #
         # gene_census_file = 'cancer_gene_census.csv'
-        mutation_census_file = 'cmc_export.tsv.gz'
-        mutation_census_archive = 'CMC.tar'
+        # mutation_census_file = 'cmc_export.tsv.gz'
+        # mutation_census_archive = 'CMC.tar'
+        #
+        # # Get latest version
+        # cosmic_dag.set_last_version_from_url(url, 'COSMIC (v[0-9]+),')
+        #
+        # for file_name in [mutation_census_file]:
+        #     # Encode credentials
+        #     headers = {'Authorization': f'Basic {base64.b64encode(config.cosmic_credentials.encode()).decode()}'}
+        #
+        #     # Get file url
+        #     download_url = http_get(
+        #         f'{url}/{path}/{cosmic_dag.last_version}/{mutation_census_archive if file_name == mutation_census_file else file_name}',
+        #         headers=headers
+        #     ).json()['url']
+        #
+        #     # Upload file to S3 (if new)
+        #     cosmic_dag.upload_file_if_new(download_url, file_name, headers=headers, tar_extract=mutation_census_file if file_name == mutation_census_file else None)
 
-        # Get latest version
-        # TODO: Cosmic need an account to access the download page: https://ferlab-crsj.atlassian.net/browse/CLIN-4440
-        cosmic_dag.set_last_version_from_url(url, 'COSMIC (v[0-9]+),')
+        deposited_version = cosmic_dag.get_current_version()
+        if not deposited_version:
+            raise AirflowFailException(
+                f'No version found in s3://{cosmic_dag.s3_bucket}/{cosmic_dag.s3_key}/{cosmic_dag.name}.version. '
+                f'Deposit the COSMIC files and write the version they correspond to in that file '
+                f'before running this DAG.'
+            )
 
-        for file_name in [mutation_census_file]:
-            # Encode credentials
-            headers = {'Authorization': f'Basic {base64.b64encode(config.cosmic_credentials.encode()).decode()}'}
-
-            # Get file url
-            download_url = http_get(
-                f'{url}/{path}/{cosmic_dag.last_version}/{mutation_census_archive if file_name == mutation_census_file else file_name}',
-                headers=headers
-            ).json()['url']
-            
-            # Upload file to S3 (if new)
-            cosmic_dag.upload_file_if_new(download_url, file_name, headers=headers, tar_extract=mutation_census_file if file_name == mutation_census_file else None)
+        # The marker is maintained by hand, so it cannot be compared against itself: the reference
+        # for 'already imported' is the version published by the last successful run of this DAG.
+        cosmic_dag.set_last_version(deposited_version)
+        cosmic_dag.is_new_version = deposited_version != cosmic_dag.get_published_version()
 
         return cosmic_dag
 
