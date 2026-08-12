@@ -2,13 +2,13 @@ import json
 import logging
 import re
 import ast
-import sys
 import tarfile
 from dataclasses import asdict, dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any, ClassVar
 from airflow.decorators import task
-from airflow.models import DagRun
+from airflow.models import DagBag, DagRun
 from airflow.models.param import Param
 from airflow.operators.python import ShortCircuitOperator
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
@@ -19,14 +19,17 @@ from lib.config import env
 from lib.slack import Slack
 from lib.utils import http_get
 from lib.utils_s3 import get_s3_file_version, http_get_file, stream_upload_or_resume_to_s3, file_md5
-from multiprocessing import Lock
 
 
 s3 = S3Hook(config.s3_conn_id)
 s3_public_bucket = f'cqgc-{env}-app-public'
 s3_public_data_file_key = 'public-databases.json'
+init_public_databases_dag_id = 'init_public_databases_file'
 
-lock = Lock()
+# This module lives in <dags>/lib/tasks/, so the DAG files are two levels up. Preferred over
+# airflow.settings.DAGS_FOLDER, which points at the Airflow config and not at this checkout.
+dags_folder = Path(__file__).parents[2]
+
 
 @dataclass
 class PublicSourceInfo:
@@ -69,6 +72,10 @@ def _get_public_data_json() -> list[PublicSourceInfo]:
 
 class PublicSourceDag:
     __version__: ClassVar[int] = 1
+    # Every source declared by a DAG file imported in the current process, keyed by dag_id. A worker
+    # only imports the file holding the task it was given, so a reader has to load the DagBag first
+    # — see sync_public_databases_file.
+    _registered: ClassVar[dict[str, 'PublicSourceDag']] = {}
     params={
         'skip_if_not_new_version': Param('yes', enum=['yes', 'no']),
     }
@@ -98,8 +105,16 @@ class PublicSourceDag:
         self.schedule = get_schedule_by_env(schedule)
         self.last_version = last_version
         self.is_new_version = is_new_version
-        if add_to_file and "pytest" not in sys.modules: # Disable this section for tests (s3 config does not exist)
-            self._addpublic_source_to_data_file()
+        # False for the sources deliberately kept out of the file (gnomAD constraint/CNV/SV, HPO
+        # terms), and when deserialize() rehydrates an instance from XCom — the latter is not a
+        # declaration, and since serialize() drops 'schedule' it would register a null frequency.
+        if add_to_file:
+            PublicSourceDag._registered[self.dag_id] = self
+
+
+    @classmethod
+    def registered(cls) -> list['PublicSourceDag']:
+        return list(cls._registered.values())
 
 
     def serialize(self) -> dict[str, Any]:
@@ -129,31 +144,20 @@ class PublicSourceDag:
         )
     
 
-    def _addpublic_source_to_data_file(self):
-        source_info = _init_last_update(self.get_info())
-        public_sources = _get_public_data_json()
-        exist = False
-        for entry in public_sources:
-            if entry.dag_id == self.dag_id:
-                entry.source = source_info.source
-                entry.url = source_info.url
-                entry.frequency = source_info.frequency
-                exist = True
-                break
-
-        # The lock is automatically acquired and released when the with block is exited
-        with lock:
-            if not exist:
-                public_sources.append(source_info)
-            s3.load_string(_public_sources_to_json(public_sources), s3_public_data_file_key, s3_public_bucket, replace=True)
-            logging.info(f"PublicSource entry '{self.dag_id}' added to '{s3_public_data_file_key}'")
-
-
     def get_current_version(self, version_key: str = None) -> str:
         version = get_s3_file_version(s3, self.s3_bucket, f'{self.s3_key}/{self.name}')
         if version and version_key:
             return ast.literal_eval(version)[version_key]
         return version
+
+
+    def get_published_version(self) -> str:
+        """Version recorded by the last successful run of this DAG (written by update_public_data_info).
+
+        Useful for manually deposited sources, where the S3 version marker is maintained by hand
+        and therefore cannot serve as the 'already imported' reference.
+        """
+        return next((entry.version for entry in _get_public_data_json() if entry.dag_id == self.dag_id), None)
 
 
     def set_last_version(self, version: str, version_key: str = None):
@@ -240,24 +244,73 @@ class PublicSourceDag:
 
 @task(task_id='update_public_data_info', trigger_rule=TriggerRule.NONE_FAILED, on_success_callback=Slack.notify_dag_completion)
 def update_public_data_info(dag_data: PublicSourceDag, **context):
-    # The lock is automatically acquired and released when the with block is exited
-    with lock:
-        dag_id = context['dag'].dag_id
-        version = dag_data.last_version
-        logging.info(f"Updating public data info for dag '{dag_id}' with version '{version}'")
-        # Check if the entry already exists
-        public_sources = _get_public_data_json()
-        for entry in public_sources:
-            if entry.dag_id == dag_id:
-                entry.lastUpdate = datetime.now().isoformat()
-                entry.version = version if version else entry.version
-                entry.frequency = context['dag'].schedule_interval if context['dag'].schedule_interval else ""
-                break
-        else:
-            raise Exception(f"PublicSource entry '{dag_id}' not found")
+    """Publish the run outcome. Owns 'version' and 'lastUpdate'.
 
-        # Save to S3
-        s3.load_string(_public_sources_to_json(public_sources), s3_public_data_file_key, s3_public_bucket, replace=True)
+    'source', 'url' and 'frequency' belong to sync_public_databases_file and are only written here
+    to create a missing entry, so that a source added between two of its runs does not fail its
+    first import.
+    """
+    dag = context['dag']
+    version = dag_data.last_version
+    logging.info(f"Updating public data info for dag '{dag.dag_id}' with version '{version}'")
+
+    public_sources = _get_public_data_json()
+    entry = next((e for e in public_sources if e.dag_id == dag.dag_id), None)
+    if entry is None:
+        logging.warning(f"PublicSource entry '{dag.dag_id}' not found, creating it — "
+                        f"'{init_public_databases_dag_id}' has not run since this source was added")
+        entry = dag_data.get_info()
+        # serialize() drops 'schedule', so a dag_data rehydrated from XCom cannot supply the
+        # frequency. The DAG is built with the source's own schedule, so its interval is the
+        # same value sync_public_databases_file would write.
+        entry.frequency = dag.schedule_interval
+        public_sources.append(entry)
+
+    entry.lastUpdate = datetime.now().isoformat()
+    entry.version = version if version else entry.version
+
+    # Save to S3
+    s3.load_string(_public_sources_to_json(public_sources), s3_public_data_file_key, s3_public_bucket, replace=True)
+
+
+@task(task_id='sync_public_databases_file')
+def sync_public_databases_file():
+    """Register every public source and refresh 'source', 'url' and 'frequency'.
+
+    Single writer for those three fields: doing it at DAG parse time meant a read-modify-write on
+    this one S3 object on every parse cycle of every DAG file, racing with the 'version' /
+    'lastUpdate' published by update_public_data_info.
+    """
+    # Loading the DagBag executes every DAG file in this process, which is what fills the registry
+    # — a worker otherwise only imports the file holding the task it was given.
+    dag_bag = DagBag(dag_folder=str(dags_folder), include_examples=False)
+    if dag_bag.import_errors:
+        logging.warning(f'DAG files failed to import, their sources may be missing: '
+                        f'{sorted(dag_bag.import_errors)}')
+
+    sources = PublicSourceDag.registered()
+    logging.info(f'{len(sources)} public sources registered: {sorted(s.dag_id for s in sources)}')
+
+    public_sources = _get_public_data_json()
+    by_dag_id = {entry.dag_id: entry for entry in public_sources}
+    added, refreshed = [], []
+
+    for source in sources:
+        entry = by_dag_id.get(source.dag_id)
+        metadata = (source.display_name, source.website, source.schedule)
+        if entry is None:
+            public_sources.append(_init_last_update(source.get_info()))
+            added.append(source.dag_id)
+        elif (entry.source, entry.url, entry.frequency) != metadata:
+            entry.source, entry.url, entry.frequency = metadata
+            refreshed.append(source.dag_id)
+
+    if not added and not refreshed:
+        logging.info(f"'{s3_public_data_file_key}' already up to date")
+        return
+
+    s3.load_string(_public_sources_to_json(public_sources), s3_public_data_file_key, s3_public_bucket, replace=True)
+    logging.info(f"'{s3_public_data_file_key}' saved — added: {added}, refreshed: {refreshed}")
 
 
 def should_continue(dag_data: PublicSourceDag):
