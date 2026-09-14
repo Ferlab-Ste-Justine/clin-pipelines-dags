@@ -1,13 +1,14 @@
+from datetime import timedelta
 from typing import List
 
-from lib.config import Env, chromosomes_2, chromosomes_4, chromosomes_14, env
+from lib.config import Env, chromosomes_2, chromosomes_4, chromosomes_18, env
 from lib.operators.spark_etl import SparkETLOperator
 from lib.utils_etl import ClinAnalysis
 
 ENRICHED_MAIN_CLASS = 'bio.ferlab.clin.etl.enriched.RunEnriched'
 
 SNV_CHROMOSOME_GROUPS = {Env.PROD: chromosomes_4, Env.STAGING: chromosomes_2}
-VARIANTS_CHROMOSOME_GROUPS = {Env.PROD: chromosomes_14, Env.STAGING: chromosomes_4}
+VARIANTS_CHROMOSOME_GROUPS = {Env.PROD: chromosomes_18, Env.STAGING: chromosomes_4}
 
 
 def snv(steps: str, spark_jar: str = '', task_id: str = 'snv', name: str = 'etl-enrich-snv',
@@ -98,6 +99,8 @@ def variants(steps: str = 'initial', spark_jar: str = '', task_id: str = 'varian
             spark_jar=spark_jar,
             skip=skip,
             max_active_tis_per_dag=1,  # concurrent OverWritePartition, set to 1 if issues arise
+            retries=1,  # each mapped chromosome group retries on its own
+            retry_delay=timedelta(minutes=1),
             **kwargs
         ).expand(chromosome=chromosome_groups)
     else:
