@@ -141,6 +141,70 @@ chromosomes_14 = [
     "chr10, chr14",
     "chr8, chr16"
 ]
+chromosomes_16 = [
+    "chr1",
+    "chr2",
+    "chr8, chrX",
+    "chr10, chr22",
+    "chr9, chr20",
+    "chr13, chr16",
+    "chr14, chr15",
+    "chr4, chr18",
+    "chr5, chr21",
+    "chr3",
+    "chr19",
+    "chr7",
+    "chr6",
+    "chr12, chrY",
+    "chr17",
+    "chr11"
+]
+chromosomes_18 = [
+    "chr1",
+    "chr2",
+    "chr8, chr18",
+    "chr15, chr22",
+    "chr9, chr21",
+    "chr13, chr14",
+    "chr3",
+    "chr19",
+    "chr7",
+    "chr20, chrX",
+    "chr6",
+    "chr17",
+    "chr11",
+    "chr12",
+    "chr5",
+    "chr4",
+    "chr10",
+    "chr16, chrY"
+]
+chromosomes_24 = [  # one chromosome per task, heaviest first
+    "chr1",
+    "chr2",
+    "chr3",
+    "chr19",
+    "chr7",
+    "chr6",
+    "chr17",
+    "chr11",
+    "chr12",
+    "chr5",
+    "chr4",
+    "chr10",
+    "chr16",
+    "chr9",
+    "chr8",
+    "chr15",
+    "chr14",
+    "chrX",
+    "chr20",
+    "chr13",
+    "chr22",
+    "chr18",
+    "chr21",
+    "chrY"
+]
 
 if env == Env.TEST:
     fhir_image = 'ferlabcrsj/clin-fhir'
@@ -161,7 +225,7 @@ elif env == Env.QA:
     pipeline_image = 'ferlabcrsj/clin-pipelines'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.38.5.jar'
+    spark_jar = 'clin-variant-etl-v3.38.6.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar' # deploy from https://github.com/Ferlab-Ste-Justine/obo-parser/tree/clin-v1.x.0
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -182,7 +246,7 @@ elif env == Env.STAGING:
     pipeline_image = 'ferlabcrsj/clin-pipelines:2ff51ed'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'http://elasticsearch:9200'
-    spark_jar = 'clin-variant-etl-v3.38.5.jar'
+    spark_jar = 'clin-variant-etl-v3.38.6.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ingress-ca-certificate'
     minio_certificate = 'minio-ca-certificate'
@@ -196,7 +260,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:2ff51ed'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.38.5.jar'
+    spark_jar = 'clin-variant-etl-v3.38.6.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
