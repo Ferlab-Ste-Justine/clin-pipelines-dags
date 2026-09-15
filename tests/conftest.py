@@ -26,7 +26,7 @@ MOCK_VARIABLES = {
     'franklin_password': 'test',
 }
 
-MINIO_IMAGE = "minio/minio:latest"
+MINIO_IMAGE = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"  # Docker Hub minio/minio no longer pullable
 MINIO_ACCESS_KEY = "admin"
 MINIO_SECRET_KEY = "password"
 MINIO_API_PORT = 9000
