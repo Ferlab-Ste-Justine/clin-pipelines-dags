@@ -242,7 +242,7 @@ elif env == Env.QA:
         '5_data_to_import_etl_run',
     ]
 elif env == Env.STAGING:
-    fhir_image = 'ferlabcrsj/clin-fhir:d830a6e'
+    fhir_image = 'ferlabcrsj/clin-fhir:11e60f1'
     pipeline_image = 'ferlabcrsj/clin-pipelines:1b4579a'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'http://elasticsearch:9200'
@@ -256,7 +256,7 @@ elif env == Env.STAGING:
     franklin_assay_id = '2765500d-8728-4830-94b5-269c306dbe71'
     batch_ids = [] # automatic dags/lib/tasks/batch_type:get_all_batch_ids
 elif env == Env.PROD:
-    fhir_image = 'ferlabcrsj/clin-fhir:d830a6e'
+    fhir_image = 'ferlabcrsj/clin-fhir:11e60f1'
     pipeline_image = 'ferlabcrsj/clin-pipelines:1b4579a'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
