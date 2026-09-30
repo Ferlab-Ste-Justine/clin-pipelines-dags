@@ -53,7 +53,7 @@ nextflow_cnv_post_processing_revision = 'v1.0.0'
 #######################################
 nextflow_svclustering_pipeline = 'Ferlab-Ste-Justine/ferlab-svclustering'
 nextflow_svclustering_parental_origin_pipeline = 'Ferlab-Ste-Justine/ferlab-svclustering-parental-origin'
-nextflow_post_processing_pipeline = 'Ferlab-Ste-Justine/Post-processing-Pipeline'
+nextflow_post_processing_pipeline = 'Ferlab-Ste-Justine/snv-post-processing'
 nextflow_cnv_post_processing_pipeline = 'Ferlab-Ste-Justine/cnv-post-processing'
 
 
