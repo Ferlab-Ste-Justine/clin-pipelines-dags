@@ -260,7 +260,7 @@ elif env == Env.PROD:
     pipeline_image = 'ferlabcrsj/clin-pipelines:1b4579a'
     panels_image = 'ferlabcrsj/clin-panels:924fafb6b9698c004a77094f31a04f16f6681256-1771008039'
     es_url = 'https://workers.search.cqgc.hsj.rtss.qc.ca:9200'
-    spark_jar = 'clin-variant-etl-v3.38.7.jar'
+    spark_jar = 'clin-variant-etl-v3.38.8.jar'
     obo_parser_spark_jar = 'obo-parser-v1.1.0.jar'
     ca_certificates = 'ca-certificates-bundle'
     minio_certificate = 'ca-certificates-bundle'
