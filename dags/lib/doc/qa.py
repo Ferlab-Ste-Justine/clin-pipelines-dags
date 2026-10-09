@@ -47,6 +47,15 @@ L'échec d'un de ces tests bloque l'exécution du DAG.
 - Entre les tables normalized_snv et variants
 - Entre les tables variants et variant_centric
 
+## Série de tests sur la cohérence des annotations COSMIC
+
+### Fonctionnement des tests
+- Rejouer l'appariement par transcrit Ensembl et notation HGVS c.
+- Vérifier que la position génomique des deux côtés reste cohérente
+
+### Différents tests
+- Position des appariements COSMIC obtenus par notation HGVS
+
 ---
 Pour plus de détails sur chaque test, voir "Task Instance Details".
 '''
@@ -181,4 +190,11 @@ same_list_variants_variant_centric = '''
 ### Documentation
 - Test : Liste des variants - Entre les tables variants et variant_centric
 - Objectif : La liste des variants dans la table variants est la même que dans la table variant_centric
+'''
+
+cosmic_hgvs_position = '''
+### Documentation
+- Test : Cohérence des positions - Appariement COSMIC par notation HGVS
+- Objectif : Un appariement dont la position génomique s'écarte de plus que la longueur de l'événement signale une dérive de numérotation entre versions de transcrits Ensembl
+- Note : L'ambiguïté d'alignement en région répétitive reste sous ce seuil et ne déclenche rien
 '''
