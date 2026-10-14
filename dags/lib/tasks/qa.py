@@ -310,16 +310,3 @@ def same_list_variants_variant_centric(spark_jar: str) -> SparkOperator:
         skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
     )
 
-
-def cosmic_hgvs_position(spark_jar: str) -> SparkOperator:
-    return SparkOperator(
-        task_id='cosmic_hgvs_position',
-        doc_md=doc.cosmic_hgvs_position,
-        name='etl-qc-cosmic-hgvs-position',
-        k8s_context=K8sContext.ETL,
-        spark_class='bio.ferlab.clin.etl.qc.variantlist.CosmicHgvsPositionConsistency',
-        spark_config='config-etl-medium',
-        spark_jar=spark_jar,
-        arguments=['clin' + env_url('_')],
-        skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
-    )
