@@ -1,6 +1,8 @@
 import http.client
 import logging
 import ssl
+import time
+import urllib.request
 from pathlib import Path
 from typing import List
 from unittest.mock import patch
@@ -11,7 +13,6 @@ import pytest
 from airflow.models import Connection
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from testcontainers.core.container import DockerContainer
-from testcontainers.core.waiting_utils import wait_for_logs
 
 DAGS_DIR = Path(__file__).parent.parent / 'dags'
 RESOURCES_DIR = Path(__file__).parent / 'resources'
@@ -26,14 +27,14 @@ MOCK_VARIABLES = {
     'franklin_password': 'test',
 }
 
-MINIO_IMAGE = "quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z"  # Docker Hub minio/minio no longer pullable
-MINIO_ACCESS_KEY = "admin"
-MINIO_SECRET_KEY = "password"
-MINIO_API_PORT = 9000
-MINIO_CONSOLE_PORT = 9001
+RUSTFS_IMAGE = "rustfs/rustfs:1.0.0"  # S3-compatible replacement for MinIO, whose images are no longer available
+RUSTFS_ACCESS_KEY = "admin"
+RUSTFS_SECRET_KEY = "password"
+RUSTFS_API_PORT = 9000
+RUSTFS_CONSOLE_PORT = 9001
 
 
-class MinioInstance:
+class S3Instance:
     def __init__(self, host, api_port, console_port, access_key, secret_key):
         self.host = host
         self.api_port = api_port
@@ -53,55 +54,70 @@ def mock_airflow_variables():
         yield
 
 
+def wait_for_s3_ready(endpoint: str, timeout: int = 30):
+    # RustFS logs to a file rather than stdout, so poll its health endpoint instead of waiting for logs
+    deadline = time.time() + timeout
+    while True:
+        try:
+            with urllib.request.urlopen(f"{endpoint}/health", timeout=2) as response:
+                if response.status == 200:
+                    return
+        except OSError:
+            pass
+        if time.time() > deadline:
+            raise TimeoutError(f"S3 endpoint {endpoint} not ready after {timeout}s")
+        time.sleep(0.5)
+
+
 @pytest.fixture(scope="session")
-def start_minio_container():
+def start_s3_container():
     containers = {}
     client = docker.from_env()
 
-    def _start_minio_container(name):
-        logging.info(f"Starting MinIO container with name: {name}")
+    def _start_s3_container(name):
+        logging.info(f"Starting RustFS container with name: {name}")
         if name in containers:
-            logging.info(f"Using existing MinIO instance for {name}")
+            logging.info(f"Using existing RustFS instance for {name}")
             return containers[name]
 
         for container in client.containers.list():
             if name in container.name:
                 logging.info(f"Found existing container with name: {name}")
                 ports = container.attrs["NetworkSettings"]["Ports"]
-                api_port = ports[f"{MINIO_API_PORT}/tcp"][0]["HostPort"]
-                console_port = ports[f"{MINIO_CONSOLE_PORT}/tcp"][0]["HostPort"]
-                instance = MinioInstance("localhost", api_port, console_port, MINIO_ACCESS_KEY, MINIO_SECRET_KEY)
+                api_port = ports[f"{RUSTFS_API_PORT}/tcp"][0]["HostPort"]
+                console_port = ports[f"{RUSTFS_CONSOLE_PORT}/tcp"][0]["HostPort"]
+                instance = S3Instance("localhost", api_port, console_port, RUSTFS_ACCESS_KEY, RUSTFS_SECRET_KEY)
                 containers[name] = instance
                 return instance  # No tear down, just return existing instance
 
-        logging.info(f"Creating new MinIO container with name: {name}")
+        logging.info(f"Creating new RustFS container with name: {name}")
         container = (
-            DockerContainer(MINIO_IMAGE)
+            DockerContainer(RUSTFS_IMAGE)
             .with_name(name)
-            .with_env("MINIO_ROOT_USER", MINIO_ACCESS_KEY)
-            .with_env("MINIO_ROOT_PASSWORD", MINIO_SECRET_KEY)
-            .with_exposed_ports(MINIO_API_PORT, MINIO_CONSOLE_PORT)
-            .with_command("server /data --console-address ':9001'")
+            .with_env("RUSTFS_ACCESS_KEY", RUSTFS_ACCESS_KEY)
+            .with_env("RUSTFS_SECRET_KEY", RUSTFS_SECRET_KEY)
+            .with_env("RUSTFS_CONSOLE_ENABLE", "true")
+            .with_exposed_ports(RUSTFS_API_PORT, RUSTFS_CONSOLE_PORT)
         )
         container.start()
-        wait_for_logs(container, "API:", timeout=30)
 
-        api_port = container.get_exposed_port(MINIO_API_PORT)
-        console_port = container.get_exposed_port(MINIO_CONSOLE_PORT)
+        api_port = container.get_exposed_port(RUSTFS_API_PORT)
+        console_port = container.get_exposed_port(RUSTFS_CONSOLE_PORT)
 
-        instance = MinioInstance("localhost", api_port, console_port, MINIO_ACCESS_KEY, MINIO_SECRET_KEY)
+        instance = S3Instance(container.get_container_host_ip(), api_port, console_port, RUSTFS_ACCESS_KEY, RUSTFS_SECRET_KEY)
+        wait_for_s3_ready(instance.endpoint)
         containers[name] = instance
         return instance
 
-    yield _start_minio_container
+    yield _start_s3_container
 
     for name in containers:
-        logging.info(f"Tearing down MinIO container with name: {name}")
+        logging.info(f"Tearing down RustFS container with name: {name}")
         container = client.containers.get(name)
-        container.stop()
+        container.remove(force=True)  # Remove, not just stop, so the name is free for the next run
 
 
-def create_airflow_s3_connection(conn_id, minio_instance: MinioInstance):
+def create_airflow_s3_connection(conn_id, s3_instance: S3Instance):
     session = airflow.settings.Session()
 
     # Overwrite existing connection if it exists
@@ -115,9 +131,9 @@ def create_airflow_s3_connection(conn_id, minio_instance: MinioInstance):
         conn_id=conn_id,
         conn_type="aws",
         extra={
-            "endpoint_url": minio_instance.endpoint,
-            "aws_access_key_id": minio_instance.access_key,
-            "aws_secret_access_key": minio_instance.secret_key,
+            "endpoint_url": s3_instance.endpoint,
+            "aws_access_key_id": s3_instance.access_key,
+            "aws_secret_access_key": s3_instance.secret_key,
             "region_name": "us-east-1",
             "addressing_style": "path"
         }
@@ -127,10 +143,10 @@ def create_airflow_s3_connection(conn_id, minio_instance: MinioInstance):
 
 
 @pytest.fixture(scope="session")
-def get_s3_hook(start_minio_container):
+def get_s3_hook(start_s3_container):
     def _start_container_and_create_conn(name):
-        minio_instance = start_minio_container(name)
-        create_airflow_s3_connection(name, minio_instance)
+        s3_instance = start_s3_container(name)
+        create_airflow_s3_connection(name, s3_instance)
         return S3Hook(aws_conn_id=name)
 
     return _start_container_and_create_conn
