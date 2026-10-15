@@ -309,3 +309,4 @@ def same_list_variants_variant_centric(spark_jar: str) -> SparkOperator:
         arguments=['clin' + env_url('_')],
         skip_fail_env=[Env.QA, Env.STAGING, Env.PROD],
     )
+
