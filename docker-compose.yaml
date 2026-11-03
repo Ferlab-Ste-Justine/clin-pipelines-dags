@@ -166,8 +166,13 @@ services:
         condition: service_completed_successfully
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z # Docker Hub minio/minio no longer pullable
-    command: server /data --console-address ":9001"
+    # RustFS replaced MinIO: MinIO pulled its images from Docker Hub and quay.io. Same S3 API, keys kept so the README connection still works.
+    image: rustfs/rustfs:1.0.0
+    user: root # image runs as "rustfs" by default, which cannot write a root-owned MinIO-era data dir or volume
+    environment:
+      RUSTFS_ACCESS_KEY: minioadmin
+      RUSTFS_SECRET_KEY: minioadmin
+      RUSTFS_CONSOLE_ENABLE: "true"
     ports:
       - ${MINIO_PORT}:9000
       - ${MINIO_UI_PORT}:9001
