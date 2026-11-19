@@ -6,7 +6,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.models.param import Param
 from airflow.operators.empty import EmptyOperator
 from airflow.utils.trigger_rule import TriggerRule
-from lib.config import K8sContext, env, es_url
+from lib.config import K8sContext, es_url
 from lib.operators.curl import CurlOperator
 from lib.slack import Slack
 from lib.tasks import es
@@ -61,37 +61,14 @@ with DAG(
 
     params_action_validate = validate_action_params(delete_release(), delete_variant_release(), test_duplicated_variants(), release_id())
 
-    es_delete_release = CurlOperator(
-        task_id='es_delete_release',
-        name='es-delete-release',
-        k8s_context=K8sContext.DEFAULT,
-        skip=skip_if_param_not(delete_release(), "yes"),
-        arguments=[
-            '-k', '--location', '--request', 'DELETE', '{es_url}/clin_{env}{under_color}_gene_suggestions_{release_id},clin_{env}{under_color}_variant_suggestions_{release_id},clin_{env}{under_color}_gene_centric_{release_id},clin_{env}{under_color}_variant_centric_{release_id},clin_{env}{under_color}_cnv_centric_{release_id},clin_{env}{under_color}_coverage_by_gene_centric_{release_id}?ignore_unavailable=true'
-            .format(
-                es_url=es_url,
-                env=env,
-                release_id=release_id(),
-                under_color=color('_'),
-                ),
-        ],
-    )
+    es_delete_release = es.delete_release.override(task_id='es_delete_release')(
+        index_names=['gene_suggestions', 'variant_suggestions', 'gene_centric', 'variant_centric', 'cnv_centric',
+                     'coverage_by_gene_centric'],
+        release_id=release_id(), color=color('_'), skip=skip_if_param_not(delete_release(), "yes"))
 
-    es_delete_variant_release = CurlOperator(
-        task_id='es_delete_variant_release',
-        name='es-delete-variant-release',
-        k8s_context=K8sContext.DEFAULT,
-        skip=skip_if_param_not(delete_variant_release(), "yes"),
-        arguments=[
-            '-k', '--location', '--request', 'DELETE', '{es_url}/clin_{env}{under_color}_variant_centric_{release_id}?ignore_unavailable=true'
-            .format(
-                es_url=es_url,
-                env=env,
-                release_id=release_id(),
-                under_color=color('_'),
-                ),
-        ],
-    )
+    es_delete_variant_release = es.delete_release.override(task_id='es_delete_variant_release')(
+        index_names=['variant_centric'],
+        release_id=release_id(), color=color('_'), skip=skip_if_param_not(delete_variant_release(), "yes"))
 
     es_test_duplicated_release_variant = es.test_duplicated_by_url \
         .override(task_id='es_test_duplicated_release_variant')(
