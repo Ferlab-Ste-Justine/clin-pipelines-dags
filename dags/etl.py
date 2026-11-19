@@ -288,7 +288,13 @@ with DAG(
             }
         )
 
-        get_previous_variant_centric_release_task >> delete_previous_variant_centric_index
+        # live release serves the UI unreplicated while the new one is indexed, frees one full copy
+        disable_live_variant_centric_replicas = es.set_previous_release_replicas \
+            .override(task_id='disable_live_variant_centric_replicas')(
+                index_name='variant_centric', release_id=release_id('variant_centric'), color=underscore_color,
+                replicas=0, skip=skip_delete_previous_releases())
+
+        get_previous_variant_centric_release_task >> delete_previous_variant_centric_index >> disable_live_variant_centric_replicas
 
     index_group = index(
         color=underscore_color,
