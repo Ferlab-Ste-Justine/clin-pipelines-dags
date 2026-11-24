@@ -49,7 +49,12 @@ All datas (Airflow logs, Minio files, postgres data) are in: ```data/```.
 make setup
 ```
 
-2. Deploy stack :
+1. Create the minio buckets :
+```zsh
+make create_buckets
+```
+
+3. Deploy stack :
 ```zsh
 make start
 ```
