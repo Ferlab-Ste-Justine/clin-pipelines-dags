@@ -111,6 +111,23 @@ def test_set_previous_release_replicas():
         assert requests.put.call_args.kwargs['json'] == {'index': {'number_of_replicas': 0}}
 
 
+def test_set_previous_release_replicas_none_color():
+    from dags.lib.tasks.es import set_previous_release_replicas
+    with mock.patch('dags.lib.tasks.es.requests') as requests:
+        requests.put.return_value = _response()
+        set_previous_release_replicas.function('variant_centric', 're_010', None, 0)
+        assert '/clin_test_variant_centric_re_009/_settings' in requests.put.call_args.args[0]
+
+
+def test_delete_previous_release_none_color():
+    from dags.lib.tasks.es import delete_previous_release
+    with mock.patch('dags.lib.tasks.es.requests') as requests:
+        requests.get.return_value = _response(status_code=404)
+        requests.delete.return_value = _response()
+        delete_previous_release.function('variant_centric', 're_010', None)
+        assert '/clin_test_variant_centric_re_008?' in requests.delete.call_args.args[0]
+
+
 def test_set_previous_release_replicas_missing_index():
     from dags.lib.tasks.es import set_previous_release_replicas
     with mock.patch('dags.lib.tasks.es.requests') as requests:

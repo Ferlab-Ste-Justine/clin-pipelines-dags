@@ -34,6 +34,7 @@ def get_live_indices(index_name: str, color: str) -> list:
 
 def delete_release_indices(index_names: list, release: str, color: str):
     check_release_format(release)
+    color = color or ''  # native rendering turns '' into None
     indices = {name: f'clin_{env}{color}_{name}_{release}' for name in index_names}
 
     # never delete what the alias still serves, checked for all before deleting any
@@ -71,6 +72,7 @@ def set_previous_release_replicas(index_name: str, release_id: str, color: str, 
         raise AirflowSkipException()
 
     previous_release = get_previous_release(release_id, 1)
+    color = color or ''  # native rendering turns '' into None
     index = f'clin_{env}{color}_{index_name}_{previous_release}'
 
     logging.info(f'Set number_of_replicas={replicas} for index: {index}')
